@@ -473,6 +473,62 @@
   .link-btn.armed{color:var(--again); font-weight:700; text-decoration:none;}
   .btn.ghost.armed{background:var(--again-soft); border-color:var(--again); color:var(--again);}
 
+  /* ---------- homepage / pack grid ---------- */
+  .topbar-left{display:flex; gap:14px; align-items:center;}
+  .back-link{
+    background:none; border:none; color:var(--ink-soft); font-size:0.85rem; font-weight:600;
+    cursor:pointer; padding:0; display:inline-flex; align-items:center; gap:6px;
+  }
+  .back-link:hover{color:var(--ink);}
+  .pack-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; margin-top:6px;}
+  .pack-tile{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:20px 20px 18px; box-shadow:var(--shadow-soft); cursor:pointer; text-align:left;
+    display:flex; flex-direction:column; gap:10px; font:inherit; color:inherit;
+    transition:border-color .12s ease, transform .12s ease;
+  }
+  .pack-tile:hover{border-color:var(--border-strong); transform:translateY(-1px);}
+  .pack-tile h3{font-size:1.12rem; font-weight:600;}
+  .pack-tagline{margin:0; font-size:0.82rem; color:var(--ink-soft); line-height:1.4;}
+  .pack-progress-track{height:5px; border-radius:999px; background:var(--surface-3); overflow:hidden;}
+  .pack-progress-fill{height:100%; background:var(--good); border-radius:999px; width:0%;}
+  .pack-stats-row{display:flex; gap:14px; flex-wrap:wrap; font-size:0.76rem; color:var(--ink-soft);}
+  .pack-stats-row b{color:var(--ink); font-weight:600;}
+  .pack-tile-add{
+    border-style:dashed; opacity:0.65; cursor:default; align-items:center; text-align:center;
+  }
+  .pack-tile-add:hover{border-color:var(--border); transform:none;}
+  .pack-add-icon{
+    width:34px; height:34px; border-radius:50%; border:1px dashed var(--border-strong);
+    display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--ink-faint);
+    margin:0 auto;
+  }
+  .pack-tile-add h3{font-size:0.98rem;}
+
+  /* ---------- card editor ---------- */
+  .card-edit-group{display:flex; flex-direction:column; gap:9px; margin-bottom:26px;}
+  .card-edit-row{
+    position:relative; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:12px 14px;
+  }
+  .cer-q{font-weight:600; font-size:0.94rem; margin-bottom:4px; padding-right:60px;}
+  .cer-a, .cer-w{font-size:0.84rem; color:var(--ink-soft); line-height:1.4; margin:0 0 2px;}
+  .cer-a b, .cer-w b{color:var(--ink-faint); font-weight:700;}
+  .cer-actions{margin-top:9px; display:flex; gap:14px; align-items:center;}
+  .cer-input{
+    display:block; width:100%; font:inherit; font-size:0.85rem; color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:var(--radius-s); padding:8px 10px; margin:0 0 9px;
+    resize:vertical; box-sizing:border-box;
+  }
+  .cer-input-label{
+    display:block; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:700;
+    color:var(--ink-faint); margin:0 0 4px;
+  }
+  .cer-edited-badge{
+    position:absolute; top:12px; right:14px; font-size:0.66rem; font-weight:700; color:var(--accent);
+    background:var(--accent-soft); padding:2px 9px; border-radius:999px;
+  }
+
   @media (max-width:600px){
     .card-question{font-size:1.25rem;}
     .grade-row{grid-template-columns:repeat(2,1fr);}
@@ -524,15 +580,62 @@
   </div>
 </div>
 
-<div class="shell" id="appShell" hidden>
+<div class="shell" id="homeShell" hidden>
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H14V16H5.5C4.67 16 4 16.67 4 17.5V5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 17.5C4 18.33 4.67 19 5.5 19H18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 4H18.5C19.33 4 20 4.67 20 5.5V17.5C20 18.33 19.33 19 18.5 19H14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
       </div>
       <div>
-        <h1>Lean UX Drills</h1>
-        <p class="tagline">Spaced-repetition practice from the Lean UX notes</p>
+        <h1>Your Flashcards</h1>
+        <p class="tagline">Pick a pack to keep studying</p>
+      </div>
+    </div>
+    <button class="icon-btn" id="homeSettingsBtn" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.5"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V19.7a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H4.3a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34H10.5a1.7 1.7 0 0 0 1.03-1.56V4.3a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0-.34 1.87V10.5a1.7 1.7 0 0 0 1.56 1.03h.09a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.56 1.03Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    </button>
+  </header>
+
+  <section id="home-list-view">
+    <div class="pack-grid" id="packGrid"></div>
+  </section>
+
+  <section id="home-settings-view" hidden>
+    <button class="back-link" id="settingsBackBtn">&larr; Back to packs</button>
+    <p class="section-title" style="margin-top:22px;">Account</p>
+    <div class="settings-card">
+      <p class="settings-row">Signed in as <b id="authEmailLabel"></b></p>
+      <button class="btn ghost" id="changePasswordBtn">Change password</button>
+      <div class="settings-row settings-password-row" id="changePasswordRow" hidden>
+        <input type="password" id="newPasswordInput" placeholder="New password (8+ characters)" autocomplete="new-password">
+        <button class="btn" id="savePasswordBtn">Save</button>
+        <span id="changePasswordStatus" class="settings-status"></span>
+      </div>
+      <button class="link-btn" id="signOutBtn">Sign out</button>
+    </div>
+
+    <p class="section-title">Danger zone</p>
+    <div class="settings-card">
+      <p class="settings-row">Resetting clears every pack's schedule and history. This can't be undone.</p>
+      <button class="link-btn" id="resetBtn">Reset all progress</button>
+    </div>
+  </section>
+</div>
+
+<div class="shell" id="appShell" hidden>
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn" id="packBackBtn" title="Back to your packs" aria-label="Back to your packs">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H14V16H5.5C4.67 16 4 16.67 4 17.5V5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 17.5C4 18.33 4.67 19 5.5 19H18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 4H18.5C19.33 4 20 4.67 20 5.5V17.5C20 18.33 19.33 19 18.5 19H14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h1 id="packBrandTitle">Lean UX Drills</h1>
+          <p class="tagline" id="packBrandTagline">Spaced-repetition practice from the Lean UX notes</p>
+        </div>
       </div>
     </div>
     <div class="stats-strip">
@@ -555,7 +658,7 @@
     <button class="tab active" data-tab="study">Study</button>
     <button class="tab" data-tab="calendar">Calendar</button>
     <button class="tab" data-tab="progress">Progress</button>
-    <button class="tab" data-tab="settings">Settings</button>
+    <button class="tab" data-tab="cards">Cards</button>
   </nav>
 
   <main>
@@ -660,24 +763,9 @@
       <div class="heatmap" id="activityHeatmap"></div>
     </section>
 
-    <section class="view" id="view-settings">
-      <p class="section-title">Account</p>
-      <div class="settings-card">
-        <p class="settings-row">Signed in as <b id="authEmailLabel"></b></p>
-        <button class="btn ghost" id="changePasswordBtn">Change password</button>
-        <div class="settings-row settings-password-row" id="changePasswordRow" hidden>
-          <input type="password" id="newPasswordInput" placeholder="New password (8+ characters)" autocomplete="new-password">
-          <button class="btn" id="savePasswordBtn">Save</button>
-          <span id="changePasswordStatus" class="settings-status"></span>
-        </div>
-        <button class="link-btn" id="signOutBtn">Sign out</button>
-      </div>
-
-      <p class="section-title">Danger zone</p>
-      <div class="settings-card">
-        <p class="settings-row">Resetting clears every card's schedule and your entire history. This can't be undone.</p>
-        <button class="link-btn" id="resetBtn">Reset all progress</button>
-      </div>
+    <section class="view" id="view-cards">
+      <p class="section-title">Edit cards</p>
+      <div id="cardsEditorList"></div>
     </section>
   </main>
 </div>
@@ -810,6 +898,20 @@ const CARDS = [
 ];
 const CARD_BY_ID = Object.fromEntries(CARDS.map(c=>[c.id,c]));
 
+/* ============================== PACKS ==============================
+   Registry of flashcard packs. Only one pack exists today, but state is
+   already keyed by pack id (see STATE below) so adding real pack creation
+   later — file upload, AI research, or manual entry — doesn't require
+   another data migration. */
+const PACKS_META = [
+  {id:"lean-ux", name:"Lean UX Drills", tagline:"Spaced-repetition practice from the Lean UX notes", themes:THEMES, cards:CARDS}
+];
+const PACK_BY_ID = Object.fromEntries(PACKS_META.map(p=>[p.id,p]));
+
+function escHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
 /* ============================== DATE HELPERS ==============================
    "Today" is anchored to UTC, not the device's local clock. Local-time day
    boundaries mean two devices in different timezones (or one device whose
@@ -852,23 +954,62 @@ const INTRO_ORDER = buildIntroOrder();
 const INTRO_INDEX = Object.fromEntries(INTRO_ORDER.map((id,i)=>[id,i]));
 function introDayFor(cardId){
   const idx = INTRO_INDEX[cardId];
-  return addDays(state.startDate, Math.floor(idx / CARDS_PER_DAY));
+  return addDays(pack().startDate, Math.floor(idx / CARDS_PER_DAY));
 }
 
-/* ============================== STATE ============================== */
+/* ============================== STATE ==============================
+   State is keyed per-pack (state.packs[packId]) so each pack's schedule,
+   history and streak stay independent of every other pack. currentPackId
+   selects which pack pack() reads/writes; it's null on the homepage, where
+   no pack-scoped function should be called. */
 const LS_KEY = "leanux-flashcards-state-v1";
 
-function defaultState(){
+function defaultPackState(){
   return {
     cards:{},            // id -> {ef, reps, interval, due, last, lapses}
     history:{},          // "YYYY-MM-DD" -> {total, byTheme:{}, grades:{again,hard,good,easy}}
     streak:{current:0, longest:0, lastActiveDate:null},
     startDate: todayStr(),
+    overrides:{}          // id -> {q,a,w} — user edits to card content, layered over the base deck
+  };
+}
+function defaultState(){
+  return {
+    packs:{},
     updatedAt:new Date().toISOString()
   };
 }
+// Old saves (from before multi-pack support) stored cards/history/streak/
+// startDate directly on the top-level state. Wrap that flat shape into the
+// "lean-ux" pack so existing progress survives the schema migration.
+function migrateFlatState(raw){
+  if(raw && raw.cards && !raw.packs){
+    return {
+      packs:{ "lean-ux": {
+        cards: raw.cards, history: raw.history||{},
+        streak: raw.streak||{current:0,longest:0,lastActiveDate:null},
+        startDate: raw.startDate || todayStr(), overrides:{}
+      }},
+      updatedAt: raw.updatedAt || new Date().toISOString()
+    };
+  }
+  return raw;
+}
 
 let state = defaultState();
+let currentPackId = null; // null = homepage
+
+function pack(){
+  if(!state.packs[currentPackId]) state.packs[currentPackId] = defaultPackState();
+  const p = state.packs[currentPackId];
+  if(!p.overrides) p.overrides = {};
+  return p;
+}
+function effCard(id){
+  const base = CARD_BY_ID[id];
+  const ov = pack().overrides[id];
+  return ov ? Object.assign({}, base, ov) : base;
+}
 
 const SUPABASE_URL = "https://wfjadtemyzwzwpaehfib.supabase.co";
 const SUPABASE_KEY = "sb_publishable_nCGbYoxQyY3Jg5lGkDV9NQ_R8ORvBBP";
@@ -879,17 +1020,18 @@ function loadLocal(){
   try{
     const raw = localStorage.getItem(LS_KEY);
     if(raw){
-      const parsed = JSON.parse(raw);
-      if(parsed && parsed.cards) state = parsed;
+      const parsed = migrateFlatState(JSON.parse(raw));
+      if(parsed && parsed.packs) state = parsed;
     }
   }catch(e){ /* ignore, keep defaults */ }
-  ensureStartDate();
+  ensureStartDates();
 }
-function ensureStartDate(){
-  if(!state.startDate){
-    state.startDate = todayStr();
-    saveLocal();
-  }
+function ensureStartDates(){
+  Object.keys(state.packs).forEach(id=>{
+    const p = state.packs[id];
+    if(!p.startDate) p.startDate = todayStr();
+    if(!p.overrides) p.overrides = {};
+  });
 }
 function saveLocal(){
   try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){ /* ignore */ }
@@ -897,7 +1039,10 @@ function saveLocal(){
 
 function pruneHistory(){
   const cutoff = addDays(todayStr(), -400);
-  Object.keys(state.history).forEach(k=>{ if(k < cutoff) delete state.history[k]; });
+  Object.keys(state.packs).forEach(id=>{
+    const h = state.packs[id].history;
+    Object.keys(h).forEach(k=>{ if(k < cutoff) delete h[k]; });
+  });
 }
 
 async function persist(){
@@ -923,18 +1068,22 @@ async function loadFromSupabase(){
       .eq("user_id", currentUser.id)
       .maybeSingle();
     if(error) throw error;
-    if(data && data.data && data.data.cards){
+    if(data && data.data && (data.data.packs || data.data.cards)){
       // A brand-new browser with nothing cached starts from a freshly built
       // blank state stamped "now" — which will always look newer than real
       // saved data from any earlier session, even though it's empty. Only
       // trust the timestamp race once local actually has real data to
       // protect; otherwise remote always wins.
-      const localHasRealData = Object.keys(state.cards).length > 0 || Object.keys(state.history).length > 0;
+      const remote = migrateFlatState(data.data);
+      const localHasRealData = Object.keys(state.packs).some(id=>{
+        const p = state.packs[id];
+        return Object.keys(p.cards).length > 0 || Object.keys(p.history).length > 0;
+      });
       const remoteTime = data.updated_at ? Date.parse(data.updated_at) : 0;
       const localTime = state.updatedAt ? Date.parse(state.updatedAt) : 0;
       if(!localHasRealData || remoteTime >= localTime){
-        state = data.data;
-        ensureStartDate();
+        state = remote;
+        ensureStartDates();
         saveLocal();
       }
     } else {
@@ -949,7 +1098,7 @@ async function loadFromSupabase(){
 
 /* ============================== SCHEDULER (SM-2) ============================== */
 function getRecord(id){
-  return state.cards[id] || null;
+  return pack().cards[id] || null;
 }
 function statusOf(id){
   const r = getRecord(id);
@@ -981,6 +1130,7 @@ function gradeQuality(g){ return {again:0, hard:3, good:4, easy:5}[g]; }
 
 function applyGrade(id, grade){
   const today = todayStr();
+  const p = pack();
   let r = getRecord(id) || {ef:2.5, reps:0, interval:0, due:today, last:null, lapses:0};
   const q = gradeQuality(grade);
   if(q < 3){
@@ -998,21 +1148,21 @@ function applyGrade(id, grade){
   if(r.ef < 1.3) r.ef = 1.3;
   r.last = today;
   r.due = addDays(today, r.interval);
-  state.cards[id] = r;
+  p.cards[id] = r;
 
   const card = CARD_BY_ID[id];
-  const day = state.history[today] || {total:0, byTheme:{}, grades:{again:0,hard:0,good:0,easy:0}};
+  const day = p.history[today] || {total:0, byTheme:{}, grades:{again:0,hard:0,good:0,easy:0}};
   day.total += 1;
   day.byTheme[card.t] = (day.byTheme[card.t]||0) + 1;
   day.grades[grade] = (day.grades[grade]||0) + 1;
-  state.history[today] = day;
+  p.history[today] = day;
 
   updateStreak(today);
   persist();
 }
 
 function updateStreak(today){
-  const s = state.streak;
+  const s = pack().streak;
   if(s.lastActiveDate === today) return;
   if(s.lastActiveDate === addDays(today,-1)){
     s.current += 1;
@@ -1025,7 +1175,7 @@ function updateStreak(today){
 
 function computeCurrentStreakDisplay(){
   const today = todayStr();
-  const s = state.streak;
+  const s = pack().streak;
   if(!s.lastActiveDate) return 0;
   if(s.lastActiveDate === today) return s.current;
   if(s.lastActiveDate === addDays(today,-1)) return s.current;
@@ -1143,7 +1293,7 @@ function buildQueue(){
 
 function currentCard(){
   if(session.pos >= session.queue.length) return null;
-  return CARD_BY_ID[session.queue[session.pos]];
+  return effCard(session.queue[session.pos]);
 }
 
 function renderCard(){
@@ -1167,7 +1317,7 @@ function renderCard(){
     gradeRow.hidden = true;
     complete.hidden = false;
     const today = todayStr();
-    const day = state.history[today];
+    const day = pack().history[today];
     document.getElementById("scReviewed").textContent = day ? day.total : 0;
     if(day){
       const goodOrBetter = (day.grades.good||0) + (day.grades.easy||0);
@@ -1268,7 +1418,7 @@ function renderHeader(){
    trip to the Calendar tab. */
 function renderTodayStrip(){
   const today = todayStr();
-  const day = state.history[today];
+  const day = pack().history[today];
   const reviewed = day ? day.total : 0;
   const remaining = cardsDueOrNewToday().length;
   const total = reviewed + remaining;
@@ -1299,6 +1449,7 @@ function initTabs(){
     document.getElementById("view-"+btn.dataset.tab).classList.add("active");
     if(btn.dataset.tab === "calendar") renderCalendar();
     if(btn.dataset.tab === "progress") renderProgress();
+    if(btn.dataset.tab === "cards") renderCardsEditor();
   });
 }
 function switchTab(name){
@@ -1307,6 +1458,7 @@ function switchTab(name){
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
   if(name === "calendar") renderCalendar();
   if(name === "progress") renderProgress();
+  if(name === "cards") renderCardsEditor();
 }
 
 /* Left the panel open across midnight? The in-memory session queue would
@@ -1318,12 +1470,19 @@ function checkDateRollover(){
   const now = todayStr();
   if(now === currentDay) return;
   currentDay = now;
-  overrideQueue = null;
-  buildQueue();
-  renderHeader();
-  renderCard();
-  if(document.getElementById("view-calendar").classList.contains("active")) renderCalendar();
-  if(document.getElementById("view-progress").classList.contains("active")) renderProgress();
+  // Only rebuild the pack-scoped view when a pack is actually open — pack()
+  // would otherwise create a bogus state.packs[null] entry while on the
+  // homepage (currentPackId is null there).
+  if(currentPackId){
+    overrideQueue = null;
+    buildQueue();
+    renderHeader();
+    renderCard();
+    if(document.getElementById("view-calendar").classList.contains("active")) renderCalendar();
+    if(document.getElementById("view-progress").classList.contains("active")) renderProgress();
+    if(document.getElementById("view-cards").classList.contains("active")) renderCardsEditor();
+  }
+  if(!document.getElementById("homeShell").hidden) renderHome();
 }
 
 /* ============================== STUDY TOOLBAR ============================== */
@@ -1437,7 +1596,7 @@ function renderCalendar(){
     const dateStr = cellYear+"-"+pad(cellMonth+1)+"-"+pad(cell.day);
 
     const isPastCell = dateStr < today;
-    const hist = isPastCell ? state.history[dateStr] : null;
+    const hist = isPastCell ? pack().history[dateStr] : null;
     const isCompleted = isPastCell && hist && hist.total > 0;
 
     const btn = document.createElement("button");
@@ -1509,7 +1668,7 @@ function showCalDetail(dateStr, today, scheduleMap){
   const label = DOW[d.getDay()] + ", " + MONTH_NAMES[d.getMonth()] + " " + d.getDate() + (dateStr===today?" (today)":"");
 
   const isPast = dateStr < today;
-  const data = isPast ? (state.history[dateStr] || {total:0, byTheme:{}}) : (scheduleMap[dateStr] || {total:0, byTheme:{}});
+  const data = isPast ? (pack().history[dateStr] || {total:0, byTheme:{}}) : (scheduleMap[dateStr] || {total:0, byTheme:{}});
 
   let rows = "";
   THEMES.forEach(t=>{
@@ -1548,12 +1707,12 @@ function renderProgress(){
   const today = todayStr();
   const mastered = CARDS.filter(c=>statusOf(c.id)==="mastered").length;
   const streak = computeCurrentStreakDisplay();
-  const longest = state.streak.longest || 0;
+  const longest = pack().streak.longest || 0;
 
   let weekReviewed = 0, weekGood = 0;
   for(let i=0;i<7;i++){
     const d = addDays(today, -i);
-    const h = state.history[d];
+    const h = pack().history[d];
     if(h){ weekReviewed += h.total; weekGood += (h.grades.good||0)+(h.grades.easy||0); }
   }
   const weekAccuracy = weekReviewed ? Math.round((weekGood/weekReviewed)*100) : 0;
@@ -1593,7 +1752,7 @@ function renderProgress(){
       const r = getRecord(c.id);
       return "<button class=\"trouble-row\" data-id=\""+c.id+"\">"
         + "<span class=\"tr-dot\" style=\"background:var(--"+c.t+")\"></span>"
-        + "<span class=\"tr-q\">"+c.q.replace(/</g,"&lt;")+"</span>"
+        + "<span class=\"tr-q\">"+escHtml(effCard(c.id).q)+"</span>"
         + "<span class=\"tr-badge\">"+r.lapses+" miss"+(r.lapses===1?"":"es")+"</span>"
         + "</button>";
     }).join("");
@@ -1628,7 +1787,7 @@ function renderProgress(){
       const cell = document.createElement("div");
       cell.className = "heatmap-day";
       if(cursor <= today){
-        const h = state.history[cursor];
+        const h = pack().history[cursor];
         const n = h ? h.total : 0;
         const lvl = n===0?0:n<3?1:n<7?2:3;
         cell.dataset.lvl = lvl;
@@ -1664,8 +1823,149 @@ function initSettingsUI(){
     disarmReset();
     state = defaultState();
     persist();
-    renderAll();
+    renderHome();
   };
+}
+
+/* ============================== CARD EDITOR ==============================
+   Lets a user tweak a card's question/answer/why text without touching the
+   deck's SM-2 scheduling. Edits live in pack().overrides, layered over the
+   base CARD_BY_ID content by effCard() everywhere a card is displayed. */
+let editingCardId = null;
+
+function cardEditRowHTML(c){
+  const ec = effCard(c.id);
+  const edited = !!pack().overrides[c.id];
+  if(editingCardId === c.id){
+    return "<div class=\"card-edit-row editing\" data-id=\""+c.id+"\">"
+      + "<span class=\"cer-input-label\">Question</span><textarea class=\"cer-input\" data-field=\"q\" rows=\"2\">"+escHtml(ec.q)+"</textarea>"
+      + "<span class=\"cer-input-label\">Answer</span><textarea class=\"cer-input\" data-field=\"a\" rows=\"2\">"+escHtml(ec.a)+"</textarea>"
+      + "<span class=\"cer-input-label\">Why</span><textarea class=\"cer-input\" data-field=\"w\" rows=\"3\">"+escHtml(ec.w)+"</textarea>"
+      + "<div class=\"cer-actions\"><button class=\"btn\" data-action=\"save\" data-id=\""+c.id+"\">Save</button><button class=\"btn ghost\" data-action=\"cancel\" data-id=\""+c.id+"\">Cancel</button></div>"
+      + "</div>";
+  }
+  return "<div class=\"card-edit-row\" data-id=\""+c.id+"\">"
+    + (edited ? "<span class=\"cer-edited-badge\">Edited</span>" : "")
+    + "<p class=\"cer-q\">"+escHtml(ec.q)+"</p>"
+    + "<p class=\"cer-a\"><b>Answer&nbsp;</b>"+escHtml(ec.a)+"</p>"
+    + "<p class=\"cer-w\"><b>Why&nbsp;</b>"+escHtml(ec.w)+"</p>"
+    + "<div class=\"cer-actions\"><button class=\"link-btn\" data-action=\"edit\" data-id=\""+c.id+"\">Edit</button>"
+    + (edited ? "<button class=\"link-btn\" data-action=\"revert\" data-id=\""+c.id+"\">Revert to original</button>" : "")
+    + "</div></div>";
+}
+
+function renderCardsEditor(){
+  const el = document.getElementById("cardsEditorList");
+  el.innerHTML = THEMES.map(t=>{
+    const rows = CARDS.filter(c=>c.t===t.id).map(cardEditRowHTML).join("");
+    return "<p class=\"section-title\">"+escHtml(t.name)+"</p><div class=\"card-edit-group\">"+rows+"</div>";
+  }).join("");
+}
+
+function initCardsEditorUI(){
+  document.getElementById("cardsEditorList").addEventListener("click",(e)=>{
+    const btn = e.target.closest("button[data-action]");
+    if(!btn) return;
+    const id = Number(btn.dataset.id);
+    const action = btn.dataset.action;
+    if(action === "edit"){
+      editingCardId = id;
+      renderCardsEditor();
+    } else if(action === "cancel"){
+      editingCardId = null;
+      renderCardsEditor();
+    } else if(action === "revert"){
+      delete pack().overrides[id];
+      editingCardId = null;
+      persist();
+      renderCardsEditor();
+      renderCard();
+    } else if(action === "save"){
+      const row = btn.closest(".card-edit-row");
+      const q = row.querySelector("[data-field=\"q\"]").value.trim();
+      const a = row.querySelector("[data-field=\"a\"]").value.trim();
+      const w = row.querySelector("[data-field=\"w\"]").value.trim();
+      if(!q || !a || !w) return;
+      const base = CARD_BY_ID[id];
+      const p = pack();
+      if(q === base.q && a === base.a && w === base.w) delete p.overrides[id];
+      else p.overrides[id] = {q, a, w};
+      editingCardId = null;
+      persist();
+      renderCardsEditor();
+      renderCard();
+    }
+  });
+}
+
+/* ============================== HOMEPAGE / PACK NAV ============================== */
+function renderHome(){
+  const grid = document.getElementById("packGrid");
+  const savedPackId = currentPackId;
+  const tiles = PACKS_META.map(meta=>{
+    // Stat helpers all read the "current" pack via pack(), so briefly point
+    // currentPackId at each pack in turn to compute its tile stats. Safe:
+    // this loop is synchronous and nothing else runs between the swaps.
+    currentPackId = meta.id;
+    const total = meta.cards.length;
+    const mastered = meta.cards.filter(c=>statusOf(c.id)==="mastered").length;
+    const pct = total ? Math.round((mastered/total)*100) : 0;
+    const due = cardsDueOrNewToday().length;
+    const streak = computeCurrentStreakDisplay();
+    return "<button class=\"pack-tile\" data-pack=\""+meta.id+"\">"
+      + "<h3>"+escHtml(meta.name)+"</h3>"
+      + "<p class=\"pack-tagline\">"+escHtml(meta.tagline)+"</p>"
+      + "<div class=\"pack-progress-track\"><div class=\"pack-progress-fill\" style=\"width:"+pct+"%\"></div></div>"
+      + "<div class=\"pack-stats-row\">"
+        + "<span><b class=\"mono\">"+pct+"%</b> mastered</span>"
+        + "<span><b class=\"mono\">"+due+"</b> due today</span>"
+        + "<span><b class=\"mono\">"+streak+"</b> day streak</span>"
+      + "</div></button>";
+  }).join("");
+  currentPackId = savedPackId;
+  grid.innerHTML = tiles
+    + "<div class=\"pack-tile pack-tile-add\">"
+      + "<div class=\"pack-add-icon\">+</div>"
+      + "<h3>Add a new Flashcard Pack</h3>"
+      + "<p class=\"pack-tagline\">Coming soon &mdash; upload a file, ask AI to research a topic, or write your own.</p>"
+    + "</div>";
+}
+
+function enterPack(id){
+  const meta = PACK_BY_ID[id];
+  if(!meta) return;
+  currentPackId = id;
+  document.getElementById("packBrandTitle").textContent = meta.name;
+  document.getElementById("packBrandTagline").textContent = meta.tagline;
+  document.getElementById("homeShell").hidden = true;
+  document.getElementById("appShell").hidden = false;
+  switchTab("study");
+  renderAll();
+}
+
+function goHome(){
+  document.body.classList.remove("focus-mode");
+  currentPackId = null;
+  document.getElementById("appShell").hidden = true;
+  document.getElementById("homeShell").hidden = false;
+  renderHome();
+}
+
+function initHomeUI(){
+  document.getElementById("homeSettingsBtn").addEventListener("click", ()=>{
+    document.getElementById("home-list-view").hidden = true;
+    document.getElementById("home-settings-view").hidden = false;
+  });
+  document.getElementById("settingsBackBtn").addEventListener("click", ()=>{
+    document.getElementById("home-settings-view").hidden = true;
+    document.getElementById("home-list-view").hidden = false;
+  });
+  document.getElementById("packGrid").addEventListener("click",(e)=>{
+    const tile = e.target.closest(".pack-tile[data-pack]");
+    if(!tile) return;
+    enterPack(tile.dataset.pack);
+  });
+  document.getElementById("packBackBtn").addEventListener("click", goHome);
 }
 
 /* ============================== INIT ============================== */
@@ -1675,16 +1975,18 @@ function renderAll(){
   renderCard();
   if(document.getElementById("view-calendar").classList.contains("active")) renderCalendar();
   if(document.getElementById("view-progress").classList.contains("active")) renderProgress();
+  if(document.getElementById("view-cards").classList.contains("active")) renderCardsEditor();
 }
 
 /* ============================== AUTH ============================== */
 function showAuthGate(){
   document.getElementById("authGate").hidden = false;
+  document.getElementById("homeShell").hidden = true;
   document.getElementById("appShell").hidden = true;
 }
 function hideAuthGate(){
   document.getElementById("authGate").hidden = true;
-  document.getElementById("appShell").hidden = false;
+  goHome();
 }
 
 async function handleAuthed(session){
@@ -1692,7 +1994,6 @@ async function handleAuthed(session){
   document.getElementById("authEmailLabel").textContent = currentUser.email;
   await loadFromSupabase();
   hideAuthGate();
-  renderAll();
 }
 
 function initAuthUI(){
@@ -1763,8 +2064,9 @@ function boot(){
   initCalendarNav();
   initAuthUI();
   initSettingsUI();
+  initHomeUI();
+  initCardsEditorUI();
   calState.selected = todayStr();
-  renderAll();
 
   document.addEventListener("visibilitychange", ()=>{
     if(!document.hidden) checkDateRollover();
