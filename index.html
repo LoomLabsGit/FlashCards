@@ -886,9 +886,15 @@ async function loadFromSupabase(){
       .maybeSingle();
     if(error) throw error;
     if(data && data.data && data.data.cards){
+      // A brand-new browser with nothing cached starts from a freshly built
+      // blank state stamped "now" — which will always look newer than real
+      // saved data from any earlier session, even though it's empty. Only
+      // trust the timestamp race once local actually has real data to
+      // protect; otherwise remote always wins.
+      const localHasRealData = Object.keys(state.cards).length > 0 || Object.keys(state.history).length > 0;
       const remoteTime = data.updated_at ? Date.parse(data.updated_at) : 0;
       const localTime = state.updatedAt ? Date.parse(state.updatedAt) : 0;
-      if(remoteTime >= localTime){
+      if(!localHasRealData || remoteTime >= localTime){
         state = data.data;
         ensureStartDate();
         saveLocal();
