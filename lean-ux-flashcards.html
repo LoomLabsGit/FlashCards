@@ -1,0 +1,1654 @@
+<title>Lean UX Drills</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,440;0,9..144,560;0,9..144,650;1,9..144,500&family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f2f3ee;
+    --bg-grid-line:rgba(28,35,33,0.05);
+    --surface:#ffffff;
+    --surface-2:#e9ebe2;
+    --surface-3:#dfe2d7;
+    --ink:#1c2321;
+    --ink-soft:#5a635c;
+    --ink-faint:#8c9389;
+    --border:#d7dacd;
+    --border-strong:#c2c6b6;
+    --accent:#2c5f9e;
+    --accent-ink:#ffffff;
+    --accent-soft:#dde6f2;
+    --t1:#2c5f9e; --t1-soft:#dde6f2;
+    --t2:#0e8f7e; --t2-soft:#d9f0ec;
+    --t3:#c96a19; --t3-soft:#f6e5d1;
+    --t4:#a83370; --t4-soft:#f3dce9;
+    --t5:#5b7a2e; --t5-soft:#e4ecd6;
+    --again:#b23b3b; --again-soft:#f5dcdc;
+    --hard:#c96a19; --hard-soft:#f6e5d1;
+    --good:#2f8f56; --good-soft:#dcf0e3;
+    --easy:#2c5f9e; --easy-soft:#dde6f2;
+    --shadow-card:0 1px 2px rgba(28,35,33,0.06), 0 10px 24px -12px rgba(28,35,33,0.22);
+    --shadow-soft:0 1px 2px rgba(28,35,33,0.05), 0 4px 12px -6px rgba(28,35,33,0.12);
+    --radius-s:7px;
+    --radius-m:12px;
+    --radius-l:18px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14171a;
+      --bg-grid-line:rgba(230,234,225,0.045);
+      --surface:#1c2023;
+      --surface-2:#22262a;
+      --surface-3:#2a2f33;
+      --ink:#eceee9;
+      --ink-soft:#a5aca4;
+      --ink-faint:#767d76;
+      --border:#33393d;
+      --border-strong:#40474b;
+      --accent:#75a8de;
+      --accent-ink:#0d1620;
+      --accent-soft:#233043;
+      --t1:#75a8de; --t1-soft:#233043;
+      --t2:#3fc3ac; --t2-soft:#173330;
+      --t3:#e79a52; --t3-soft:#3a2a18;
+      --t4:#e07ab0; --t4-soft:#3a2231;
+      --t5:#9bc463; --t5-soft:#2a3320;
+      --again:#e07a7a; --again-soft:#3a2222;
+      --hard:#e79a52; --hard-soft:#3a2a18;
+      --good:#6bc98f; --good-soft:#1f3327;
+      --easy:#75a8de; --easy-soft:#233043;
+      --shadow-card:0 1px 2px rgba(0,0,0,0.35), 0 10px 24px -12px rgba(0,0,0,0.5);
+      --shadow-soft:0 1px 2px rgba(0,0,0,0.3), 0 4px 12px -6px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14171a;
+    --bg-grid-line:rgba(230,234,225,0.045);
+    --surface:#1c2023;
+    --surface-2:#22262a;
+    --surface-3:#2a2f33;
+    --ink:#eceee9;
+    --ink-soft:#a5aca4;
+    --ink-faint:#767d76;
+    --border:#33393d;
+    --border-strong:#40474b;
+    --accent:#75a8de;
+    --accent-ink:#0d1620;
+    --accent-soft:#233043;
+    --t1:#75a8de; --t1-soft:#233043;
+    --t2:#3fc3ac; --t2-soft:#173330;
+    --t3:#e79a52; --t3-soft:#3a2a18;
+    --t4:#e07ab0; --t4-soft:#3a2231;
+    --t5:#9bc463; --t5-soft:#2a3320;
+    --again:#e07a7a; --again-soft:#3a2222;
+    --hard:#e79a52; --hard-soft:#3a2a18;
+    --good:#6bc98f; --good-soft:#1f3327;
+    --easy:#75a8de; --easy-soft:#233043;
+    --shadow-card:0 1px 2px rgba(0,0,0,0.35), 0 10px 24px -12px rgba(0,0,0,0.5);
+    --shadow-soft:0 1px 2px rgba(0,0,0,0.3), 0 4px 12px -6px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--bg-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid-line) 1px, transparent 1px),
+      var(--bg);
+    background-size:28px 28px, 28px 28px, auto;
+    color:var(--ink);
+    font-family:"Public Sans", -apple-system, "Segoe UI", sans-serif;
+    padding:28px 18px 64px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{max-width:900px;margin:0 auto;}
+  h1,h2,h3{font-family:"Fraunces", Georgia, serif; text-wrap:balance; margin:0;}
+  button{font-family:inherit;}
+  ::selection{background:var(--accent-soft);}
+  a{color:var(--accent);}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric:tabular-nums;}
+
+  /* ---------- header ---------- */
+  .topbar{
+    display:flex; flex-wrap:wrap; gap:18px 24px; align-items:flex-start; justify-content:space-between;
+    margin-bottom:22px;
+  }
+  .brand{display:flex; gap:14px; align-items:center;}
+  .brand-mark{
+    width:46px; height:46px; flex:none; border-radius:var(--radius-s);
+    background:var(--ink); color:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    transform:rotate(-4deg);
+    box-shadow:var(--shadow-soft);
+  }
+  .brand-mark svg{width:24px; height:24px;}
+  .brand h1{font-size:1.7rem; font-weight:650; letter-spacing:-0.01em;}
+  .tagline{margin:2px 0 0; color:var(--ink-soft); font-size:0.88rem;}
+
+  .stats-strip{display:flex; gap:10px; flex-wrap:wrap;}
+  .stat-pill{
+    display:flex; align-items:center; gap:8px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:999px; padding:8px 14px 8px 10px;
+    box-shadow:var(--shadow-soft);
+  }
+  .stat-pill svg{width:18px; height:18px; flex:none;}
+  .stat-pill .val{font-family:"IBM Plex Mono", monospace; font-weight:600; font-size:0.98rem;}
+  .stat-pill .unit{font-size:0.72rem; color:var(--ink-soft); white-space:nowrap;}
+  .stat-pill.streak svg{color:var(--t3);}
+  .stat-pill.due svg{color:var(--accent);}
+  .stat-pill.mastery svg{color:var(--good);}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex; gap:6px; margin-bottom:20px; border-bottom:1px solid var(--border);}
+  .tab{
+    appearance:none; border:none; background:none; cursor:pointer;
+    padding:10px 16px 12px; font-size:0.92rem; font-weight:600; color:var(--ink-soft);
+    border-bottom:2px solid transparent; margin-bottom:-1px;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .tab:hover{color:var(--ink);}
+  .tab.active{color:var(--ink); border-bottom-color:var(--accent);}
+  .view{display:none;}
+  .view.active{display:block; animation:fadein .25s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .view.active{animation:none;} }
+
+  /* ---------- chips ---------- */
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 11px; border-radius:999px; font-size:0.76rem; font-weight:600;
+    letter-spacing:0.01em;
+  }
+  .chip .dot{width:7px; height:7px; border-radius:50%; background:currentColor;}
+  .theme-t1{background:var(--t1-soft); color:var(--t1);}
+  .theme-t2{background:var(--t2-soft); color:var(--t2);}
+  .theme-t3{background:var(--t3-soft); color:var(--t3);}
+  .theme-t4{background:var(--t4-soft); color:var(--t4);}
+  .theme-t5{background:var(--t5-soft); color:var(--t5);}
+
+  /* ---------- today strip ---------- */
+  .today-strip{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:14px 18px 13px; margin-bottom:16px; box-shadow:var(--shadow-soft);
+  }
+  .ts-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:9px;}
+  .ts-title{font-family:"Fraunces", serif; font-weight:600; font-size:1.02rem;}
+  .ts-date{font-size:0.72rem; color:var(--ink-faint);}
+  .ts-track{height:6px; border-radius:999px; background:var(--surface-3); overflow:hidden; margin-bottom:10px;}
+  .ts-fill{height:100%; background:var(--good); border-radius:999px; transition:width .3s ease; width:0%;}
+  .ts-meta{display:flex; gap:18px; flex-wrap:wrap; font-size:0.8rem; color:var(--ink-soft);}
+  .ts-meta b{font-family:"IBM Plex Mono", monospace; color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+
+  /* ---------- study toolbar ---------- */
+  .study-toolbar{
+    display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .queue-info{font-size:0.85rem; color:var(--ink-soft);}
+  .queue-info b{color:var(--ink); font-family:"IBM Plex Mono", monospace;}
+  .filters{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  select#themeFilter{
+    font-family:inherit; font-size:0.82rem; font-weight:600; color:var(--ink);
+    background:var(--surface); border:1px solid var(--border); border-radius:999px;
+    padding:7px 12px; cursor:pointer;
+  }
+  .diff-toggle{display:flex; gap:5px;}
+  .diff-chip{
+    border:1px solid var(--border); background:var(--surface); color:var(--ink-soft);
+    border-radius:999px; padding:6px 11px; font-size:0.76rem; font-weight:600; cursor:pointer;
+    transition:all .12s ease;
+  }
+  .diff-chip.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+
+  .progress-bar-track{height:5px; border-radius:999px; background:var(--surface-3); overflow:hidden; margin-bottom:26px;}
+  .progress-bar-fill{height:100%; background:var(--accent); border-radius:999px; transition:width .3s ease; width:0%;}
+
+  /* ---------- flashcard ---------- */
+  /* A fixed height (not just min-height) is required here: .card-face below
+     is absolutely positioned with inset:0, so without a definite height on
+     this chain, a card with a long answer/why would stretch the whole
+     stage to fit it — pushing the grade buttons far down the page. Long
+     content scrolls inside .card-back-content instead. */
+  .card-stage{position:relative; max-width:560px; margin:0 auto 22px; height:min(430px, 58vh);}
+  .card-shadow-1, .card-shadow-2{
+    position:absolute; inset:0; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:var(--radius-m);
+  }
+  .card-shadow-1{transform:rotate(2.2deg) translateY(4px);}
+  .card-shadow-2{transform:rotate(-2.6deg) translateY(6px); background:var(--surface-3);}
+  .flashcard{
+    position:relative; height:100%; perspective:1400px;
+  }
+  .flashcard .inner{
+    position:relative; width:100%; height:100%;
+    transform-style:preserve-3d; transition:transform .55s cubic-bezier(.2,.8,.2,1);
+  }
+  .flashcard.flipped .inner{transform:rotateY(180deg);}
+  @media (prefers-reduced-motion:reduce){ .flashcard .inner{transition:none;} }
+  .card-face{
+    position:absolute; inset:0; backface-visibility:hidden;
+    background:var(--surface); border:1px solid var(--border-strong);
+    border-radius:var(--radius-m); box-shadow:var(--shadow-card);
+    padding:30px 30px 24px; display:flex; flex-direction:column;
+    cursor:pointer;
+  }
+  .card-back{transform:rotateY(180deg);}
+  .card-meta{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}
+  .diff-dots{display:flex; gap:4px;}
+  .diff-dots span{width:7px; height:7px; border-radius:50%; background:var(--surface-3); border:1px solid var(--border-strong);}
+  .diff-dots span.on{background:var(--ink-soft); border-color:var(--ink-soft);}
+  .card-question{
+    font-family:"Fraunces", Georgia, serif; font-weight:560; font-size:1.5rem; line-height:1.32;
+    flex:1; display:flex; align-items:center; margin:0; text-wrap:balance;
+  }
+  .flip-hint{
+    text-align:center; font-size:0.74rem; color:var(--ink-faint); letter-spacing:0.03em;
+    text-transform:uppercase; margin-top:14px;
+  }
+  .card-label{
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em; font-weight:700;
+    color:var(--ink-faint); margin:0 0 6px;
+  }
+  .card-answer{font-size:1.12rem; font-weight:600; line-height:1.4; margin:0 0 18px;}
+  .card-why{font-size:0.95rem; color:var(--ink-soft); line-height:1.55; margin:0;}
+  .card-back-content{flex:1; overflow-y:auto; min-height:0;}
+
+  .grade-row{max-width:560px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:9px;}
+  .grade-row[hidden]{display:none;}
+  .grade-btn{
+    border:1px solid var(--border); border-radius:var(--radius-s); background:var(--surface);
+    padding:12px 6px 10px; cursor:pointer; font-weight:700; font-size:0.88rem; color:var(--ink);
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    transition:transform .08s ease, box-shadow .12s ease;
+  }
+  .grade-btn:hover{transform:translateY(-2px); box-shadow:var(--shadow-soft);}
+  .grade-btn:active{transform:translateY(0);}
+  .grade-btn .key{
+    font-family:"IBM Plex Mono", monospace; font-size:0.68rem; font-weight:600;
+    color:var(--ink-faint); border:1px solid var(--border); border-radius:4px; padding:1px 5px;
+  }
+  .grade-again{border-color:var(--again); color:var(--again);}
+  .grade-again .key{color:var(--again); border-color:var(--again-soft);}
+  .grade-hard{border-color:var(--hard); color:var(--hard);}
+  .grade-hard .key{color:var(--hard); border-color:var(--hard-soft);}
+  .grade-good{border-color:var(--good); color:var(--good);}
+  .grade-good .key{color:var(--good); border-color:var(--good-soft);}
+  .grade-easy{border-color:var(--easy); color:var(--easy);}
+  .grade-easy .key{color:var(--easy); border-color:var(--easy-soft);}
+
+  .session-complete{
+    max-width:560px; margin:0 auto; text-align:center; background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--radius-m); padding:40px 28px;
+    box-shadow:var(--shadow-soft);
+  }
+  .session-complete h2{font-size:1.4rem; margin-bottom:8px;}
+  .session-complete p{color:var(--ink-soft); margin:0 0 20px;}
+  .session-complete .sc-stats{display:flex; justify-content:center; gap:28px; margin-bottom:24px;}
+  .session-complete .sc-stat b{display:block; font-family:"Fraunces",serif; font-size:1.7rem;}
+  .session-complete .sc-stat span{font-size:0.74rem; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.05em;}
+  .btn{
+    border:none; border-radius:999px; background:var(--ink); color:var(--bg);
+    font-weight:700; font-size:0.88rem; padding:11px 22px; cursor:pointer;
+  }
+  .btn.ghost{background:none; border:1px solid var(--border); color:var(--ink);}
+  .btn:hover{opacity:0.9;}
+
+  /* ---------- calendar ---------- */
+  .cal-toolbar{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+  .cal-toolbar h2{font-size:1.2rem; flex:1; text-align:center;}
+  .cal-nav{
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--border); background:var(--surface);
+    cursor:pointer; font-size:1rem; color:var(--ink); display:flex; align-items:center; justify-content:center;
+  }
+  .cal-today-btn{
+    border:1px solid var(--border); background:var(--surface); border-radius:999px; padding:6px 13px;
+    font-size:0.76rem; font-weight:600; cursor:pointer; color:var(--ink);
+  }
+  .cal-legend{display:flex; flex-wrap:wrap; gap:8px 14px; margin-bottom:16px;}
+  .cal-legend .leg-item{display:flex; align-items:center; gap:6px; font-size:0.76rem; color:var(--ink-soft);}
+  .cal-legend .leg-dot{width:8px; height:8px; border-radius:50%;}
+
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+  .cal-dow{
+    text-align:center; font-size:0.68rem; font-weight:700; letter-spacing:0.06em; color:var(--ink-faint);
+    padding-bottom:4px; font-family:"IBM Plex Mono", monospace;
+  }
+  .cal-cell{
+    aspect-ratio:1/0.92; border:1px solid var(--border); border-radius:var(--radius-s);
+    background:var(--surface); padding:6px 6px 5px; display:flex; flex-direction:column;
+    cursor:pointer; position:relative; text-align:left;
+    transition:border-color .12s ease, background .12s ease;
+  }
+  .cal-cell:hover{border-color:var(--border-strong);}
+  .cal-cell.outside{opacity:0.35;}
+  .cal-cell.today{border-color:var(--accent); border-width:2px; padding:5px 5px 4px;}
+  .cal-cell.selected{background:var(--accent-soft);}
+  .cal-cell.completed{background:var(--good-soft); border-color:var(--good);}
+  .cal-cell.completed.selected{background:color-mix(in srgb, var(--good-soft) 60%, var(--accent-soft));}
+  .cal-date{font-family:"IBM Plex Mono", monospace; font-size:0.72rem; font-weight:600; color:var(--ink-soft);}
+  .cal-cell.today .cal-date{color:var(--accent);}
+  .cal-segbar{display:flex; gap:2px; margin-top:auto; height:5px;}
+  .cal-segbar span{flex:1; border-radius:2px; min-width:2px;}
+  .cal-count{position:absolute; top:5px; right:6px; font-family:"IBM Plex Mono", monospace; font-size:0.66rem; color:var(--ink-faint);}
+  .cal-check{
+    position:absolute; top:4px; right:4px; width:16px; height:16px; color:var(--good);
+    background:var(--surface); border-radius:50%; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 1px var(--good);
+  }
+  .cal-check svg{width:10px; height:10px;}
+
+  .cal-detail{
+    margin-top:18px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:18px 20px; box-shadow:var(--shadow-soft);
+  }
+  .cal-detail h3{font-size:1.05rem; margin-bottom:10px;}
+  .cal-detail .cd-rows{display:flex; flex-direction:column; gap:7px; margin-bottom:14px;}
+  .cal-detail .cd-row{display:flex; align-items:center; gap:9px; font-size:0.86rem;}
+  .cal-detail .cd-row .cd-name{flex:1; color:var(--ink-soft);}
+  .cal-detail .cd-row .cd-num{font-family:"IBM Plex Mono", monospace; font-weight:600;}
+  .cal-empty{color:var(--ink-soft); font-size:0.88rem;}
+
+  /* ---------- progress view ---------- */
+  .progress-summary{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:24px;}
+  .psum-tile{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:16px 16px 14px; box-shadow:var(--shadow-soft);
+  }
+  .psum-tile b{display:block; font-family:"Fraunces",serif; font-size:1.65rem; font-weight:600;}
+  .psum-tile span{font-size:0.72rem; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.05em;}
+
+  .section-title{font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; color:var(--ink-faint); margin:0 0 10px;}
+  .theme-bars{display:flex; flex-direction:column; gap:12px; margin-bottom:28px;}
+  .theme-bar-row{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s); padding:12px 14px;}
+  .tbr-top{display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:0.82rem; font-weight:600;}
+  .tbr-dot{width:9px; height:9px; border-radius:50%; flex:none;}
+  .tbr-name{flex:1;}
+  .tbr-count{font-family:"IBM Plex Mono", monospace; color:var(--ink-soft); font-weight:500; font-size:0.78rem;}
+  .tbr-track{display:flex; height:9px; border-radius:999px; overflow:hidden; background:var(--surface-3);}
+  .tbr-seg{height:100%;}
+  .seg-new{background:var(--surface-3);}
+  .seg-learning{background:var(--hard);}
+  .seg-review{background:var(--accent);}
+  .seg-mastered{background:var(--good);}
+  .tbr-legend{display:flex; gap:12px; margin-top:7px; font-size:0.68rem; color:var(--ink-faint);}
+  .tbr-legend span{display:flex; align-items:center; gap:4px;}
+  .tbr-legend i{width:7px; height:7px; border-radius:50%; display:inline-block;}
+
+  .trouble-panel{margin-bottom:28px;}
+  .trouble-empty{
+    background:var(--surface); border:1px dashed var(--border); border-radius:var(--radius-m);
+    padding:20px; text-align:center; color:var(--ink-soft); font-size:0.86rem;
+  }
+  .trouble-header{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;}
+  .trouble-header p{margin:0; font-size:0.82rem; color:var(--ink-soft);}
+  .trouble-header p b{color:var(--ink); font-family:"IBM Plex Mono", monospace;}
+  .trouble-list{display:flex; flex-direction:column; gap:7px;}
+  .trouble-row{
+    display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:10px 12px; cursor:pointer; font:inherit; color:inherit;
+    transition:border-color .12s ease;
+  }
+  .trouble-row:hover{border-color:var(--border-strong);}
+  .trouble-row .tr-dot{width:8px; height:8px; border-radius:50%; flex:none;}
+  .trouble-row .tr-q{flex:1; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .trouble-row .tr-badge{
+    font-family:"IBM Plex Mono", monospace; font-size:0.72rem; font-weight:700;
+    color:var(--again); background:var(--again-soft); border-radius:999px; padding:3px 10px; flex:none;
+  }
+
+  .heatmap{display:flex; gap:3px; overflow-x:auto; padding-bottom:4px;}
+  .heatmap-week{display:flex; flex-direction:column; gap:3px;}
+  .heatmap-day{width:11px; height:11px; border-radius:3px; background:var(--surface-3); border:1px solid var(--border);}
+  .heatmap-day[data-lvl="1"]{background:var(--accent-soft);}
+  .heatmap-day[data-lvl="2"]{background:color-mix(in srgb, var(--accent) 55%, var(--accent-soft));}
+  .heatmap-day[data-lvl="3"]{background:var(--accent);}
+
+  .sync-panel{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:16px 18px; margin-bottom:8px;
+  }
+  .sync-hint{font-size:0.82rem; color:var(--ink-soft); margin:0 0 12px;}
+  .sync-box{
+    width:100%; font-family:"IBM Plex Mono", monospace; font-size:0.72rem; color:var(--ink);
+    background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:10px; resize:vertical; margin-bottom:10px; box-sizing:border-box;
+  }
+  .sync-actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .sync-status{font-size:0.78rem; color:var(--ink-soft); margin:10px 0 0;}
+
+  .danger-zone{margin-top:30px; padding-top:16px; border-top:1px dashed var(--border);}
+  .link-btn{background:none; border:none; color:var(--ink-faint); font-size:0.78rem; cursor:pointer; text-decoration:underline; padding:0;}
+  .link-btn:hover{color:var(--again);}
+  .link-btn.armed{color:var(--again); font-weight:700; text-decoration:none;}
+  .btn.ghost.armed{background:var(--again-soft); border-color:var(--again); color:var(--again);}
+
+  @media (max-width:600px){
+    .card-question{font-size:1.25rem;}
+    .grade-row{grid-template-columns:repeat(2,1fr);}
+    .cal-count{display:none;}
+    .stats-strip{width:100%;}
+    .stat-pill{flex:1; justify-content:center;}
+  }
+</style>
+
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H14V16H5.5C4.67 16 4 16.67 4 17.5V5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 17.5C4 18.33 4.67 19 5.5 19H18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 4H18.5C19.33 4 20 4.67 20 5.5V17.5C20 18.33 19.33 19 18.5 19H14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h1>Lean UX Drills</h1>
+        <p class="tagline">Spaced-repetition practice from the Lean UX notes</p>
+      </div>
+    </div>
+    <div class="stats-strip">
+      <div class="stat-pill streak">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C12 2 7 7.5 7 12.5C7 15.5 9.2 18 12 18C14.8 18 17 15.5 17 12.5C17 12.5 15.5 14 14 13C15 10 12 8 12 8C12 8 12.5 10 11 11.5C9.5 13 9 14.5 10 16" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" fill="none"/></svg>
+        <span class="val" id="streakVal">0</span><span class="unit">day streak</span>
+      </div>
+      <div class="stat-pill due">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M4 9.5H20" stroke="currentColor" stroke-width="1.6"/><path d="M8 3V6.5M16 3V6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span class="val" id="dueVal">0</span><span class="unit">due today</span>
+      </div>
+      <div class="stat-pill mastery">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L14.4 8.5L20.5 9.2L16 13.2L17.3 19.2L12 16.1L6.7 19.2L8 13.2L3.5 9.2L9.6 8.5L12 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span class="val" id="masteryVal">0%</span><span class="unit">mastered</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="study">Study</button>
+    <button class="tab" data-tab="calendar">Calendar</button>
+    <button class="tab" data-tab="progress">Progress</button>
+  </nav>
+
+  <main>
+    <section class="view active" id="view-study">
+      <div class="today-strip" id="todayStrip">
+        <div class="ts-top">
+          <span class="ts-title">Today</span>
+          <span class="ts-date mono" id="todayDateLabel"></span>
+        </div>
+        <div class="ts-track"><div class="ts-fill" id="todayFill"></div></div>
+        <div class="ts-meta">
+          <span><b id="todayReviewed">0</b> reviewed</span>
+          <span><b id="todayRemaining">0</b> left</span>
+          <span><b id="todayAccuracy">&mdash;</b> good or better</span>
+        </div>
+      </div>
+      <div class="study-toolbar">
+        <div class="queue-info"><b id="queuePos">0</b> / <b id="queueTotal">0</b> cards in this session</div>
+        <div class="filters">
+          <select id="themeFilter"></select>
+          <div class="diff-toggle" id="diffToggle">
+            <button class="diff-chip active" data-d="e">Easy</button>
+            <button class="diff-chip active" data-d="m">Medium</button>
+            <button class="diff-chip active" data-d="h">Hard</button>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="sessionBar"></div></div>
+
+      <div class="card-stage" id="cardStage">
+        <div class="card-shadow-2"></div>
+        <div class="card-shadow-1"></div>
+        <div class="flashcard" id="flashcard">
+          <div class="inner">
+            <div class="card-face card-front" id="cardFront">
+              <div class="card-meta">
+                <span class="chip theme-chip" id="frontTheme"></span>
+                <span class="diff-dots" id="frontDiff"></span>
+              </div>
+              <p class="card-question" id="frontQ"></p>
+              <div class="flip-hint">Click or press Space to reveal</div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-meta">
+                <span class="chip theme-chip" id="backTheme"></span>
+              </div>
+              <div class="card-back-content">
+                <p class="card-label">Answer</p>
+                <p class="card-answer" id="backA"></p>
+                <p class="card-label">Why</p>
+                <p class="card-why" id="backW"></p>
+              </div>
+              <div class="flip-hint">Click or press Space to flip back</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grade-row" id="gradeRow" hidden>
+        <button class="grade-btn grade-again" data-g="again"><span class="key">1</span>Again</button>
+        <button class="grade-btn grade-hard" data-g="hard"><span class="key">2</span>Hard</button>
+        <button class="grade-btn grade-good" data-g="good"><span class="key">3</span>Good</button>
+        <button class="grade-btn grade-easy" data-g="easy"><span class="key">4</span>Easy</button>
+      </div>
+
+      <div class="session-complete" id="sessionComplete" hidden>
+        <h2 id="scTitle">All caught up</h2>
+        <p id="scSub">Nothing left in this queue.</p>
+        <div class="sc-stats">
+          <div class="sc-stat"><b id="scReviewed">0</b><span>Reviewed today</span></div>
+          <div class="sc-stat"><b id="scAccuracy">0%</b><span>Good or better</span></div>
+        </div>
+        <button class="btn" id="scActionBtn" hidden></button>
+      </div>
+    </section>
+
+    <section class="view" id="view-calendar">
+      <div class="cal-toolbar">
+        <button class="cal-nav" id="calPrev">&#8249;</button>
+        <h2 id="calMonthLabel"></h2>
+        <button class="cal-nav" id="calNext">&#8250;</button>
+        <button class="cal-today-btn" id="calToday">Today</button>
+      </div>
+      <div class="cal-legend" id="calLegend"></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-detail" id="calDetail" hidden></div>
+    </section>
+
+    <section class="view" id="view-progress">
+      <div class="progress-summary" id="progressSummary"></div>
+      <p class="section-title">Mastery by section</p>
+      <div class="theme-bars" id="themeBars"></div>
+      <p class="section-title">Cards you often get wrong</p>
+      <div class="trouble-panel" id="troublePanel"></div>
+      <p class="section-title">Last 14 weeks of practice</p>
+      <div class="heatmap" id="activityHeatmap"></div>
+
+      <p class="section-title">Move progress between devices</p>
+      <div class="sync-panel">
+        <p class="sync-hint">If a device isn't picking up your saved progress automatically, copy it here and paste it into this same box on that device.</p>
+        <textarea id="syncBox" class="sync-box" rows="4" placeholder="Tap &quot;Copy my progress&quot; below to fill this box &mdash; or paste progress copied from another device here, then tap Import."></textarea>
+        <div class="sync-actions">
+          <button class="btn ghost" id="syncCopyBtn">Copy my progress</button>
+          <button class="btn ghost" id="syncImportBtn">Import from box</button>
+        </div>
+        <p class="sync-status" id="syncStatus"></p>
+      </div>
+
+      <div class="danger-zone">
+        <button class="link-btn" id="resetBtn">Reset all progress</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================== DATA ============================== */
+const THEMES = [
+  {id:"t1", name:"Core Concepts & Principles"},
+  {id:"t2", name:"The Lean UX Canvas & Frameworks"},
+  {id:"t3", name:"MVPs & Experimentation"},
+  {id:"t4", name:"Collaboration, Culture & Research"},
+  {id:"t5", name:"Agile Integration & Management"}
+];
+const THEME_BY_ID = Object.fromEntries(THEMES.map(t=>[t.id,t]));
+const DIFF_LABEL = {e:"Easy", m:"Medium", h:"Hard"};
+
+const CARDS = [
+{id:1,t:"t1",d:"e",q:"What is the primary definition of Lean UX?",a:"Continuous learning.",w:"Because it is an ongoing process of acquiring knowledge rather than just delivering static, finished features."},
+{id:2,t:"t1",d:"e",q:"What is the core mantra comparing results to deliverables?",a:"Outcome over output.",w:"The ultimate goal is to change customer behavior positively (value) rather than just ship features (ego)."},
+{id:3,t:"t1",d:"e",q:"How is an 'outcome' defined in Lean UX?",a:"A change in customer behavior.",w:"It is a measurable impact that shows the product is actually delivering value, whereas an output is just the feature itself."},
+{id:4,t:"t1",d:"e",q:"What is the primary currency of Lean UX?",a:"Shared understanding across the entire cross-functional team.",w:"The collective knowledge of the space, product, and customers reduces the need to debate what happened and focuses the team on how to solve for new learning."},
+{id:5,t:"t1",d:"e",q:"Why should teams avoid terms like 'rockstars, gurus, or ninjas'?",a:"They emphasize individual stars.",w:"This undermines the team-based mentality and shared understanding essential for Lean UX cross-functional collaboration."},
+{id:6,t:"t1",d:"e",q:"What does the directive to 'get out of the building' mean?",a:"Going to where the users are, engaging with them, and observing their actions directly.",w:"It provides feedback on ideas sooner and bypasses opinions for actual behaviors to see what users are trying to do and why."},
+{id:7,t:"t1",d:"e",q:"What is the 'Two pizza rule'?",a:"If a team requires more than two pizzas for a meal, it is too big.",w:"Small, dedicated, and co-located teams communicate better, eliminate dependencies, and foster shared understanding faster."},
+{id:8,t:"t1",d:"e",q:"What is 'formalized curiosity' in the context of Lean UX?",a:"Research.",w:"It represents an ongoing, active mindset of asking questions and learning continuously rather than just checking a box."},
+{id:9,t:"t1",d:"m",q:"What are the three core pillars of Lean UX?",a:"1) Process change for designers, 2) Culture change (humility/doubt), 3) Organizational changes (inclusive/transparent).",w:"Lean UX requires foundational shifts in how teams think, act, and are structured to succeed."},
+{id:10,t:"t1",d:"m",q:"What is the mindset shift required regarding doubt and certainty?",a:"Adopting enthusiastic skepticism.",w:"Every project starts with assumptions. Starting with doubt ensures you systematically validate them to eliminate risk."},
+{id:11,t:"t1",d:"m",q:"What does 'Permission to fail' entail?",a:"Creating a safe technical and cultural environment to experiment, knowing that most ideas will fail.",w:"A culture of experimentation creates big ideas and fosters true creativity."},
+{id:12,t:"t1",d:"m",q:"What is the relationship between Lean UX and traditional deliverables?",a:"Get out of the deliverables business; focus on the outcomes the team is achieving.",w:"Documentation and artifacts that don't directly move the conversation forward or change customer behavior are considered waste."},
+{id:13,t:"t1",d:"m",q:"Why should teams 'beware of phases'?",a:"Phases signal a lack of continuous work.",w:"Research, testing, and delivery should happen consistently and concurrently, not in isolated, completed steps that result in 'finished' work."},
+{id:14,t:"t1",d:"m",q:"Why does Lean UX advocate for working in small batches?",a:"To mitigate risk, keep inventory low, and maintain high quality.",w:"It avoids building a huge list of untested ideas based on unvalidated assumptions."},
+{id:15,t:"t1",d:"m",q:"Why should teams be problem-focused instead of feature-focused?",a:"Teams should be given business problems to solve rather than predefined features to build.",w:"It shows trust, allows the team to take pride and ownership in solutions, and forces iteration based on outcomes."},
+{id:16,t:"t1",d:"m",q:"Why is it important to externalize your work?",a:"To create a shared and exposed place for work.",w:"It creates a passive ambient flow of work across the team, allowing colleagues to build off ideas and foster shared understanding."},
+{id:17,t:"t1",d:"m",q:"What is the value of 'making over analysis'?",a:"Creating a first version is more valuable than discussing its merits for half a day.",w:"Making something without data is a waste, and putting a concrete artifact in the hands of customers generates real data quickly."},
+{id:18,t:"t1",d:"h",q:"What does the statement 'it isn't iteration if you do it only once' imply about agility?",a:"True iteration is a commitment to redo the work based on continuous feedback until the outcome is achieved.",w:"Doing the same thing faster isn't agile; feeling there isn't enough time to get it right is a recipe for disaster."},
+{id:19,t:"t1",d:"h",q:"What is the distinction between output, outcome, and impact?",a:"Output is the feature (ego); outcome is the behavior change (value); impact is the effect on the bottom line (revenue/profit).",w:"This language clarifies whether a team is just building things, actually solving user problems, or driving business goals."},
+{id:20,t:"t1",d:"h",q:"What are three specific forms of waste Lean UX aims to remove?",a:"Artifacts that don't move the team forward, unnecessary documentation, and siloed work environments.",w:"Resources are limited; removing anything that doesn't bring the team to the ultimate goal allows for faster delivery of value."},
+{id:21,t:"t1",d:"h",q:"What is the primary problem with Agile software development from a traditional design perspective?",a:"It can pose process challenges for designers who are used to heavy upfront work.",w:"Agile prioritizes working software over complex documentation, which challenges designers to find the best solution (market fit) quickly."},
+{id:22,t:"t1",d:"h",q:"What does 'manage outcomes and progress toward them builds efficacy' mean?",a:"It means explicitly defining outcomes and taking a guess at which features create them, then measuring them objectively.",w:"If it is not performing, the team can make an objective decision to keep, change, or replace the feature without ego."},
+
+{id:23,t:"t2",d:"e",q:"What is the main purpose of the Lean UX Canvas?",a:"To facilitate conversations that declare team assumptions and build shared understanding.",w:"In UX, the goal is to develop shared understanding, share ideas, and create clarity around important unknowns."},
+{id:24,t:"t2",d:"e",q:"What replaces traditional 'requirements' in Lean UX?",a:"Assumptions.",w:"Acknowledging that the team doesn't know everything creates a safe space for discovery."},
+{id:25,t:"t2",d:"e",q:"Who should be involved in filling out the Lean UX Canvas?",a:"All team members.",w:"It encourages cross-functional shared understanding from the very beginning of an initiative."},
+{id:26,t:"t2",d:"e",q:"What is the focus of Box 1 in the Lean UX Canvas?",a:"Business problems to solve.",w:"Starting with business problems explicitly demands that discovery work takes place rather than just building a predetermined solution."},
+{id:27,t:"t2",d:"e",q:"What is the focus of Box 2 in the Lean UX Canvas?",a:"Business Outcomes.",w:"It defines what users will do differently if the solution works and what the team will measure."},
+{id:28,t:"t2",d:"e",q:"What is a proto-persona (Box 3)?",a:"A rapid, sketch-based persona built on team assumptions.",w:"It serves as a best-guess starting point that is continuously updated with research to keep the customer front and center."},
+{id:29,t:"t2",d:"e",q:"What does Box 4 of the Canvas focus on?",a:"User Outcomes and Benefits.",w:"To build broader empathy by understanding what the user is trying to answer or feel, not just what the business wants."},
+{id:30,t:"t2",d:"e",q:"What does Box 5 of the Canvas focus on?",a:"Solutions.",w:"Ideas for features are placed here after constraints (problems and users) are established so they don't end up scattered."},
+{id:31,t:"t2",d:"e",q:"What does Box 6 of the Canvas focus on?",a:"Hypotheses.",w:"It combines the previous boxes into testable statements to find limited evidence for further investigation."},
+{id:32,t:"t2",d:"e",q:"What question does Box 7 of the Canvas ask?",a:"What is the most important thing to learn first?",w:"It forces the team to highlight and tackle the major risks associated with their hypotheses immediately."},
+{id:33,t:"t2",d:"m",q:"What is the '1-2-4-all' method used for the Canvas?",a:"A facilitation technique starting with individual work, moving to pairs, groups of four, and finally the whole team.",w:"It ensures the facilitation is inclusive and accounts for different personalities and working styles."},
+{id:34,t:"t2",d:"m",q:"Why must you strictly avoid defining solutions in a Business Problem Statement?",a:"It assumes the answer is already known.",w:"It prevents the team from conducting true discovery work and limits their ability to pivot."},
+{id:35,t:"t2",d:"m",q:"Why avoid phrases like 'Intuitive UI' in a problem statement or hypothesis?",a:"They lack specificity.",w:"Ambiguous statements make it impossible to determine what metrics actually matter or what you are actually going to test."},
+{id:36,t:"t2",d:"m",q:"What is the difference between an impact metric and an outcome metric?",a:"Impact is high-level business data (profit), while outcome is feature-level user behavior.",w:"Impact metrics are often too high-level to track for specific features, whereas outcomes tell you what people are doing differently in the system."},
+{id:37,t:"t2",d:"m",q:"What are the five core user behaviors in the Pirate Metrics funnel?",a:"Acquisition, Activation, Retention, Revenue, Referral (AARRR).",w:"They provide a standard way to understand and measure the user journey through a product."},
+{id:38,t:"t2",d:"m",q:"Why is the 'Metrics Mountain' often a better metaphor than a funnel?",a:"It represents that the user journey gets harder as it progresses.",w:"Climbing up requires effort, and not everyone makes it; whereas liquid poured into a funnel naturally falls down."},
+{id:39,t:"t2",d:"m",q:"In a proto-persona, which data is usually overemphasized?",a:"Demographics (e.g., age).",w:"Demographics are often more irrelevant than psychographics, behaviors, or obstacles preventing them from achieving needs."},
+{id:40,t:"t2",d:"m",q:"What is the risk if you cannot find users matching your sketched proto-persona?",a:"The target customer probably does not exist.",w:"If they don't exist, you are not solving a real problem and need to pivot your assumptions."},
+{id:41,t:"t2",d:"m",q:"Why are emotional goals highly important for user outcomes?",a:"Fulfilling an emotional goal often has a massive impact on quantifiable business metrics.",w:"Users seek products to fulfill latent needs (e.g., feeling respected, fitting in), which drives behavior change."},
+{id:42,t:"t2",d:"m",q:"Why are constraints necessary during the Box 5 (Solutions) ideation phase?",a:"To keep the team focused.",w:"Without constraints, solutions will solve the wrong problem for the wrong people or end up scattered and unfocused."},
+{id:43,t:"t2",d:"m",q:"Why must a Lean UX hypothesis start with 'We believe'?",a:"To explicitly acknowledge that it is an assumption.",w:"It prevents the team from treating the statement as a known fact before it is validated."},
+{id:44,t:"t2",d:"m",q:"What is the biggest risk that usually needs to be evaluated first (Box 7)?",a:"Value risk.",w:"If the answer to 'Do they need it?' or 'Will they use it?' is no, there is no need to worry about technical challenges or usability."},
+{id:45,t:"t2",d:"m",q:"Are impact metrics usually leading or lagging indicators?",a:"Lagging indicators.",w:"They are backward-looking measures of what has already taken place (like revenue), whereas outcomes are leading indicators that happen first."},
+{id:46,t:"t2",d:"h",q:"What are the three required components of a Business Problem Statement?",a:"1) The current goal of the product, 2) The negative change affecting it, 3) An explicit request for improvement based on outcomes (not solutions).",w:"This structure provides a specific challenge, anchors the team in user centricity, and provides clear measures of success."},
+{id:47,t:"t2",d:"h",q:"What is the primary purpose of Outcome to Impact mapping?",a:"Visualizing the connection between lagging impact metrics (like revenue) and the leading outcome metrics (customer behaviors).",w:"It helps feature-level teams see exactly how their specific lower-level work drives the strategic goals of the business."},
+{id:48,t:"t2",d:"h",q:"Give an example mapping of Business vs. Customer vs. User outcomes.",a:"Business = increase software revenue; Customer (buyer) = drive down operational costs; User (employee) = reduce data input time.",w:"It shows how empathy must span across different levels; solving the user's granular problem achieves the customer's goal, which hits the business metric."},
+{id:49,t:"t2",d:"h",q:"What is the exact structure of the Lean UX Hypothesis Template?",a:"We believe we will achieve [business outcome] if [personas] attain [user outcome] with this [feature/solution].",w:"It functions as a short story that tests the validity of brainstorms by forcing a clear connection between the feature, user benefit, and business goal."},
+{id:50,t:"t2",d:"h",q:"What is the Hypothesis Prioritization Canvas (HPC)?",a:"A 2x2 matrix plotting effort against impact.",w:"It helps teams ruthlessly prioritize which hypothesis to test first and discard high-effort, low-impact ideas."},
+{id:51,t:"t2",d:"h",q:"If consensus cannot be reached on what to learn first (Box 7), what does this indicate?",a:"The team needs more information to make a decision.",w:"When stuck, the Product Manager usually makes the final call to move forward to generate data, knowing they can pivot if proven false."},
+{id:52,t:"t2",d:"h",q:"What is a 'parking lot' used for during Box 5 (Solutions)?",a:"To store good ideas that don't make the cut during team convergence.",w:"It makes it easier for team members to let go of their ideas without deferring or generalizing decisions."},
+{id:53,t:"t2",d:"h",q:"Why is it dangerous to write 'How might we' statements instead of strict hypotheses?",a:"'How might we' statements often forget the user.",w:"They can lead to creating features without understanding the user or discussing if the feature actually creates a measurable outcome."},
+
+{id:54,t:"t3",d:"e",q:"What is the true goal of an MVP in Lean UX?",a:"To create learning with the least amount of work.",w:"The goal is to eliminate waste by finding out as fast as possible if an idea is worth continuing, rather than just delivering initial value."},
+{id:55,t:"t3",d:"e",q:"Why is measuring behavior better than asking opinions in MVP testing?",a:"Behavior trumps opinion.",w:"What people actually do (like clicking a CTA or paying) is far more reliable than what they say they will do."},
+{id:56,t:"t3",d:"e",q:"What does 'ruthless prioritization' mean regarding MVPs?",a:"Discard ideas if the experiment disproves the hypothesis.",w:"Ideas are cheap and plentiful; holding onto them just because you like them goes against the data."},
+{id:57,t:"t3",d:"e",q:"Does an MVP always require writing code?",a:"No.",w:"An MVP can be a sketch, prototype, visual design, or landing page, as long as it generates the needed learning."},
+{id:58,t:"t3",d:"m",q:"Why should teams avoid treating an MVP as just 'Phase 1'?",a:"Because 'Phase 2' rarely gets resources.",w:"Treating it as a phase assumes the initial solution is already correct without validation and just needs to be finished."},
+{id:59,t:"t3",d:"m",q:"What is the very first thing you need to validate with an MVP?",a:"Whether the core value proposition brings any actual value to the target audience.",w:"If there is no demand or value, testing usability or implementation is a waste of time."},
+{id:60,t:"t3",d:"m",q:"What is a Landing Page MVP primarily used to determine?",a:"Demand and conversion rates.",w:"By driving traffic via online ads and providing a CTA, it measures actual interest before building the product."},
+{id:61,t:"t3",d:"m",q:"What is a Feature Fake MVP?",a:"A call-to-action or button for a non-existent feature (a 'button to nowhere').",w:"It is used strictly to measure user interest; implementing the actual feature is costly, so this tests demand cheaply."},
+{id:62,t:"t3",d:"m",q:"What is a Wizard of Oz MVP?",a:"A service that appears fully automated to the user, but backend processes are managed manually by humans.",w:"It allows the team to figure out the mechanics and demand of the product before significant engineering effort is wasted."},
+{id:63,t:"t3",d:"m",q:"What is the main danger of testing multiple things at once in a single MVP?",a:"It becomes difficult to isolate variables.",w:"If you test value and implementation simultaneously, you won't know which specific variable drove the learning or behavior change."},
+{id:64,t:"t3",d:"m",q:"How can AI be beneficial in the MVP phase?",a:"By rapidly generating high-fidelity prototypes.",w:"It allows teams to test interactive experiences with minimal manual effort, speeding up the build-measure-learn loop."},
+{id:65,t:"t3",d:"m",q:"What happens if a Landing Page MVP gets zero conversions?",a:"It doesn't necessarily mean the idea is bad.",w:"It might mean you are not telling a compelling story; luckily, landing pages are cheap and can be iterated quickly to test this."},
+{id:66,t:"t3",d:"h",q:"Explain the principle of the 'Truth Curve'.",a:"The amount of effort and complexity invested in an MVP should be proportional to the amount of market-based evidence you already have.",w:"Less evidence means less effort should be spent; increased investment is only warranted when the facts dictate it to avoid waste."},
+{id:67,t:"t3",d:"h",q:"How do you offset the potential negative user experience caused by a Feature Fake MVP?",a:"Offer compensation, such as a gift card.",w:"Users who click the 'mouse trap' might feel frustrated; compensation preserves the brand relationship while securing the data."},
+{id:68,t:"t3",d:"h",q:"Why should MVP results be integrated with existing analytics?",a:"To measure success and numbers in context.",w:"Measuring what people DID without analytics leaves the team guessing; capturing conversations explains the 'why' behind the analytics."},
+{id:69,t:"t3",d:"h",q:"Why must an implementation MVP fit with the current look, feel, and brand?",a:"To minimize biases.",w:"If the MVP looks completely different from the rest of the application, users might behave differently due to the visual shock rather than the feature's value."},
+
+{id:70,t:"t4",d:"e",q:"Is Collaborative Design the same as 'design by committee'?",a:"No, it is a facilitated process still led by a designer.",w:"It aims to build shared understanding and gather diverse perspectives, not to democratize every pixel-level decision."},
+{id:71,t:"t4",d:"e",q:"What is a Design System?",a:"A common language between designers and developers, combining style guides, pattern libraries, and components.",w:"It improves collaboration, allows teams to prototype faster, and maintains a Single Source of Truth (SSoT)."},
+{id:72,t:"t4",d:"e",q:"Who should conduct user research in Lean UX?",a:"The entire cross-functional team.",w:"Relying on an isolated researcher creates handoffs; doing it together increases the quality of learning and builds shared understanding."},
+{id:73,t:"t4",d:"e",q:"What is the 'Test what you have got' policy?",a:"Test whatever artifact is ready on testing day.",w:"It prioritizes continuous discovery over waiting for a conclusive, pixel-perfect design."},
+{id:74,t:"t4",d:"e",q:"What should be done with outliers found during research synthesis?",a:"Place them in a 'parking lot'.",w:"You shouldn't bake them into the solution immediately unless subsequent research sessions reveal a pattern."},
+{id:75,t:"t4",d:"m",q:"How does collaborative design increase the 'design IQ' of a team?",a:"By bringing diverse experts together to share ideas early.",w:"It challenges opinions a designer alone wouldn't recognize and builds deeper bonds and transparency."},
+{id:76,t:"t4",d:"m",q:"Why shouldn't designers jump straight to high-fidelity mockups when collaborating with non-designers?",a:"Stakeholders tend to focus on critiquing minor visual details.",w:"With wireframes or low-fidelity sketches, feedback remains focused on the underlying concept and flow."},
+{id:77,t:"t4",d:"m",q:"What is a team working agreement?",a:"A living document tracking how a team chooses to collaborate.",w:"It standardizes ceremonies, tools, working hours, and conflict resolution to maintain a healthy culture."},
+{id:78,t:"t4",d:"m",q:"What role does a researcher play in Lean UX?",a:"An expert guide who facilitates research for the team.",w:"Their goal is to empower the team to discover insights themselves rather than doing it all in a silo."},
+{id:79,t:"t4",d:"m",q:"In collaborative discovery pairs, what are the two distinct roles?",a:"One person leads the interview, while the other takes notes.",w:"It allows the interviewer to focus purely on the conversation, and they switch roles later to share the burden."},
+{id:80,t:"t4",d:"m",q:"Why should you show a prototype last during a user interview?",a:"To avoid swaying the user's vision of the solution.",w:"You must first confirm they actually have the problem you are solving before biasing them with your proposed answer."},
+{id:81,t:"t4",d:"m",q:"How can customer service logs aid continuous discovery?",a:"They provide lists of the top user issues each month.",w:"This acts as a direct, unbiased source for generating new hypotheses based on real user pain points."},
+{id:82,t:"t4",d:"m",q:"What is the purpose of A/B testing in continuous discovery?",a:"To submit a concept to a small subset of users and measure performance against a control.",w:"It provides an unbiased result on whether the new idea moved the needle in the right direction."},
+{id:83,t:"t4",d:"h",q:"What does the 'Fat pen' method refer to in collaborative design?",a:"Using low-fidelity tools (like thick markers).",w:"It physically forces the team to focus entirely on flow and functionality instead of getting bogged down in pixel-perfect details."},
+{id:84,t:"t4",d:"h",q:"How does Lean UX define Psychological Safety?",a:"An environment where team members can admit mistakes, ask questions, and offer ideas without fear of embarrassment.",w:"Design is a creative activity that requires an iterative process; teams must be safe to make mistakes to make something truly great."},
+{id:85,t:"t4",d:"h",q:"What is the 3:12:1 rhythm for continuous discovery?",a:"Testing with 3 users, by 12 noon, 1 time a week.",w:"It creates a continuous operational rhythm so the team is never more than a few days away from user feedback."},
+{id:86,t:"t4",d:"h",q:"How do you verify research feedback if you are not convinced by a single channel?",a:"Verify with other sources like reviews or support emails.",w:"Cross-referencing data channels ensures you don't over-rotate on a false pattern."},
+{id:87,t:"t4",d:"h",q:"What is the correct sequence of questioning in a user interview guide?",a:"A sequential funnel: first confirm they are the target audience, then confirm the problem hypotheses.",w:"If they aren't the target audience or don't have the problem, feedback on the solution is irrelevant."},
+
+{id:88,t:"t5",d:"e",q:"What are the 4 main components that make Agile work for any team?",a:"Work in short cycles, deliver value, hold daily scrums, and hold retrospectives.",w:"These parts ensure a dedicated team stays aligned, moves quickly, and continuously improves their process."},
+{id:89,t:"t5",d:"e",q:"Should designers participate in backlog planning and standups?",a:"Yes, they must be involved in all aspects.",w:"It ensures design needs are met in project plans and maintains the shared understanding of the team."},
+{id:90,t:"t5",d:"e",q:"What is Agilefall?",a:"Waterfall processes or 'Big Design Upfront' sneaking into an agile workflow.",w:"It occurs when teams create a 'communication at handoff' culture, destroying true collaboration."},
+{id:91,t:"t5",d:"e",q:"How does Lean UX recommend handling documentation?",a:"Lead with conversation and trail with documentation.",w:"Software working as designed is more important than complex documentation; conversation is faster and builds better alignment."},
+{id:92,t:"t5",d:"e",q:"What does it mean to 'manage up and out'?",a:"Constantly communicating with the broader organization to show what is coming.",w:"Other departments are impacted by your work, and keeping stakeholders informed prevents micromanagement."},
+{id:93,t:"t5",d:"m",q:"Why must the definition of 'Done' be redefined in Lean UX?",a:"Software is only 'done' when it is validated by measuring customer behavior change.",w:"Simply passing acceptance testing only proves the software works as designed, not that it actually solved a user problem."},
+{id:94,t:"t5",d:"m",q:"What is a Sprint Goal (or Product Goal) in this context?",a:"A multi-sprint theme centered around a risky hypothesis.",w:"It aligns the team's short-term delivery cycles with a larger strategic focus and desired outcome."},
+{id:95,t:"t5",d:"m",q:"Why are traditional date-based roadmaps problematic for Lean UX?",a:"They create a fixed starting and end point.",w:"Digital product development is iterative, not linear; fixed dates force a focus on outputs (shipping features) rather than outcomes."},
+{id:96,t:"t5",d:"m",q:"In an Outcome-Based Roadmap, how is progress measured?",a:"It is measured strictly by how well the team changed customer behavior.",w:"Shipping a list of features does not matter if the metrics and OKRs (like retention or conversion) do not improve."},
+{id:97,t:"t5",d:"m",q:"How should Design Sprints be utilized within a Lean UX environment?",a:"As targeted interventions for high-risk kickoffs or unblocking stagnant features.",w:"Running them back-to-back exhausts teams; they are best used when uncertainty is exceptionally high."},
+{id:98,t:"t5",d:"m",q:"How does Lean UX suggest a single team track UX debt?",a:"Create a specific, dedicated section in the backlog specifically for UX debt stories.",w:"Teams focused purely on speed often ignore UI/UX polish; tracking it ensures a commitment to eventually iterating on the design."},
+{id:99,t:"t5",d:"m",q:"Why are honest, blameless retrospectives considered almost the most important part of Agile?",a:"They give the team the opportunity to judge how they worked and adapt.",w:"Looking back to ask what worked, what didn't, and what to change drives the continuous improvement loop."},
+{id:100,t:"t5",d:"h",q:"What is the danger of 'staggered sprints' (where design works one sprint ahead of dev)?",a:"It creates a 'communication at handoff' culture.",w:"It turns the process into Agilefall, meaning the teams are never working on the same thing at the same time, leading to unnecessary waste and lack of context for developers."},
+{id:101,t:"t5",d:"h",q:"What is the purpose of Experiment Stories in an agile backlog?",a:"To explicitly visualize and prioritize discovery/learning work alongside standard delivery work.",w:"Without a specific ticket for research or interviews, discovery work gets pushed aside by the pressure to deliver code."},
+{id:102,t:"t5",d:"h",q:"What are the three columns of a Risks Dashboard for stakeholders?",a:"1) The specific risk, 2) A severity/trend scale, 3) The mitigation actions currently being taken.",w:"It proactively communicates roadblocks to management, keeping them out of your way while highlighting when your time is blocked out."},
+{id:103,t:"t5",d:"h",q:"What are the three time horizons used in an Outcome-Based Roadmap?",a:"Now (active experiments), Next (prioritized discovery), and Later (long-term strategic opportunities).",w:"This replaces fixed Gantt charts and quarters with horizons based on certainty and learning, reflecting the true nature of software development."},
+{id:104,t:"t5",d:"h",q:"How do you address UX debt that spans across multiple different teams?",a:"Map the current versus ideal customer journey on a wall, invite responsible teams, and write targeted stories for their backlogs.",w:"It breaks down silos by making the gaps clearly visible to everyone and assigning cross-functional accountability for the overall user experience."},
+{id:105,t:"t5",d:"h",q:"How should a team resolve the conflict of an 8-week research study not fitting into a 2-week sprint?",a:"Redefine 'done' for research by presenting early results and conclusions transparently at the end of each sprint.",w:"Forcing research to finish in 2 weeks breaks the 'beware of phases' principle; showing early value maintains Agile's transparency without compromising the study."},
+{id:106,t:"t5",d:"h",q:"Why must proposed solutions in an Outcome-Based roadmap be treated as disposable?",a:"Because they are just testable hypotheses.",w:"If experiments show the feature doesn't move the needle on the tied metrics, the team must be free to kill or pivot it without failing the roadmap."}
+];
+const CARD_BY_ID = Object.fromEntries(CARDS.map(c=>[c.id,c]));
+
+/* ============================== DATE HELPERS ==============================
+   "Today" is anchored to UTC, not the device's local clock. Local-time day
+   boundaries mean two devices in different timezones (or one device whose
+   timezone changes, e.g. from travel) can silently disagree on what day it
+   is, which desyncs due dates, streaks and history against the single
+   shared save file. Anchoring to UTC makes "today" the same fixed value
+   everywhere, at the cost of the day rolling over at a fixed UTC instant
+   rather than local midnight. parseYMD is unaffected — it only formats an
+   already-fixed date string for display and round-trips correctly in any
+   timezone since it's never reading the ambient clock. */
+function pad(n){return n<10?"0"+n:""+n;}
+function fmtDate(d){return d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate());}
+function todayStr(){return fmtDate(new Date());}
+function addDays(dateStr,n){const d=new Date(dateStr+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+n);return fmtDate(d);}
+function parseYMD(dateStr){const [y,m,dd]=dateStr.split("-").map(Number);return new Date(y,m-1,dd);}
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+/* ============================== INTRO PACING ==============================
+   Every card gets a deterministic "intro day" so the whole 106-card deck is
+   rolled out over the first couple of weeks, interleaved across sections
+   instead of dumped in one day. This lets the calendar project a full study
+   plan before a single card has ever been reviewed. */
+const CARDS_PER_DAY = 20;
+function buildIntroOrder(){
+  const byTheme = {};
+  THEMES.forEach(t=>{ byTheme[t.id] = CARDS.filter(c=>c.t===t.id).map(c=>c.id); });
+  const order = [];
+  let more = true;
+  while(more){
+    more = false;
+    THEMES.forEach(t=>{
+      const arr = byTheme[t.id];
+      if(arr.length){ order.push(arr.shift()); more = true; }
+    });
+  }
+  return order;
+}
+const INTRO_ORDER = buildIntroOrder();
+const INTRO_INDEX = Object.fromEntries(INTRO_ORDER.map((id,i)=>[id,i]));
+function introDayFor(cardId){
+  const idx = INTRO_INDEX[cardId];
+  return addDays(state.startDate, Math.floor(idx / CARDS_PER_DAY));
+}
+
+/* ============================== STATE ============================== */
+const LS_KEY = "leanux-flashcards-state-v1";
+
+function defaultState(){
+  return {
+    cards:{},            // id -> {ef, reps, interval, due, last, lapses}
+    history:{},          // "YYYY-MM-DD" -> {total, byTheme:{}, grades:{again,hard,good,easy}}
+    streak:{current:0, longest:0, lastActiveDate:null},
+    startDate: todayStr(),
+    updatedAt:new Date().toISOString()
+  };
+}
+
+let state = defaultState();
+let db = null;
+let dbAvailable = false;
+
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && parsed.cards) state = parsed;
+    }
+  }catch(e){ /* ignore, keep defaults */ }
+  ensureStartDate();
+}
+function ensureStartDate(){
+  if(!state.startDate){
+    state.startDate = todayStr();
+    saveLocal();
+  }
+}
+function saveLocal(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){ /* ignore */ }
+}
+
+function pruneHistory(){
+  const cutoff = addDays(todayStr(), -400);
+  Object.keys(state.history).forEach(k=>{ if(k < cutoff) delete state.history[k]; });
+}
+
+async function persist(){
+  state.updatedAt = new Date().toISOString();
+  pruneHistory();
+  saveLocal();
+  if(dbAvailable && db){
+    try{ await db.doc("progress/state").set(state); }catch(e){ /* offline is fine, localStorage has it */ }
+  }
+}
+
+async function initDb(){
+  try{
+    db = await claude.use("db");
+  }catch(e){ db = null; }
+  if(!db) return;
+  try{
+    const snap = await db.doc("progress/state").get();
+    if(snap.exists){
+      const remote = snap.data();
+      if(remote && remote.cards){
+        const remoteTime = remote.updatedAt ? Date.parse(remote.updatedAt) : 0;
+        const localTime = state.updatedAt ? Date.parse(state.updatedAt) : 0;
+        if(remoteTime >= localTime){
+          // db.get() snapshots are frozen — clone before treating this as
+          // live, mutable app state, or every future grade() throws trying
+          // to write to a read-only record.
+          state = JSON.parse(JSON.stringify(remote));
+          ensureStartDate();
+          saveLocal();
+        }
+      }
+    } else {
+      await db.doc("progress/state").set(state);
+    }
+    dbAvailable = true;
+    renderAll();
+  }catch(e){ dbAvailable = false; }
+}
+
+/* ============================== SCHEDULER (SM-2) ============================== */
+function getRecord(id){
+  return state.cards[id] || null;
+}
+function statusOf(id){
+  const r = getRecord(id);
+  if(!r || r.reps===0) return "new";
+  if(r.interval < 6) return "learning";
+  if(r.interval < 21) return "review";
+  return "mastered";
+}
+function isReadyToday(id){
+  const today = todayStr();
+  const r = getRecord(id);
+  if(r) return r.due <= today;
+  return introDayFor(id) <= today;
+}
+function cardsDueOrNewToday(){
+  return CARDS.filter(c=>isReadyToday(c.id));
+}
+const TROUBLE_LAPSE_THRESHOLD = 2;
+function troubleCards(){
+  return CARDS.filter(c=>{
+    const r = getRecord(c.id);
+    return r && (r.lapses||0) >= TROUBLE_LAPSE_THRESHOLD;
+  }).sort((a,b)=>{
+    const ra = getRecord(a.id), rb = getRecord(b.id);
+    return (rb.lapses - ra.lapses) || (ra.ef - rb.ef);
+  });
+}
+function gradeQuality(g){ return {again:0, hard:3, good:4, easy:5}[g]; }
+
+function applyGrade(id, grade){
+  const today = todayStr();
+  let r = getRecord(id) || {ef:2.5, reps:0, interval:0, due:today, last:null, lapses:0};
+  const q = gradeQuality(grade);
+  if(q < 3){
+    r.reps = 0;
+    r.interval = 1;
+    r.lapses = (r.lapses||0) + 1;
+  } else {
+    if(r.reps === 0) r.interval = 1;
+    else if(r.reps === 1) r.interval = 6;
+    else r.interval = Math.round(r.interval * r.ef);
+    r.reps += 1;
+    if(grade === "easy") r.interval = Math.round(r.interval * 1.3);
+  }
+  r.ef = r.ef + (0.1 - (5-q)*(0.08+(5-q)*0.02));
+  if(r.ef < 1.3) r.ef = 1.3;
+  r.last = today;
+  r.due = addDays(today, r.interval);
+  state.cards[id] = r;
+
+  const card = CARD_BY_ID[id];
+  const day = state.history[today] || {total:0, byTheme:{}, grades:{again:0,hard:0,good:0,easy:0}};
+  day.total += 1;
+  day.byTheme[card.t] = (day.byTheme[card.t]||0) + 1;
+  day.grades[grade] = (day.grades[grade]||0) + 1;
+  state.history[today] = day;
+
+  updateStreak(today);
+  persist();
+}
+
+function updateStreak(today){
+  const s = state.streak;
+  if(s.lastActiveDate === today) return;
+  if(s.lastActiveDate === addDays(today,-1)){
+    s.current += 1;
+  } else {
+    s.current = 1;
+  }
+  s.lastActiveDate = today;
+  if(s.current > s.longest) s.longest = s.current;
+}
+
+function computeCurrentStreakDisplay(){
+  const today = todayStr();
+  const s = state.streak;
+  if(!s.lastActiveDate) return 0;
+  if(s.lastActiveDate === today) return s.current;
+  if(s.lastActiveDate === addDays(today,-1)) return s.current;
+  return 0;
+}
+
+/* ============================== PROJECTED SCHEDULE ==============================
+   Bakes a real study plan for the next ~3 months, before anything has been
+   reviewed. Every card has either a real SM-2 record (from actual grades) or
+   a virtual one that starts at its intro day. Either way we run the exact
+   same SM-2 algorithm forward, always assuming a "Good" grade, to project
+   every future occurrence of that card out to the horizon. A card that is
+   overdue (or a new card whose intro day has arrived) is rolled forward onto
+   today, exactly like the live study queue does, so the calendar and the
+   Study tab always agree. */
+function projectedOccurrences(cardId, horizonDays){
+  const today = todayStr();
+  const horizon = addDays(today, horizonDays);
+  const real = getRecord(cardId);
+  let ef, reps, interval, due;
+  if(real && real.reps > 0){
+    ef = real.ef; reps = real.reps; interval = real.interval; due = real.due;
+  } else {
+    ef = 2.5; reps = 0; interval = 0; due = introDayFor(cardId);
+  }
+  const occurrences = [];
+  let guard = 0;
+  while(guard < 40){
+    const displayDate = due < today ? today : due;
+    if(displayDate > horizon) break;
+    occurrences.push(displayDate);
+    if(reps === 0) interval = 1;
+    else if(reps === 1) interval = 6;
+    else interval = Math.round(interval * ef);
+    reps += 1;
+    due = addDays(displayDate, interval);
+    guard += 1;
+  }
+  return occurrences;
+}
+function buildScheduleMap(horizonDays){
+  const map = {};
+  CARDS.forEach(c=>{
+    projectedOccurrences(c.id, horizonDays).forEach(dateStr=>{
+      const bucket = map[dateStr] || (map[dateStr] = {total:0, byTheme:{}});
+      bucket.total += 1;
+      bucket.byTheme[c.t] = (bucket.byTheme[c.t]||0) + 1;
+    });
+  });
+  return map;
+}
+function cardsScheduledOn(dateStr, horizonDays){
+  return CARDS.filter(c=>projectedOccurrences(c.id, horizonDays).indexOf(dateStr) !== -1).map(c=>c.id);
+}
+
+/* ============================== SESSION / QUEUE ============================== */
+let session = { queue: [], pos: 0, flipped:false, reviewedToday0:0, correctToday0:0 };
+let filters = { theme:"all", diffs:{e:true,m:true,h:true} };
+let calState = (function(){ const t = todayStr(); return { year: Number(t.slice(0,4)), month: Number(t.slice(5,7))-1, selected:null }; })();
+let overrideQueue = null; // set when launched from calendar
+// Native confirm()/alert() dialogs are unreliable inside a sandboxed iframe
+// (some viewers silently no-op them instead of showing anything), so
+// destructive actions use an in-page "tap again to confirm" arm/disarm
+// pattern instead, tracked here so it survives re-renders.
+let resetArmed = false, resetArmTimer = null;
+let importArmed = false, importArmTimer = null;
+
+function cardsMatchingFilters(){
+  return CARDS.filter(c=>{
+    if(filters.theme !== "all" && c.t !== filters.theme) return false;
+    if(!filters.diffs[c.d]) return false;
+    return true;
+  });
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
+}
+
+function buildQueue(){
+  if(overrideQueue){
+    session.queue = overrideQueue.slice();
+    session.pos = 0;
+    session.flipped = false;
+    overrideQueue = null;
+    return;
+  }
+  const today = todayStr();
+  const pool = cardsMatchingFilters();
+  const due = pool.filter(c=>{ const r = getRecord(c.id); return r && r.due <= today; });
+  const fresh = pool.filter(c=>!getRecord(c.id) && introDayFor(c.id) <= today);
+  due.sort((a,b)=> (getRecord(a.id).due).localeCompare(getRecord(b.id).due));
+  // More-overdue cards still come first, but a stable sort otherwise leaves
+  // same-due-date cards in id order every time (they usually share a due
+  // date right after a batch is introduced together) — shuffle within each
+  // tied group so the order actually varies day to day.
+  let i = 0;
+  while(i < due.length){
+    let j = i + 1;
+    while(j < due.length && getRecord(due[j].id).due === getRecord(due[i].id).due) j++;
+    if(j - i > 1){
+      const run = shuffle(due.slice(i, j));
+      for(let k = i; k < j; k++) due[k] = run[k - i];
+    }
+    i = j;
+  }
+  shuffle(fresh);
+  const queue = due.concat(fresh);
+  session.queue = queue.map(c=>c.id);
+  session.pos = 0;
+  session.flipped = false;
+}
+
+function currentCard(){
+  if(session.pos >= session.queue.length) return null;
+  return CARD_BY_ID[session.queue[session.pos]];
+}
+
+function renderCard(){
+  const flashcard = document.getElementById("flashcard");
+  const gradeRow = document.getElementById("gradeRow");
+  const complete = document.getElementById("sessionComplete");
+  const stage = document.getElementById("cardStage");
+  const bar = document.getElementById("progress-bar-fill") || document.getElementById("sessionBar");
+
+  document.getElementById("queuePos").textContent = Math.min(session.pos, session.queue.length);
+  document.getElementById("queueTotal").textContent = session.queue.length;
+  const pct = session.queue.length ? Math.round((session.pos/session.queue.length)*100) : 0;
+  document.getElementById("sessionBar").style.width = pct + "%";
+
+  const card = currentCard();
+  if(!card){
+    stage.style.display = "none";
+    gradeRow.hidden = true;
+    complete.hidden = false;
+    const today = todayStr();
+    const day = state.history[today];
+    document.getElementById("scReviewed").textContent = day ? day.total : 0;
+    if(day){
+      const goodOrBetter = (day.grades.good||0) + (day.grades.easy||0);
+      document.getElementById("scAccuracy").textContent = day.total ? Math.round((goodOrBetter/day.total)*100)+"%" : "0%";
+    } else {
+      document.getElementById("scAccuracy").textContent = "0%";
+    }
+    const filteredDueLeft = cardsMatchingFilters().filter(c=>isReadyToday(c.id)).length;
+    const globalDueLeft = cardsDueOrNewToday().length;
+    const actionBtn = document.getElementById("scActionBtn");
+
+    if(filteredDueLeft === 0 && globalDueLeft === 0){
+      document.getElementById("scTitle").textContent = "All caught up";
+      document.getElementById("scSub").textContent = "Nothing left to study today. Nice work.";
+      const tomorrow = addDays(today, 1);
+      let aheadDate = null, aheadIds = [];
+      for(let i=1; i<=7; i++){
+        const d = addDays(today, i);
+        const ids = cardsScheduledOn(d, CALENDAR_HORIZON_DAYS);
+        if(ids.length){ aheadDate = d; aheadIds = ids; break; }
+      }
+      if(aheadIds.length){
+        actionBtn.hidden = false;
+        actionBtn.textContent = (aheadDate===tomorrow ? "Get a head start on tomorrow" : "Get a head start on your next session") + " (" + aheadIds.length + ")";
+        actionBtn.onclick = ()=>{
+          overrideQueue = aheadIds;
+          buildQueue();
+          renderCard();
+        };
+      } else {
+        actionBtn.hidden = true;
+      }
+    } else if(filteredDueLeft === 0 && globalDueLeft > 0){
+      document.getElementById("scTitle").textContent = "This section is clear";
+      document.getElementById("scSub").textContent = globalDueLeft + " more card" + (globalDueLeft===1?"":"s") + " due today in other sections.";
+      actionBtn.hidden = false;
+      actionBtn.textContent = "Show everything due today";
+      actionBtn.onclick = ()=>{
+        filters.theme = "all";
+        document.getElementById("themeFilter").value = "all";
+        buildQueue();
+        renderCard();
+      };
+    } else {
+      document.getElementById("scTitle").textContent = "Session complete";
+      document.getElementById("scSub").textContent = "You cleared this queue.";
+      actionBtn.hidden = true;
+    }
+    return;
+  }
+  stage.style.display = "";
+  complete.hidden = true;
+  flashcard.classList.remove("flipped");
+  session.flipped = false;
+  gradeRow.hidden = true;
+
+  const theme = THEME_BY_ID[card.t];
+  document.getElementById("frontTheme").textContent = theme.name;
+  document.getElementById("frontTheme").className = "chip theme-chip theme-"+card.t;
+  document.getElementById("backTheme").textContent = theme.name;
+  document.getElementById("backTheme").className = "chip theme-chip theme-"+card.t;
+  document.getElementById("frontQ").textContent = card.q;
+  document.getElementById("backA").textContent = card.a;
+  document.getElementById("backW").textContent = card.w;
+
+  const dotsWrap = document.getElementById("frontDiff");
+  const level = {e:1,m:2,h:3}[card.d];
+  dotsWrap.innerHTML = [1,2,3].map(i=>"<span class=\"" + (i<=level?"on":"") + "\"></span>").join("");
+  dotsWrap.title = DIFF_LABEL[card.d];
+}
+
+function toggleFlip(){
+  if(!currentCard()) return;
+  session.flipped = !session.flipped;
+  document.getElementById("flashcard").classList.toggle("flipped", session.flipped);
+  document.getElementById("gradeRow").hidden = !session.flipped;
+}
+
+function grade(g){
+  const card = currentCard();
+  if(!card || !session.flipped) return;
+  applyGrade(card.id, g);
+  if(g === "again"){
+    const insertAt = Math.min(session.queue.length, session.pos + 3 + Math.floor(Math.random()*2));
+    session.queue.splice(insertAt, 0, card.id);
+  }
+  session.pos += 1;
+  renderCard();
+  renderHeader();
+}
+
+/* ============================== HEADER ============================== */
+function renderHeader(){
+  document.getElementById("streakVal").textContent = computeCurrentStreakDisplay();
+  document.getElementById("dueVal").textContent = cardsDueOrNewToday().length;
+  const mastered = CARDS.filter(c=>statusOf(c.id)==="mastered").length;
+  document.getElementById("masteryVal").textContent = Math.round((mastered/CARDS.length)*100) + "%";
+  renderTodayStrip();
+}
+
+/* Always-visible "Today" summary on the Study tab, independent of whether a
+   session is mid-way or already complete, so today's plan never requires a
+   trip to the Calendar tab. */
+function renderTodayStrip(){
+  const today = todayStr();
+  const day = state.history[today];
+  const reviewed = day ? day.total : 0;
+  const remaining = cardsDueOrNewToday().length;
+  const total = reviewed + remaining;
+  const pct = total ? Math.round((reviewed/total)*100) : 100;
+  document.getElementById("todayFill").style.width = pct + "%";
+  document.getElementById("todayReviewed").textContent = reviewed;
+  document.getElementById("todayRemaining").textContent = remaining;
+  const accEl = document.getElementById("todayAccuracy");
+  if(day && day.total){
+    const goodOrBetter = (day.grades.good||0) + (day.grades.easy||0);
+    accEl.textContent = Math.round((goodOrBetter/day.total)*100) + "%";
+  } else {
+    accEl.textContent = String.fromCharCode(0x2014);
+  }
+  const d = parseYMD(today);
+  document.getElementById("todayDateLabel").textContent = DOW[d.getDay()] + " " + MONTH_NAMES[d.getMonth()] + " " + d.getDate();
+}
+
+/* ============================== TABS ============================== */
+function initTabs(){
+  document.getElementById("tabs").addEventListener("click", (e)=>{
+    const btn = e.target.closest(".tab");
+    if(!btn) return;
+    checkDateRollover();
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    document.getElementById("view-"+btn.dataset.tab).classList.add("active");
+    if(btn.dataset.tab === "calendar") renderCalendar();
+    if(btn.dataset.tab === "progress") renderProgress();
+  });
+}
+function switchTab(name){
+  checkDateRollover();
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+name));
+  if(name === "calendar") renderCalendar();
+  if(name === "progress") renderProgress();
+}
+
+/* Left the panel open across midnight? The in-memory session queue would
+   otherwise stay frozen on "session complete" from the previous day. This
+   catches the date changing and rebuilds everything so today's plan always
+   shows up without needing a manual reload. */
+let currentDay = todayStr();
+function checkDateRollover(){
+  const now = todayStr();
+  if(now === currentDay) return;
+  currentDay = now;
+  overrideQueue = null;
+  buildQueue();
+  renderHeader();
+  renderCard();
+  if(document.getElementById("view-calendar").classList.contains("active")) renderCalendar();
+  if(document.getElementById("view-progress").classList.contains("active")) renderProgress();
+}
+
+/* ============================== STUDY TOOLBAR ============================== */
+function initStudyToolbar(){
+  const sel = document.getElementById("themeFilter");
+  sel.innerHTML = "<option value=\"all\">All sections</option>" + THEMES.map(t=>"<option value=\""+t.id+"\">"+t.name+"</option>").join("");
+  sel.addEventListener("change", ()=>{
+    filters.theme = sel.value;
+    buildQueue();
+    renderCard();
+  });
+  document.getElementById("diffToggle").addEventListener("click",(e)=>{
+    const btn = e.target.closest(".diff-chip");
+    if(!btn) return;
+    const d = btn.dataset.d;
+    const activeCount = Object.values(filters.diffs).filter(Boolean).length;
+    if(filters.diffs[d] && activeCount===1) return; // keep at least one
+    filters.diffs[d] = !filters.diffs[d];
+    btn.classList.toggle("active", filters.diffs[d]);
+    buildQueue();
+    renderCard();
+  });
+  document.getElementById("cardStage").addEventListener("click", ()=>{
+    toggleFlip();
+  });
+  document.getElementById("gradeRow").addEventListener("click",(e)=>{
+    const btn = e.target.closest(".grade-btn");
+    if(!btn) return;
+    grade(btn.dataset.g);
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(!document.getElementById("view-study").classList.contains("active")) return;
+    if(e.code === "Space"){ e.preventDefault(); toggleFlip(); }
+    if(session.flipped && ["1","2","3","4"].includes(e.key)){
+      const map = {"1":"again","2":"hard","3":"good","4":"easy"};
+      grade(map[e.key]);
+    }
+  });
+}
+
+/* ============================== CALENDAR ============================== */
+function initCalendarNav(){
+  document.getElementById("calPrev").addEventListener("click",()=>{
+    calState.month -= 1;
+    if(calState.month < 0){ calState.month = 11; calState.year -= 1; }
+    renderCalendar();
+  });
+  document.getElementById("calNext").addEventListener("click",()=>{
+    calState.month += 1;
+    if(calState.month > 11){ calState.month = 0; calState.year += 1; }
+    renderCalendar();
+  });
+  document.getElementById("calToday").addEventListener("click",()=>{
+    const t = todayStr();
+    calState.year = Number(t.slice(0,4));
+    calState.month = Number(t.slice(5,7)) - 1;
+    calState.selected = t;
+    renderCalendar();
+  });
+}
+
+function renderCalLegend(){
+  const el = document.getElementById("calLegend");
+  el.innerHTML = THEMES.map(t=>
+    "<span class=\"leg-item\"><span class=\"leg-dot\" style=\"background:var(--"+t.id+")\"></span>"+t.name.split(" ")[0]+(t.id==="t1"?" Concepts":t.id==="t2"?" & Frmwrks":t.id==="t3"?"s":t.id==="t4"?"":" Integration")+"</span>"
+  ).join("");
+  // simpler: short names
+  el.innerHTML = THEMES.map((t,i)=>
+    "<span class=\"leg-item\"><span class=\"leg-dot\" style=\"background:var(--"+t.id+")\"></span>"+["Core Concepts","Canvas & Frameworks","MVPs & Experiments","Collaboration & Culture","Agile Integration"][i]+"</span>"
+  ).join("");
+}
+
+const CALENDAR_HORIZON_DAYS = 100; // just over 3 months, so month-view edges never fall short
+
+function renderCalendar(){
+  renderCalLegend();
+  const scheduleMap = buildScheduleMap(CALENDAR_HORIZON_DAYS);
+  const {year, month} = calState;
+  document.getElementById("calMonthLabel").textContent = MONTH_NAMES[month] + " " + year;
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = "";
+  DOW.forEach(d=>{
+    const el = document.createElement("div");
+    el.className = "cal-dow";
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstOfMonth = new Date(year, month, 1);
+  const startWeekday = firstOfMonth.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const today = todayStr();
+
+  const cells = [];
+  for(let i=startWeekday-1;i>=0;i--){
+    cells.push({day: daysInPrevMonth-i, outside:true, monthOffset:-1});
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    cells.push({day:d, outside:false, monthOffset:0});
+  }
+  while(cells.length % 7 !== 0){
+    cells.push({day: cells.length - (startWeekday+daysInMonth) + 1, outside:true, monthOffset:1});
+  }
+
+  cells.forEach(cell=>{
+    let cellYear = year, cellMonth = month;
+    if(cell.monthOffset === -1){ cellMonth = month-1; if(cellMonth<0){cellMonth=11; cellYear--;} }
+    if(cell.monthOffset === 1){ cellMonth = month+1; if(cellMonth>11){cellMonth=0; cellYear++;} }
+    const dateStr = cellYear+"-"+pad(cellMonth+1)+"-"+pad(cell.day);
+
+    const isPastCell = dateStr < today;
+    const hist = isPastCell ? state.history[dateStr] : null;
+    const isCompleted = isPastCell && hist && hist.total > 0;
+
+    const btn = document.createElement("button");
+    btn.className = "cal-cell" + (cell.outside?" outside":"") + (dateStr===today?" today":"") + (dateStr===calState.selected?" selected":"") + (isCompleted?" completed":"");
+    btn.dataset.date = dateStr;
+
+    const dateEl = document.createElement("div");
+    dateEl.className = "cal-date";
+    dateEl.textContent = cell.day;
+    btn.appendChild(dateEl);
+
+    if(isPastCell){
+      // A day that's already happened: show it as done, not as if it's
+      // still owed. Only actually-reviewed days get the checkmark.
+      if(isCompleted){
+        const check = document.createElement("div");
+        check.className = "cal-check";
+        check.title = hist.total + " reviewed";
+        check.innerHTML = "<svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M5 13l4 4L19 7\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>";
+        btn.appendChild(check);
+        const seg = document.createElement("div");
+        seg.className = "cal-segbar";
+        Object.keys(hist.byTheme).forEach(t=>{
+          const s = document.createElement("span");
+          s.style.background = "var(--"+t+")";
+          s.style.flexGrow = hist.byTheme[t];
+          seg.appendChild(s);
+        });
+        btn.appendChild(seg);
+      }
+    } else {
+      // Today and beyond: the baked-in study plan (real due dates, or the
+      // projected SM-2 curve for cards not yet reviewed).
+      const info = scheduleMap[dateStr];
+      if(info && info.total>0){
+        const countEl = document.createElement("div");
+        countEl.className = "cal-count";
+        countEl.textContent = info.total;
+        btn.appendChild(countEl);
+        const seg = document.createElement("div");
+        seg.className = "cal-segbar";
+        Object.keys(info.byTheme).forEach(t=>{
+          const s = document.createElement("span");
+          s.style.background = "var(--"+t+")";
+          s.style.flexGrow = info.byTheme[t];
+          seg.appendChild(s);
+        });
+        btn.appendChild(seg);
+      }
+    }
+
+    btn.addEventListener("click", ()=>{
+      calState.selected = dateStr;
+      renderCalendar();
+      showCalDetail(dateStr, today, scheduleMap);
+    });
+    grid.appendChild(btn);
+  });
+
+  if(calState.selected){
+    showCalDetail(calState.selected, today, scheduleMap);
+  }
+}
+
+function showCalDetail(dateStr, today, scheduleMap){
+  const panel = document.getElementById("calDetail");
+  panel.hidden = false;
+  const d = parseYMD(dateStr);
+  const label = DOW[d.getDay()] + ", " + MONTH_NAMES[d.getMonth()] + " " + d.getDate() + (dateStr===today?" (today)":"");
+
+  const isPast = dateStr < today;
+  const data = isPast ? (state.history[dateStr] || {total:0, byTheme:{}}) : (scheduleMap[dateStr] || {total:0, byTheme:{}});
+
+  let rows = "";
+  THEMES.forEach(t=>{
+    const n = data.byTheme[t.id] || 0;
+    if(n>0){
+      rows += "<div class=\"cd-row\"><span class=\"tbr-dot\" style=\"background:var(--"+t.id+"); width:8px;height:8px;border-radius:50%;display:inline-block;\"></span><span class=\"cd-name\">"+t.name+"</span><span class=\"cd-num\">"+n+"</span></div>";
+    }
+  });
+
+  if(data.total === 0){
+    panel.innerHTML = "<h3>"+label+"</h3><p class=\"cal-empty\">"+(isPast?"No reviews logged &mdash; this day was missed.":"Nothing scheduled for this day.")+"</p>";
+    return;
+  }
+
+  let accuracyLine = "";
+  if(isPast && data.grades){
+    const goodOrBetter = (data.grades.good||0) + (data.grades.easy||0);
+    accuracyLine = " &middot; " + Math.round((goodOrBetter/data.total)*100) + "% good or better";
+  }
+
+  panel.innerHTML = "<h3>"+label+(isPast?" &#10003; Completed":"")+"</h3><p class=\"cal-empty\" style=\"margin-bottom:12px;\">"+data.total+" card"+(data.total===1?"":"s")+(isPast?" reviewed":" planned")+accuracyLine+"</p><div class=\"cd-rows\">"+rows+"</div>"
+    + (!isPast ? "<button class=\"btn\" id=\"calStudyBtn\">Study this set</button>" : "");
+
+  if(!isPast){
+    document.getElementById("calStudyBtn").addEventListener("click", ()=>{
+      overrideQueue = cardsScheduledOn(dateStr, CALENDAR_HORIZON_DAYS);
+      buildQueue();
+      renderCard();
+      switchTab("study");
+    });
+  }
+}
+
+/* ============================== PROGRESS VIEW ============================== */
+function renderProgress(){
+  const today = todayStr();
+  const mastered = CARDS.filter(c=>statusOf(c.id)==="mastered").length;
+  const streak = computeCurrentStreakDisplay();
+  const longest = state.streak.longest || 0;
+
+  let weekReviewed = 0, weekGood = 0;
+  for(let i=0;i<7;i++){
+    const d = addDays(today, -i);
+    const h = state.history[d];
+    if(h){ weekReviewed += h.total; weekGood += (h.grades.good||0)+(h.grades.easy||0); }
+  }
+  const weekAccuracy = weekReviewed ? Math.round((weekGood/weekReviewed)*100) : 0;
+
+  document.getElementById("progressSummary").innerHTML = [
+    ["Mastered", mastered+" / "+CARDS.length],
+    ["Current streak", streak+" day"+(streak===1?"":"s")],
+    ["Longest streak", longest+" day"+(longest===1?"":"s")],
+    ["7-day accuracy", weekReviewed ? weekAccuracy+"%" : "&mdash;"]
+  ].map(([label,val])=>"<div class=\"psum-tile\"><b>"+val+"</b><span>"+label+"</span></div>").join("");
+
+  const bars = THEMES.map(t=>{
+    const themeCards = CARDS.filter(c=>c.t===t.id);
+    const counts = {new:0, learning:0, review:0, mastered:0};
+    themeCards.forEach(c=>counts[statusOf(c.id)]++);
+    const total = themeCards.length;
+    const masteredCount = counts.mastered;
+    return "<div class=\"theme-bar-row\">"
+      + "<div class=\"tbr-top\"><span class=\"tbr-dot\" style=\"background:var(--"+t.id+")\"></span><span class=\"tbr-name\">"+t.name+"</span><span class=\"tbr-count\">"+masteredCount+" / "+total+" mastered</span></div>"
+      + "<div class=\"tbr-track\">"
+        + "<div class=\"tbr-seg seg-mastered\" style=\"width:"+(counts.mastered/total*100)+"%\"></div>"
+        + "<div class=\"tbr-seg seg-review\" style=\"width:"+(counts.review/total*100)+"%\"></div>"
+        + "<div class=\"tbr-seg seg-learning\" style=\"width:"+(counts.learning/total*100)+"%\"></div>"
+        + "<div class=\"tbr-seg seg-new\" style=\"width:"+(counts.new/total*100)+"%\"></div>"
+      + "</div>"
+      + "<div class=\"tbr-legend\"><span><i style=\"background:var(--good)\"></i>Mastered</span><span><i style=\"background:var(--accent)\"></i>Review</span><span><i style=\"background:var(--hard)\"></i>Learning</span><span><i style=\"background:var(--surface-3)\"></i>New</span></div>"
+      + "</div>";
+  }).join("");
+  document.getElementById("themeBars").innerHTML = bars;
+
+  const trouble = troubleCards();
+  const troublePanel = document.getElementById("troublePanel");
+  if(trouble.length === 0){
+    troublePanel.innerHTML = "<p class=\"trouble-empty\">No trouble cards yet &mdash; nothing you've missed "+TROUBLE_LAPSE_THRESHOLD+"+ times. Keep going.</p>";
+  } else {
+    const rows = trouble.map(c=>{
+      const r = getRecord(c.id);
+      return "<button class=\"trouble-row\" data-id=\""+c.id+"\">"
+        + "<span class=\"tr-dot\" style=\"background:var(--"+c.t+")\"></span>"
+        + "<span class=\"tr-q\">"+c.q.replace(/</g,"&lt;")+"</span>"
+        + "<span class=\"tr-badge\">"+r.lapses+" miss"+(r.lapses===1?"":"es")+"</span>"
+        + "</button>";
+    }).join("");
+    troublePanel.innerHTML = "<div class=\"trouble-header\"><p><b>"+trouble.length+"</b> card"+(trouble.length===1?"":"s")+" you've missed "+TROUBLE_LAPSE_THRESHOLD+"+ times</p><button class=\"btn ghost\" id=\"troubleStudyAllBtn\">Study all these</button></div><div class=\"trouble-list\">"+rows+"</div>";
+    document.getElementById("troubleStudyAllBtn").onclick = ()=>{
+      overrideQueue = trouble.map(c=>c.id);
+      buildQueue();
+      renderCard();
+      switchTab("study");
+    };
+    troublePanel.querySelectorAll(".trouble-row").forEach(row=>{
+      row.onclick = ()=>{
+        overrideQueue = [Number(row.dataset.id)];
+        buildQueue();
+        renderCard();
+        switchTab("study");
+      };
+    });
+  }
+
+  const heat = document.getElementById("activityHeatmap");
+  heat.innerHTML = "";
+  const weeks = 14;
+  const endDate = new Date();
+  const startOffset = endDate.getUTCDay();
+  const gridStart = addDays(fmtDate(endDate), -(weeks*7 - 1) - (6-startOffset));
+  let cursor = gridStart;
+  for(let w=0; w<weeks+1; w++){
+    const col = document.createElement("div");
+    col.className = "heatmap-week";
+    for(let d=0; d<7; d++){
+      const cell = document.createElement("div");
+      cell.className = "heatmap-day";
+      if(cursor <= today){
+        const h = state.history[cursor];
+        const n = h ? h.total : 0;
+        const lvl = n===0?0:n<3?1:n<7?2:3;
+        cell.dataset.lvl = lvl;
+        cell.title = cursor+": "+n+" review"+(n===1?"":"s");
+      } else {
+        cell.style.visibility = "hidden";
+      }
+      col.appendChild(cell);
+      cursor = addDays(cursor, 1);
+    }
+    heat.appendChild(col);
+  }
+
+  function disarmReset(){
+    resetArmed = false;
+    resetBtn.textContent = "Reset all progress";
+    resetBtn.classList.remove("armed");
+  }
+  const resetBtn = document.getElementById("resetBtn");
+  disarmReset();
+  resetBtn.onclick = ()=>{
+    if(!resetArmed){
+      resetArmed = true;
+      resetBtn.textContent = "Tap again to confirm reset";
+      resetBtn.classList.add("armed");
+      clearTimeout(resetArmTimer);
+      resetArmTimer = setTimeout(disarmReset, 6000);
+      return;
+    }
+    clearTimeout(resetArmTimer);
+    disarmReset();
+    state = defaultState();
+    persist();
+    renderAll();
+  };
+
+  document.getElementById("syncCopyBtn").onclick = ()=>{
+    const box = document.getElementById("syncBox");
+    const statusEl = document.getElementById("syncStatus");
+    box.value = JSON.stringify(state);
+    box.focus();
+    box.select();
+    let copied = false;
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(box.value);
+        copied = true;
+      }
+    }catch(e){ /* fall through to manual-copy instructions below */ }
+    statusEl.textContent = copied
+      ? "Copied. Open this same link on your other device, paste it into this box there, then tap Import."
+      : "Selected below - copy it (long-press, then Copy), then paste it into this box on your other device and tap Import.";
+  };
+
+  function disarmImport(){
+    importArmed = false;
+    importBtn.textContent = "Import from box";
+    importBtn.classList.remove("armed");
+  }
+  const importBtn = document.getElementById("syncImportBtn");
+  disarmImport();
+  importBtn.onclick = ()=>{
+    const box = document.getElementById("syncBox");
+    const statusEl = document.getElementById("syncStatus");
+    let parsed;
+    try{
+      parsed = JSON.parse(box.value);
+    }catch(e){
+      disarmImport();
+      statusEl.textContent = "That doesn't look like valid progress text - make sure you copied the whole thing.";
+      return;
+    }
+    if(!parsed || typeof parsed !== "object" || !parsed.cards || !parsed.history){
+      disarmImport();
+      statusEl.textContent = "That doesn't look like progress data from this app.";
+      return;
+    }
+    if(!importArmed){
+      importArmed = true;
+      importBtn.textContent = "Tap again to confirm import";
+      importBtn.classList.add("armed");
+      statusEl.textContent = "This replaces the progress saved on this device. Tap the button again within a few seconds to confirm.";
+      clearTimeout(importArmTimer);
+      importArmTimer = setTimeout(disarmImport, 6000);
+      return;
+    }
+    clearTimeout(importArmTimer);
+    disarmImport();
+    state = parsed;
+    ensureStartDate();
+    persist();
+    renderAll();
+    statusEl.textContent = "Imported - this device now has that progress.";
+  };
+}
+
+/* ============================== INIT ============================== */
+function renderAll(){
+  renderHeader();
+  buildQueue();
+  renderCard();
+  if(document.getElementById("view-calendar").classList.contains("active")) renderCalendar();
+  if(document.getElementById("view-progress").classList.contains("active")) renderProgress();
+}
+
+function boot(bootData){
+  if(bootData && bootData.state) state = JSON.parse(JSON.stringify(bootData.state));
+  loadLocal();
+  initTabs();
+  initStudyToolbar();
+  initCalendarNav();
+  calState.selected = todayStr();
+  renderAll();
+  initDb();
+
+  document.addEventListener("visibilitychange", ()=>{
+    if(!document.hidden) checkDateRollover();
+  });
+  setInterval(checkDateRollover, 5*60*1000);
+
+  if(window.claude && window.claude.hot){
+    window.claude.hot.snapshot(()=>({state}));
+  }
+}
+
+if(window.claude && window.claude.hot && window.claude.hot.ready){
+  window.claude.hot.ready((data)=>boot(data));
+} else {
+  boot(window.claude && window.claude.hot ? window.claude.hot.data : null);
+}
+
+})();
+</script>
