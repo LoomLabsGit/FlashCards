@@ -207,13 +207,6 @@
     background:var(--surface); border:1px solid var(--border); border-radius:999px;
     padding:7px 12px; cursor:pointer;
   }
-  .diff-toggle{display:flex; gap:5px;}
-  .diff-chip{
-    border:1px solid var(--border); background:var(--surface); color:var(--ink-soft);
-    border-radius:999px; padding:6px 11px; font-size:0.76rem; font-weight:600; cursor:pointer;
-    transition:all .12s ease;
-  }
-  .diff-chip.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
 
   .icon-btn{
     width:34px; height:34px; flex:none; display:flex; align-items:center; justify-content:center;
@@ -292,9 +285,6 @@
   }
   .card-back{transform:rotateY(180deg);}
   .card-meta{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}
-  .diff-dots{display:flex; gap:4px;}
-  .diff-dots span{width:7px; height:7px; border-radius:50%; background:var(--surface-3); border:1px solid var(--border-strong);}
-  .diff-dots span.on{background:var(--ink-soft); border-color:var(--ink-soft);}
   .card-question{
     font-family:"Fraunces", Georgia, serif; font-weight:560; font-size:1.5rem; line-height:1.32;
     flex:1; display:flex; align-items:center; margin:0; text-wrap:balance;
@@ -586,11 +576,6 @@
         <div class="queue-info"><b id="queuePos">0</b> / <b id="queueTotal">0</b> cards in this session</div>
         <div class="filters">
           <select id="themeFilter"></select>
-          <div class="diff-toggle" id="diffToggle">
-            <button class="diff-chip active" data-d="e">Easy</button>
-            <button class="diff-chip active" data-d="m">Medium</button>
-            <button class="diff-chip active" data-d="h">Hard</button>
-          </div>
           <button class="icon-btn" id="focusModeBtn" title="Focus mode" aria-label="Enter focus mode">
             <svg viewBox="0 0 24 24" fill="none"><path d="M9 4H5.5C4.67 4 4 4.67 4 5.5V9M15 4H18.5C19.33 4 20 4.67 20 5.5V9M9 20H5.5C4.67 20 4 19.33 4 18.5V15M15 20H18.5C19.33 20 20 19.33 20 18.5V15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -615,7 +600,6 @@
             <div class="card-face card-front" id="cardFront">
               <div class="card-meta">
                 <span class="chip theme-chip" id="frontTheme"></span>
-                <span class="diff-dots" id="frontDiff"></span>
               </div>
               <p class="card-question" id="frontQ"></p>
               <div class="flip-hint">Click or press Space to reveal</div>
@@ -711,119 +695,118 @@ const THEMES = [
   {id:"t5", name:"Agile Integration & Management"}
 ];
 const THEME_BY_ID = Object.fromEntries(THEMES.map(t=>[t.id,t]));
-const DIFF_LABEL = {e:"Easy", m:"Medium", h:"Hard"};
 
 const CARDS = [
-{id:1,t:"t1",d:"e",q:"What is the primary definition of Lean UX?",a:"Continuous learning.",w:"Because it is an ongoing process of acquiring knowledge rather than just delivering static, finished features."},
-{id:2,t:"t1",d:"e",q:"What is the core mantra comparing results to deliverables?",a:"Outcome over output.",w:"The ultimate goal is to change customer behavior positively (value) rather than just ship features (ego)."},
-{id:3,t:"t1",d:"e",q:"How is an 'outcome' defined in Lean UX?",a:"A change in customer behavior.",w:"It is a measurable impact that shows the product is actually delivering value, whereas an output is just the feature itself."},
-{id:4,t:"t1",d:"e",q:"What is the primary currency of Lean UX?",a:"Shared understanding across the entire cross-functional team.",w:"The collective knowledge of the space, product, and customers reduces the need to debate what happened and focuses the team on how to solve for new learning."},
-{id:5,t:"t1",d:"e",q:"Why should teams avoid terms like 'rockstars, gurus, or ninjas'?",a:"They emphasize individual stars.",w:"This undermines the team-based mentality and shared understanding essential for Lean UX cross-functional collaboration."},
-{id:6,t:"t1",d:"e",q:"What does the directive to 'get out of the building' mean?",a:"Going to where the users are, engaging with them, and observing their actions directly.",w:"It provides feedback on ideas sooner and bypasses opinions for actual behaviors to see what users are trying to do and why."},
-{id:7,t:"t1",d:"e",q:"What is the 'Two pizza rule'?",a:"If a team requires more than two pizzas for a meal, it is too big.",w:"Small, dedicated, and co-located teams communicate better, eliminate dependencies, and foster shared understanding faster."},
-{id:8,t:"t1",d:"e",q:"What is 'formalized curiosity' in the context of Lean UX?",a:"Research.",w:"It represents an ongoing, active mindset of asking questions and learning continuously rather than just checking a box."},
-{id:9,t:"t1",d:"m",q:"What are the three core pillars of Lean UX?",a:"1) Process change for designers, 2) Culture change (humility/doubt), 3) Organizational changes (inclusive/transparent).",w:"Lean UX requires foundational shifts in how teams think, act, and are structured to succeed."},
-{id:10,t:"t1",d:"m",q:"What is the mindset shift required regarding doubt and certainty?",a:"Adopting enthusiastic skepticism.",w:"Every project starts with assumptions. Starting with doubt ensures you systematically validate them to eliminate risk."},
-{id:11,t:"t1",d:"m",q:"What does 'Permission to fail' entail?",a:"Creating a safe technical and cultural environment to experiment, knowing that most ideas will fail.",w:"A culture of experimentation creates big ideas and fosters true creativity."},
-{id:12,t:"t1",d:"m",q:"What is the relationship between Lean UX and traditional deliverables?",a:"Get out of the deliverables business; focus on the outcomes the team is achieving.",w:"Documentation and artifacts that don't directly move the conversation forward or change customer behavior are considered waste."},
-{id:13,t:"t1",d:"m",q:"Why should teams 'beware of phases'?",a:"Phases signal a lack of continuous work.",w:"Research, testing, and delivery should happen consistently and concurrently, not in isolated, completed steps that result in 'finished' work."},
-{id:14,t:"t1",d:"m",q:"Why does Lean UX advocate for working in small batches?",a:"To mitigate risk, keep inventory low, and maintain high quality.",w:"It avoids building a huge list of untested ideas based on unvalidated assumptions."},
-{id:15,t:"t1",d:"m",q:"Why should teams be problem-focused instead of feature-focused?",a:"Teams should be given business problems to solve rather than predefined features to build.",w:"It shows trust, allows the team to take pride and ownership in solutions, and forces iteration based on outcomes."},
-{id:16,t:"t1",d:"m",q:"Why is it important to externalize your work?",a:"To create a shared and exposed place for work.",w:"It creates a passive ambient flow of work across the team, allowing colleagues to build off ideas and foster shared understanding."},
-{id:17,t:"t1",d:"m",q:"What is the value of 'making over analysis'?",a:"Creating a first version is more valuable than discussing its merits for half a day.",w:"Making something without data is a waste, and putting a concrete artifact in the hands of customers generates real data quickly."},
-{id:18,t:"t1",d:"h",q:"What does the statement 'it isn't iteration if you do it only once' imply about agility?",a:"True iteration is a commitment to redo the work based on continuous feedback until the outcome is achieved.",w:"Doing the same thing faster isn't agile; feeling there isn't enough time to get it right is a recipe for disaster."},
-{id:19,t:"t1",d:"h",q:"What is the distinction between output, outcome, and impact?",a:"Output is the feature (ego); outcome is the behavior change (value); impact is the effect on the bottom line (revenue/profit).",w:"This language clarifies whether a team is just building things, actually solving user problems, or driving business goals."},
-{id:20,t:"t1",d:"h",q:"What are three specific forms of waste Lean UX aims to remove?",a:"Artifacts that don't move the team forward, unnecessary documentation, and siloed work environments.",w:"Resources are limited; removing anything that doesn't bring the team to the ultimate goal allows for faster delivery of value."},
-{id:21,t:"t1",d:"h",q:"What is the primary problem with Agile software development from a traditional design perspective?",a:"It can pose process challenges for designers who are used to heavy upfront work.",w:"Agile prioritizes working software over complex documentation, which challenges designers to find the best solution (market fit) quickly."},
-{id:22,t:"t1",d:"h",q:"What does 'manage outcomes and progress toward them builds efficacy' mean?",a:"It means explicitly defining outcomes and taking a guess at which features create them, then measuring them objectively.",w:"If it is not performing, the team can make an objective decision to keep, change, or replace the feature without ego."},
+{id:1,t:"t1",q:"What is the primary definition of Lean UX?",a:"Continuous learning.",w:"Because it is an ongoing process of acquiring knowledge rather than just delivering static, finished features."},
+{id:2,t:"t1",q:"What is the core mantra comparing results to deliverables?",a:"Outcome over output.",w:"The ultimate goal is to change customer behavior positively (value) rather than just ship features (ego)."},
+{id:3,t:"t1",q:"How is an 'outcome' defined in Lean UX?",a:"A change in customer behavior.",w:"It is a measurable impact that shows the product is actually delivering value, whereas an output is just the feature itself."},
+{id:4,t:"t1",q:"What is the primary currency of Lean UX?",a:"Shared understanding across the entire cross-functional team.",w:"The collective knowledge of the space, product, and customers reduces the need to debate what happened and focuses the team on how to solve for new learning."},
+{id:5,t:"t1",q:"Why should teams avoid terms like 'rockstars, gurus, or ninjas'?",a:"They emphasize individual stars.",w:"This undermines the team-based mentality and shared understanding essential for Lean UX cross-functional collaboration."},
+{id:6,t:"t1",q:"What does the directive to 'get out of the building' mean?",a:"Going to where the users are, engaging with them, and observing their actions directly.",w:"It provides feedback on ideas sooner and bypasses opinions for actual behaviors to see what users are trying to do and why."},
+{id:7,t:"t1",q:"What is the 'Two pizza rule'?",a:"If a team requires more than two pizzas for a meal, it is too big.",w:"Small, dedicated, and co-located teams communicate better, eliminate dependencies, and foster shared understanding faster."},
+{id:8,t:"t1",q:"What is 'formalized curiosity' in the context of Lean UX?",a:"Research.",w:"It represents an ongoing, active mindset of asking questions and learning continuously rather than just checking a box."},
+{id:9,t:"t1",q:"What are the three core pillars of Lean UX?",a:"1) Process change for designers, 2) Culture change (humility/doubt), 3) Organizational changes (inclusive/transparent).",w:"Lean UX requires foundational shifts in how teams think, act, and are structured to succeed."},
+{id:10,t:"t1",q:"What is the mindset shift required regarding doubt and certainty?",a:"Adopting enthusiastic skepticism.",w:"Every project starts with assumptions. Starting with doubt ensures you systematically validate them to eliminate risk."},
+{id:11,t:"t1",q:"What does 'Permission to fail' entail?",a:"Creating a safe technical and cultural environment to experiment, knowing that most ideas will fail.",w:"A culture of experimentation creates big ideas and fosters true creativity."},
+{id:12,t:"t1",q:"What is the relationship between Lean UX and traditional deliverables?",a:"Get out of the deliverables business; focus on the outcomes the team is achieving.",w:"Documentation and artifacts that don't directly move the conversation forward or change customer behavior are considered waste."},
+{id:13,t:"t1",q:"Why should teams 'beware of phases'?",a:"Phases signal a lack of continuous work.",w:"Research, testing, and delivery should happen consistently and concurrently, not in isolated, completed steps that result in 'finished' work."},
+{id:14,t:"t1",q:"Why does Lean UX advocate for working in small batches?",a:"To mitigate risk, keep inventory low, and maintain high quality.",w:"It avoids building a huge list of untested ideas based on unvalidated assumptions."},
+{id:15,t:"t1",q:"Why should teams be problem-focused instead of feature-focused?",a:"Teams should be given business problems to solve rather than predefined features to build.",w:"It shows trust, allows the team to take pride and ownership in solutions, and forces iteration based on outcomes."},
+{id:16,t:"t1",q:"Why is it important to externalize your work?",a:"To create a shared and exposed place for work.",w:"It creates a passive ambient flow of work across the team, allowing colleagues to build off ideas and foster shared understanding."},
+{id:17,t:"t1",q:"What is the value of 'making over analysis'?",a:"Creating a first version is more valuable than discussing its merits for half a day.",w:"Making something without data is a waste, and putting a concrete artifact in the hands of customers generates real data quickly."},
+{id:18,t:"t1",q:"What does the statement 'it isn't iteration if you do it only once' imply about agility?",a:"True iteration is a commitment to redo the work based on continuous feedback until the outcome is achieved.",w:"Doing the same thing faster isn't agile; feeling there isn't enough time to get it right is a recipe for disaster."},
+{id:19,t:"t1",q:"What is the distinction between output, outcome, and impact?",a:"Output is the feature (ego); outcome is the behavior change (value); impact is the effect on the bottom line (revenue/profit).",w:"This language clarifies whether a team is just building things, actually solving user problems, or driving business goals."},
+{id:20,t:"t1",q:"What are three specific forms of waste Lean UX aims to remove?",a:"Artifacts that don't move the team forward, unnecessary documentation, and siloed work environments.",w:"Resources are limited; removing anything that doesn't bring the team to the ultimate goal allows for faster delivery of value."},
+{id:21,t:"t1",q:"What is the primary problem with Agile software development from a traditional design perspective?",a:"It can pose process challenges for designers who are used to heavy upfront work.",w:"Agile prioritizes working software over complex documentation, which challenges designers to find the best solution (market fit) quickly."},
+{id:22,t:"t1",q:"What does 'manage outcomes and progress toward them builds efficacy' mean?",a:"It means explicitly defining outcomes and taking a guess at which features create them, then measuring them objectively.",w:"If it is not performing, the team can make an objective decision to keep, change, or replace the feature without ego."},
 
-{id:23,t:"t2",d:"e",q:"What is the main purpose of the Lean UX Canvas?",a:"To facilitate conversations that declare team assumptions and build shared understanding.",w:"In UX, the goal is to develop shared understanding, share ideas, and create clarity around important unknowns."},
-{id:24,t:"t2",d:"e",q:"What replaces traditional 'requirements' in Lean UX?",a:"Assumptions.",w:"Acknowledging that the team doesn't know everything creates a safe space for discovery."},
-{id:25,t:"t2",d:"e",q:"Who should be involved in filling out the Lean UX Canvas?",a:"All team members.",w:"It encourages cross-functional shared understanding from the very beginning of an initiative."},
-{id:26,t:"t2",d:"e",q:"What is the focus of Box 1 in the Lean UX Canvas?",a:"Business problems to solve.",w:"Starting with business problems explicitly demands that discovery work takes place rather than just building a predetermined solution."},
-{id:27,t:"t2",d:"e",q:"What is the focus of Box 2 in the Lean UX Canvas?",a:"Business Outcomes.",w:"It defines what users will do differently if the solution works and what the team will measure."},
-{id:28,t:"t2",d:"e",q:"What is a proto-persona (Box 3)?",a:"A rapid, sketch-based persona built on team assumptions.",w:"It serves as a best-guess starting point that is continuously updated with research to keep the customer front and center."},
-{id:29,t:"t2",d:"e",q:"What does Box 4 of the Canvas focus on?",a:"User Outcomes and Benefits.",w:"To build broader empathy by understanding what the user is trying to answer or feel, not just what the business wants."},
-{id:30,t:"t2",d:"e",q:"What does Box 5 of the Canvas focus on?",a:"Solutions.",w:"Ideas for features are placed here after constraints (problems and users) are established so they don't end up scattered."},
-{id:31,t:"t2",d:"e",q:"What does Box 6 of the Canvas focus on?",a:"Hypotheses.",w:"It combines the previous boxes into testable statements to find limited evidence for further investigation."},
-{id:32,t:"t2",d:"e",q:"What question does Box 7 of the Canvas ask?",a:"What is the most important thing to learn first?",w:"It forces the team to highlight and tackle the major risks associated with their hypotheses immediately."},
-{id:33,t:"t2",d:"m",q:"What is the '1-2-4-all' method used for the Canvas?",a:"A facilitation technique starting with individual work, moving to pairs, groups of four, and finally the whole team.",w:"It ensures the facilitation is inclusive and accounts for different personalities and working styles."},
-{id:34,t:"t2",d:"m",q:"Why must you strictly avoid defining solutions in a Business Problem Statement?",a:"It assumes the answer is already known.",w:"It prevents the team from conducting true discovery work and limits their ability to pivot."},
-{id:35,t:"t2",d:"m",q:"Why avoid phrases like 'Intuitive UI' in a problem statement or hypothesis?",a:"They lack specificity.",w:"Ambiguous statements make it impossible to determine what metrics actually matter or what you are actually going to test."},
-{id:36,t:"t2",d:"m",q:"What is the difference between an impact metric and an outcome metric?",a:"Impact is high-level business data (profit), while outcome is feature-level user behavior.",w:"Impact metrics are often too high-level to track for specific features, whereas outcomes tell you what people are doing differently in the system."},
-{id:37,t:"t2",d:"m",q:"What are the five core user behaviors in the Pirate Metrics funnel?",a:"Acquisition, Activation, Retention, Revenue, Referral (AARRR).",w:"They provide a standard way to understand and measure the user journey through a product."},
-{id:38,t:"t2",d:"m",q:"Why is the 'Metrics Mountain' often a better metaphor than a funnel?",a:"It represents that the user journey gets harder as it progresses.",w:"Climbing up requires effort, and not everyone makes it; whereas liquid poured into a funnel naturally falls down."},
-{id:39,t:"t2",d:"m",q:"In a proto-persona, which data is usually overemphasized?",a:"Demographics (e.g., age).",w:"Demographics are often more irrelevant than psychographics, behaviors, or obstacles preventing them from achieving needs."},
-{id:40,t:"t2",d:"m",q:"What is the risk if you cannot find users matching your sketched proto-persona?",a:"The target customer probably does not exist.",w:"If they don't exist, you are not solving a real problem and need to pivot your assumptions."},
-{id:41,t:"t2",d:"m",q:"Why are emotional goals highly important for user outcomes?",a:"Fulfilling an emotional goal often has a massive impact on quantifiable business metrics.",w:"Users seek products to fulfill latent needs (e.g., feeling respected, fitting in), which drives behavior change."},
-{id:42,t:"t2",d:"m",q:"Why are constraints necessary during the Box 5 (Solutions) ideation phase?",a:"To keep the team focused.",w:"Without constraints, solutions will solve the wrong problem for the wrong people or end up scattered and unfocused."},
-{id:43,t:"t2",d:"m",q:"Why must a Lean UX hypothesis start with 'We believe'?",a:"To explicitly acknowledge that it is an assumption.",w:"It prevents the team from treating the statement as a known fact before it is validated."},
-{id:44,t:"t2",d:"m",q:"What is the biggest risk that usually needs to be evaluated first (Box 7)?",a:"Value risk.",w:"If the answer to 'Do they need it?' or 'Will they use it?' is no, there is no need to worry about technical challenges or usability."},
-{id:45,t:"t2",d:"m",q:"Are impact metrics usually leading or lagging indicators?",a:"Lagging indicators.",w:"They are backward-looking measures of what has already taken place (like revenue), whereas outcomes are leading indicators that happen first."},
-{id:46,t:"t2",d:"h",q:"What are the three required components of a Business Problem Statement?",a:"1) The current goal of the product, 2) The negative change affecting it, 3) An explicit request for improvement based on outcomes (not solutions).",w:"This structure provides a specific challenge, anchors the team in user centricity, and provides clear measures of success."},
-{id:47,t:"t2",d:"h",q:"What is the primary purpose of Outcome to Impact mapping?",a:"Visualizing the connection between lagging impact metrics (like revenue) and the leading outcome metrics (customer behaviors).",w:"It helps feature-level teams see exactly how their specific lower-level work drives the strategic goals of the business."},
-{id:48,t:"t2",d:"h",q:"Give an example mapping of Business vs. Customer vs. User outcomes.",a:"Business = increase software revenue; Customer (buyer) = drive down operational costs; User (employee) = reduce data input time.",w:"It shows how empathy must span across different levels; solving the user's granular problem achieves the customer's goal, which hits the business metric."},
-{id:49,t:"t2",d:"h",q:"What is the exact structure of the Lean UX Hypothesis Template?",a:"We believe we will achieve [business outcome] if [personas] attain [user outcome] with this [feature/solution].",w:"It functions as a short story that tests the validity of brainstorms by forcing a clear connection between the feature, user benefit, and business goal."},
-{id:50,t:"t2",d:"h",q:"What is the Hypothesis Prioritization Canvas (HPC)?",a:"A 2x2 matrix plotting effort against impact.",w:"It helps teams ruthlessly prioritize which hypothesis to test first and discard high-effort, low-impact ideas."},
-{id:51,t:"t2",d:"h",q:"If consensus cannot be reached on what to learn first (Box 7), what does this indicate?",a:"The team needs more information to make a decision.",w:"When stuck, the Product Manager usually makes the final call to move forward to generate data, knowing they can pivot if proven false."},
-{id:52,t:"t2",d:"h",q:"What is a 'parking lot' used for during Box 5 (Solutions)?",a:"To store good ideas that don't make the cut during team convergence.",w:"It makes it easier for team members to let go of their ideas without deferring or generalizing decisions."},
-{id:53,t:"t2",d:"h",q:"Why is it dangerous to write 'How might we' statements instead of strict hypotheses?",a:"'How might we' statements often forget the user.",w:"They can lead to creating features without understanding the user or discussing if the feature actually creates a measurable outcome."},
+{id:23,t:"t2",q:"What is the main purpose of the Lean UX Canvas?",a:"To facilitate conversations that declare team assumptions and build shared understanding.",w:"In UX, the goal is to develop shared understanding, share ideas, and create clarity around important unknowns."},
+{id:24,t:"t2",q:"What replaces traditional 'requirements' in Lean UX?",a:"Assumptions.",w:"Acknowledging that the team doesn't know everything creates a safe space for discovery."},
+{id:25,t:"t2",q:"Who should be involved in filling out the Lean UX Canvas?",a:"All team members.",w:"It encourages cross-functional shared understanding from the very beginning of an initiative."},
+{id:26,t:"t2",q:"What is the focus of Box 1 in the Lean UX Canvas?",a:"Business problems to solve.",w:"Starting with business problems explicitly demands that discovery work takes place rather than just building a predetermined solution."},
+{id:27,t:"t2",q:"What is the focus of Box 2 in the Lean UX Canvas?",a:"Business Outcomes.",w:"It defines what users will do differently if the solution works and what the team will measure."},
+{id:28,t:"t2",q:"What is a proto-persona (Box 3)?",a:"A rapid, sketch-based persona built on team assumptions.",w:"It serves as a best-guess starting point that is continuously updated with research to keep the customer front and center."},
+{id:29,t:"t2",q:"What does Box 4 of the Canvas focus on?",a:"User Outcomes and Benefits.",w:"To build broader empathy by understanding what the user is trying to answer or feel, not just what the business wants."},
+{id:30,t:"t2",q:"What does Box 5 of the Canvas focus on?",a:"Solutions.",w:"Ideas for features are placed here after constraints (problems and users) are established so they don't end up scattered."},
+{id:31,t:"t2",q:"What does Box 6 of the Canvas focus on?",a:"Hypotheses.",w:"It combines the previous boxes into testable statements to find limited evidence for further investigation."},
+{id:32,t:"t2",q:"What question does Box 7 of the Canvas ask?",a:"What is the most important thing to learn first?",w:"It forces the team to highlight and tackle the major risks associated with their hypotheses immediately."},
+{id:33,t:"t2",q:"What is the '1-2-4-all' method used for the Canvas?",a:"A facilitation technique starting with individual work, moving to pairs, groups of four, and finally the whole team.",w:"It ensures the facilitation is inclusive and accounts for different personalities and working styles."},
+{id:34,t:"t2",q:"Why must you strictly avoid defining solutions in a Business Problem Statement?",a:"It assumes the answer is already known.",w:"It prevents the team from conducting true discovery work and limits their ability to pivot."},
+{id:35,t:"t2",q:"Why avoid phrases like 'Intuitive UI' in a problem statement or hypothesis?",a:"They lack specificity.",w:"Ambiguous statements make it impossible to determine what metrics actually matter or what you are actually going to test."},
+{id:36,t:"t2",q:"What is the difference between an impact metric and an outcome metric?",a:"Impact is high-level business data (profit), while outcome is feature-level user behavior.",w:"Impact metrics are often too high-level to track for specific features, whereas outcomes tell you what people are doing differently in the system."},
+{id:37,t:"t2",q:"What are the five core user behaviors in the Pirate Metrics funnel?",a:"Acquisition, Activation, Retention, Revenue, Referral (AARRR).",w:"They provide a standard way to understand and measure the user journey through a product."},
+{id:38,t:"t2",q:"Why is the 'Metrics Mountain' often a better metaphor than a funnel?",a:"It represents that the user journey gets harder as it progresses.",w:"Climbing up requires effort, and not everyone makes it; whereas liquid poured into a funnel naturally falls down."},
+{id:39,t:"t2",q:"In a proto-persona, which data is usually overemphasized?",a:"Demographics (e.g., age).",w:"Demographics are often more irrelevant than psychographics, behaviors, or obstacles preventing them from achieving needs."},
+{id:40,t:"t2",q:"What is the risk if you cannot find users matching your sketched proto-persona?",a:"The target customer probably does not exist.",w:"If they don't exist, you are not solving a real problem and need to pivot your assumptions."},
+{id:41,t:"t2",q:"Why are emotional goals highly important for user outcomes?",a:"Fulfilling an emotional goal often has a massive impact on quantifiable business metrics.",w:"Users seek products to fulfill latent needs (e.g., feeling respected, fitting in), which drives behavior change."},
+{id:42,t:"t2",q:"Why are constraints necessary during the Box 5 (Solutions) ideation phase?",a:"To keep the team focused.",w:"Without constraints, solutions will solve the wrong problem for the wrong people or end up scattered and unfocused."},
+{id:43,t:"t2",q:"Why must a Lean UX hypothesis start with 'We believe'?",a:"To explicitly acknowledge that it is an assumption.",w:"It prevents the team from treating the statement as a known fact before it is validated."},
+{id:44,t:"t2",q:"What is the biggest risk that usually needs to be evaluated first (Box 7)?",a:"Value risk.",w:"If the answer to 'Do they need it?' or 'Will they use it?' is no, there is no need to worry about technical challenges or usability."},
+{id:45,t:"t2",q:"Are impact metrics usually leading or lagging indicators?",a:"Lagging indicators.",w:"They are backward-looking measures of what has already taken place (like revenue), whereas outcomes are leading indicators that happen first."},
+{id:46,t:"t2",q:"What are the three required components of a Business Problem Statement?",a:"1) The current goal of the product, 2) The negative change affecting it, 3) An explicit request for improvement based on outcomes (not solutions).",w:"This structure provides a specific challenge, anchors the team in user centricity, and provides clear measures of success."},
+{id:47,t:"t2",q:"What is the primary purpose of Outcome to Impact mapping?",a:"Visualizing the connection between lagging impact metrics (like revenue) and the leading outcome metrics (customer behaviors).",w:"It helps feature-level teams see exactly how their specific lower-level work drives the strategic goals of the business."},
+{id:48,t:"t2",q:"Give an example mapping of Business vs. Customer vs. User outcomes.",a:"Business = increase software revenue; Customer (buyer) = drive down operational costs; User (employee) = reduce data input time.",w:"It shows how empathy must span across different levels; solving the user's granular problem achieves the customer's goal, which hits the business metric."},
+{id:49,t:"t2",q:"What is the exact structure of the Lean UX Hypothesis Template?",a:"We believe we will achieve [business outcome] if [personas] attain [user outcome] with this [feature/solution].",w:"It functions as a short story that tests the validity of brainstorms by forcing a clear connection between the feature, user benefit, and business goal."},
+{id:50,t:"t2",q:"What is the Hypothesis Prioritization Canvas (HPC)?",a:"A 2x2 matrix plotting effort against impact.",w:"It helps teams ruthlessly prioritize which hypothesis to test first and discard high-effort, low-impact ideas."},
+{id:51,t:"t2",q:"If consensus cannot be reached on what to learn first (Box 7), what does this indicate?",a:"The team needs more information to make a decision.",w:"When stuck, the Product Manager usually makes the final call to move forward to generate data, knowing they can pivot if proven false."},
+{id:52,t:"t2",q:"What is a 'parking lot' used for during Box 5 (Solutions)?",a:"To store good ideas that don't make the cut during team convergence.",w:"It makes it easier for team members to let go of their ideas without deferring or generalizing decisions."},
+{id:53,t:"t2",q:"Why is it dangerous to write 'How might we' statements instead of strict hypotheses?",a:"'How might we' statements often forget the user.",w:"They can lead to creating features without understanding the user or discussing if the feature actually creates a measurable outcome."},
 
-{id:54,t:"t3",d:"e",q:"What is the true goal of an MVP in Lean UX?",a:"To create learning with the least amount of work.",w:"The goal is to eliminate waste by finding out as fast as possible if an idea is worth continuing, rather than just delivering initial value."},
-{id:55,t:"t3",d:"e",q:"Why is measuring behavior better than asking opinions in MVP testing?",a:"Behavior trumps opinion.",w:"What people actually do (like clicking a CTA or paying) is far more reliable than what they say they will do."},
-{id:56,t:"t3",d:"e",q:"What does 'ruthless prioritization' mean regarding MVPs?",a:"Discard ideas if the experiment disproves the hypothesis.",w:"Ideas are cheap and plentiful; holding onto them just because you like them goes against the data."},
-{id:57,t:"t3",d:"e",q:"Does an MVP always require writing code?",a:"No.",w:"An MVP can be a sketch, prototype, visual design, or landing page, as long as it generates the needed learning."},
-{id:58,t:"t3",d:"m",q:"Why should teams avoid treating an MVP as just 'Phase 1'?",a:"Because 'Phase 2' rarely gets resources.",w:"Treating it as a phase assumes the initial solution is already correct without validation and just needs to be finished."},
-{id:59,t:"t3",d:"m",q:"What is the very first thing you need to validate with an MVP?",a:"Whether the core value proposition brings any actual value to the target audience.",w:"If there is no demand or value, testing usability or implementation is a waste of time."},
-{id:60,t:"t3",d:"m",q:"What is a Landing Page MVP primarily used to determine?",a:"Demand and conversion rates.",w:"By driving traffic via online ads and providing a CTA, it measures actual interest before building the product."},
-{id:61,t:"t3",d:"m",q:"What is a Feature Fake MVP?",a:"A call-to-action or button for a non-existent feature (a 'button to nowhere').",w:"It is used strictly to measure user interest; implementing the actual feature is costly, so this tests demand cheaply."},
-{id:62,t:"t3",d:"m",q:"What is a Wizard of Oz MVP?",a:"A service that appears fully automated to the user, but backend processes are managed manually by humans.",w:"It allows the team to figure out the mechanics and demand of the product before significant engineering effort is wasted."},
-{id:63,t:"t3",d:"m",q:"What is the main danger of testing multiple things at once in a single MVP?",a:"It becomes difficult to isolate variables.",w:"If you test value and implementation simultaneously, you won't know which specific variable drove the learning or behavior change."},
-{id:64,t:"t3",d:"m",q:"How can AI be beneficial in the MVP phase?",a:"By rapidly generating high-fidelity prototypes.",w:"It allows teams to test interactive experiences with minimal manual effort, speeding up the build-measure-learn loop."},
-{id:65,t:"t3",d:"m",q:"What happens if a Landing Page MVP gets zero conversions?",a:"It doesn't necessarily mean the idea is bad.",w:"It might mean you are not telling a compelling story; luckily, landing pages are cheap and can be iterated quickly to test this."},
-{id:66,t:"t3",d:"h",q:"Explain the principle of the 'Truth Curve'.",a:"The amount of effort and complexity invested in an MVP should be proportional to the amount of market-based evidence you already have.",w:"Less evidence means less effort should be spent; increased investment is only warranted when the facts dictate it to avoid waste."},
-{id:67,t:"t3",d:"h",q:"How do you offset the potential negative user experience caused by a Feature Fake MVP?",a:"Offer compensation, such as a gift card.",w:"Users who click the 'mouse trap' might feel frustrated; compensation preserves the brand relationship while securing the data."},
-{id:68,t:"t3",d:"h",q:"Why should MVP results be integrated with existing analytics?",a:"To measure success and numbers in context.",w:"Measuring what people DID without analytics leaves the team guessing; capturing conversations explains the 'why' behind the analytics."},
-{id:69,t:"t3",d:"h",q:"Why must an implementation MVP fit with the current look, feel, and brand?",a:"To minimize biases.",w:"If the MVP looks completely different from the rest of the application, users might behave differently due to the visual shock rather than the feature's value."},
+{id:54,t:"t3",q:"What is the true goal of an MVP in Lean UX?",a:"To create learning with the least amount of work.",w:"The goal is to eliminate waste by finding out as fast as possible if an idea is worth continuing, rather than just delivering initial value."},
+{id:55,t:"t3",q:"Why is measuring behavior better than asking opinions in MVP testing?",a:"Behavior trumps opinion.",w:"What people actually do (like clicking a CTA or paying) is far more reliable than what they say they will do."},
+{id:56,t:"t3",q:"What does 'ruthless prioritization' mean regarding MVPs?",a:"Discard ideas if the experiment disproves the hypothesis.",w:"Ideas are cheap and plentiful; holding onto them just because you like them goes against the data."},
+{id:57,t:"t3",q:"Does an MVP always require writing code?",a:"No.",w:"An MVP can be a sketch, prototype, visual design, or landing page, as long as it generates the needed learning."},
+{id:58,t:"t3",q:"Why should teams avoid treating an MVP as just 'Phase 1'?",a:"Because 'Phase 2' rarely gets resources.",w:"Treating it as a phase assumes the initial solution is already correct without validation and just needs to be finished."},
+{id:59,t:"t3",q:"What is the very first thing you need to validate with an MVP?",a:"Whether the core value proposition brings any actual value to the target audience.",w:"If there is no demand or value, testing usability or implementation is a waste of time."},
+{id:60,t:"t3",q:"What is a Landing Page MVP primarily used to determine?",a:"Demand and conversion rates.",w:"By driving traffic via online ads and providing a CTA, it measures actual interest before building the product."},
+{id:61,t:"t3",q:"What is a Feature Fake MVP?",a:"A call-to-action or button for a non-existent feature (a 'button to nowhere').",w:"It is used strictly to measure user interest; implementing the actual feature is costly, so this tests demand cheaply."},
+{id:62,t:"t3",q:"What is a Wizard of Oz MVP?",a:"A service that appears fully automated to the user, but backend processes are managed manually by humans.",w:"It allows the team to figure out the mechanics and demand of the product before significant engineering effort is wasted."},
+{id:63,t:"t3",q:"What is the main danger of testing multiple things at once in a single MVP?",a:"It becomes difficult to isolate variables.",w:"If you test value and implementation simultaneously, you won't know which specific variable drove the learning or behavior change."},
+{id:64,t:"t3",q:"How can AI be beneficial in the MVP phase?",a:"By rapidly generating high-fidelity prototypes.",w:"It allows teams to test interactive experiences with minimal manual effort, speeding up the build-measure-learn loop."},
+{id:65,t:"t3",q:"What happens if a Landing Page MVP gets zero conversions?",a:"It doesn't necessarily mean the idea is bad.",w:"It might mean you are not telling a compelling story; luckily, landing pages are cheap and can be iterated quickly to test this."},
+{id:66,t:"t3",q:"Explain the principle of the 'Truth Curve'.",a:"The amount of effort and complexity invested in an MVP should be proportional to the amount of market-based evidence you already have.",w:"Less evidence means less effort should be spent; increased investment is only warranted when the facts dictate it to avoid waste."},
+{id:67,t:"t3",q:"How do you offset the potential negative user experience caused by a Feature Fake MVP?",a:"Offer compensation, such as a gift card.",w:"Users who click the 'mouse trap' might feel frustrated; compensation preserves the brand relationship while securing the data."},
+{id:68,t:"t3",q:"Why should MVP results be integrated with existing analytics?",a:"To measure success and numbers in context.",w:"Measuring what people DID without analytics leaves the team guessing; capturing conversations explains the 'why' behind the analytics."},
+{id:69,t:"t3",q:"Why must an implementation MVP fit with the current look, feel, and brand?",a:"To minimize biases.",w:"If the MVP looks completely different from the rest of the application, users might behave differently due to the visual shock rather than the feature's value."},
 
-{id:70,t:"t4",d:"e",q:"Is Collaborative Design the same as 'design by committee'?",a:"No, it is a facilitated process still led by a designer.",w:"It aims to build shared understanding and gather diverse perspectives, not to democratize every pixel-level decision."},
-{id:71,t:"t4",d:"e",q:"What is a Design System?",a:"A common language between designers and developers, combining style guides, pattern libraries, and components.",w:"It improves collaboration, allows teams to prototype faster, and maintains a Single Source of Truth (SSoT)."},
-{id:72,t:"t4",d:"e",q:"Who should conduct user research in Lean UX?",a:"The entire cross-functional team.",w:"Relying on an isolated researcher creates handoffs; doing it together increases the quality of learning and builds shared understanding."},
-{id:73,t:"t4",d:"e",q:"What is the 'Test what you have got' policy?",a:"Test whatever artifact is ready on testing day.",w:"It prioritizes continuous discovery over waiting for a conclusive, pixel-perfect design."},
-{id:74,t:"t4",d:"e",q:"What should be done with outliers found during research synthesis?",a:"Place them in a 'parking lot'.",w:"You shouldn't bake them into the solution immediately unless subsequent research sessions reveal a pattern."},
-{id:75,t:"t4",d:"m",q:"How does collaborative design increase the 'design IQ' of a team?",a:"By bringing diverse experts together to share ideas early.",w:"It challenges opinions a designer alone wouldn't recognize and builds deeper bonds and transparency."},
-{id:76,t:"t4",d:"m",q:"Why shouldn't designers jump straight to high-fidelity mockups when collaborating with non-designers?",a:"Stakeholders tend to focus on critiquing minor visual details.",w:"With wireframes or low-fidelity sketches, feedback remains focused on the underlying concept and flow."},
-{id:77,t:"t4",d:"m",q:"What is a team working agreement?",a:"A living document tracking how a team chooses to collaborate.",w:"It standardizes ceremonies, tools, working hours, and conflict resolution to maintain a healthy culture."},
-{id:78,t:"t4",d:"m",q:"What role does a researcher play in Lean UX?",a:"An expert guide who facilitates research for the team.",w:"Their goal is to empower the team to discover insights themselves rather than doing it all in a silo."},
-{id:79,t:"t4",d:"m",q:"In collaborative discovery pairs, what are the two distinct roles?",a:"One person leads the interview, while the other takes notes.",w:"It allows the interviewer to focus purely on the conversation, and they switch roles later to share the burden."},
-{id:80,t:"t4",d:"m",q:"Why should you show a prototype last during a user interview?",a:"To avoid swaying the user's vision of the solution.",w:"You must first confirm they actually have the problem you are solving before biasing them with your proposed answer."},
-{id:81,t:"t4",d:"m",q:"How can customer service logs aid continuous discovery?",a:"They provide lists of the top user issues each month.",w:"This acts as a direct, unbiased source for generating new hypotheses based on real user pain points."},
-{id:82,t:"t4",d:"m",q:"What is the purpose of A/B testing in continuous discovery?",a:"To submit a concept to a small subset of users and measure performance against a control.",w:"It provides an unbiased result on whether the new idea moved the needle in the right direction."},
-{id:83,t:"t4",d:"h",q:"What does the 'Fat pen' method refer to in collaborative design?",a:"Using low-fidelity tools (like thick markers).",w:"It physically forces the team to focus entirely on flow and functionality instead of getting bogged down in pixel-perfect details."},
-{id:84,t:"t4",d:"h",q:"How does Lean UX define Psychological Safety?",a:"An environment where team members can admit mistakes, ask questions, and offer ideas without fear of embarrassment.",w:"Design is a creative activity that requires an iterative process; teams must be safe to make mistakes to make something truly great."},
-{id:85,t:"t4",d:"h",q:"What is the 3:12:1 rhythm for continuous discovery?",a:"Testing with 3 users, by 12 noon, 1 time a week.",w:"It creates a continuous operational rhythm so the team is never more than a few days away from user feedback."},
-{id:86,t:"t4",d:"h",q:"How do you verify research feedback if you are not convinced by a single channel?",a:"Verify with other sources like reviews or support emails.",w:"Cross-referencing data channels ensures you don't over-rotate on a false pattern."},
-{id:87,t:"t4",d:"h",q:"What is the correct sequence of questioning in a user interview guide?",a:"A sequential funnel: first confirm they are the target audience, then confirm the problem hypotheses.",w:"If they aren't the target audience or don't have the problem, feedback on the solution is irrelevant."},
+{id:70,t:"t4",q:"Is Collaborative Design the same as 'design by committee'?",a:"No, it is a facilitated process still led by a designer.",w:"It aims to build shared understanding and gather diverse perspectives, not to democratize every pixel-level decision."},
+{id:71,t:"t4",q:"What is a Design System?",a:"A common language between designers and developers, combining style guides, pattern libraries, and components.",w:"It improves collaboration, allows teams to prototype faster, and maintains a Single Source of Truth (SSoT)."},
+{id:72,t:"t4",q:"Who should conduct user research in Lean UX?",a:"The entire cross-functional team.",w:"Relying on an isolated researcher creates handoffs; doing it together increases the quality of learning and builds shared understanding."},
+{id:73,t:"t4",q:"What is the 'Test what you have got' policy?",a:"Test whatever artifact is ready on testing day.",w:"It prioritizes continuous discovery over waiting for a conclusive, pixel-perfect design."},
+{id:74,t:"t4",q:"What should be done with outliers found during research synthesis?",a:"Place them in a 'parking lot'.",w:"You shouldn't bake them into the solution immediately unless subsequent research sessions reveal a pattern."},
+{id:75,t:"t4",q:"How does collaborative design increase the 'design IQ' of a team?",a:"By bringing diverse experts together to share ideas early.",w:"It challenges opinions a designer alone wouldn't recognize and builds deeper bonds and transparency."},
+{id:76,t:"t4",q:"Why shouldn't designers jump straight to high-fidelity mockups when collaborating with non-designers?",a:"Stakeholders tend to focus on critiquing minor visual details.",w:"With wireframes or low-fidelity sketches, feedback remains focused on the underlying concept and flow."},
+{id:77,t:"t4",q:"What is a team working agreement?",a:"A living document tracking how a team chooses to collaborate.",w:"It standardizes ceremonies, tools, working hours, and conflict resolution to maintain a healthy culture."},
+{id:78,t:"t4",q:"What role does a researcher play in Lean UX?",a:"An expert guide who facilitates research for the team.",w:"Their goal is to empower the team to discover insights themselves rather than doing it all in a silo."},
+{id:79,t:"t4",q:"In collaborative discovery pairs, what are the two distinct roles?",a:"One person leads the interview, while the other takes notes.",w:"It allows the interviewer to focus purely on the conversation, and they switch roles later to share the burden."},
+{id:80,t:"t4",q:"Why should you show a prototype last during a user interview?",a:"To avoid swaying the user's vision of the solution.",w:"You must first confirm they actually have the problem you are solving before biasing them with your proposed answer."},
+{id:81,t:"t4",q:"How can customer service logs aid continuous discovery?",a:"They provide lists of the top user issues each month.",w:"This acts as a direct, unbiased source for generating new hypotheses based on real user pain points."},
+{id:82,t:"t4",q:"What is the purpose of A/B testing in continuous discovery?",a:"To submit a concept to a small subset of users and measure performance against a control.",w:"It provides an unbiased result on whether the new idea moved the needle in the right direction."},
+{id:83,t:"t4",q:"What does the 'Fat pen' method refer to in collaborative design?",a:"Using low-fidelity tools (like thick markers).",w:"It physically forces the team to focus entirely on flow and functionality instead of getting bogged down in pixel-perfect details."},
+{id:84,t:"t4",q:"How does Lean UX define Psychological Safety?",a:"An environment where team members can admit mistakes, ask questions, and offer ideas without fear of embarrassment.",w:"Design is a creative activity that requires an iterative process; teams must be safe to make mistakes to make something truly great."},
+{id:85,t:"t4",q:"What is the 3:12:1 rhythm for continuous discovery?",a:"Testing with 3 users, by 12 noon, 1 time a week.",w:"It creates a continuous operational rhythm so the team is never more than a few days away from user feedback."},
+{id:86,t:"t4",q:"How do you verify research feedback if you are not convinced by a single channel?",a:"Verify with other sources like reviews or support emails.",w:"Cross-referencing data channels ensures you don't over-rotate on a false pattern."},
+{id:87,t:"t4",q:"What is the correct sequence of questioning in a user interview guide?",a:"A sequential funnel: first confirm they are the target audience, then confirm the problem hypotheses.",w:"If they aren't the target audience or don't have the problem, feedback on the solution is irrelevant."},
 
-{id:88,t:"t5",d:"e",q:"What are the 4 main components that make Agile work for any team?",a:"Work in short cycles, deliver value, hold daily scrums, and hold retrospectives.",w:"These parts ensure a dedicated team stays aligned, moves quickly, and continuously improves their process."},
-{id:89,t:"t5",d:"e",q:"Should designers participate in backlog planning and standups?",a:"Yes, they must be involved in all aspects.",w:"It ensures design needs are met in project plans and maintains the shared understanding of the team."},
-{id:90,t:"t5",d:"e",q:"What is Agilefall?",a:"Waterfall processes or 'Big Design Upfront' sneaking into an agile workflow.",w:"It occurs when teams create a 'communication at handoff' culture, destroying true collaboration."},
-{id:91,t:"t5",d:"e",q:"How does Lean UX recommend handling documentation?",a:"Lead with conversation and trail with documentation.",w:"Software working as designed is more important than complex documentation; conversation is faster and builds better alignment."},
-{id:92,t:"t5",d:"e",q:"What does it mean to 'manage up and out'?",a:"Constantly communicating with the broader organization to show what is coming.",w:"Other departments are impacted by your work, and keeping stakeholders informed prevents micromanagement."},
-{id:93,t:"t5",d:"m",q:"Why must the definition of 'Done' be redefined in Lean UX?",a:"Software is only 'done' when it is validated by measuring customer behavior change.",w:"Simply passing acceptance testing only proves the software works as designed, not that it actually solved a user problem."},
-{id:94,t:"t5",d:"m",q:"What is a Sprint Goal (or Product Goal) in this context?",a:"A multi-sprint theme centered around a risky hypothesis.",w:"It aligns the team's short-term delivery cycles with a larger strategic focus and desired outcome."},
-{id:95,t:"t5",d:"m",q:"Why are traditional date-based roadmaps problematic for Lean UX?",a:"They create a fixed starting and end point.",w:"Digital product development is iterative, not linear; fixed dates force a focus on outputs (shipping features) rather than outcomes."},
-{id:96,t:"t5",d:"m",q:"In an Outcome-Based Roadmap, how is progress measured?",a:"It is measured strictly by how well the team changed customer behavior.",w:"Shipping a list of features does not matter if the metrics and OKRs (like retention or conversion) do not improve."},
-{id:97,t:"t5",d:"m",q:"How should Design Sprints be utilized within a Lean UX environment?",a:"As targeted interventions for high-risk kickoffs or unblocking stagnant features.",w:"Running them back-to-back exhausts teams; they are best used when uncertainty is exceptionally high."},
-{id:98,t:"t5",d:"m",q:"How does Lean UX suggest a single team track UX debt?",a:"Create a specific, dedicated section in the backlog specifically for UX debt stories.",w:"Teams focused purely on speed often ignore UI/UX polish; tracking it ensures a commitment to eventually iterating on the design."},
-{id:99,t:"t5",d:"m",q:"Why are honest, blameless retrospectives considered almost the most important part of Agile?",a:"They give the team the opportunity to judge how they worked and adapt.",w:"Looking back to ask what worked, what didn't, and what to change drives the continuous improvement loop."},
-{id:100,t:"t5",d:"h",q:"What is the danger of 'staggered sprints' (where design works one sprint ahead of dev)?",a:"It creates a 'communication at handoff' culture.",w:"It turns the process into Agilefall, meaning the teams are never working on the same thing at the same time, leading to unnecessary waste and lack of context for developers."},
-{id:101,t:"t5",d:"h",q:"What is the purpose of Experiment Stories in an agile backlog?",a:"To explicitly visualize and prioritize discovery/learning work alongside standard delivery work.",w:"Without a specific ticket for research or interviews, discovery work gets pushed aside by the pressure to deliver code."},
-{id:102,t:"t5",d:"h",q:"What are the three columns of a Risks Dashboard for stakeholders?",a:"1) The specific risk, 2) A severity/trend scale, 3) The mitigation actions currently being taken.",w:"It proactively communicates roadblocks to management, keeping them out of your way while highlighting when your time is blocked out."},
-{id:103,t:"t5",d:"h",q:"What are the three time horizons used in an Outcome-Based Roadmap?",a:"Now (active experiments), Next (prioritized discovery), and Later (long-term strategic opportunities).",w:"This replaces fixed Gantt charts and quarters with horizons based on certainty and learning, reflecting the true nature of software development."},
-{id:104,t:"t5",d:"h",q:"How do you address UX debt that spans across multiple different teams?",a:"Map the current versus ideal customer journey on a wall, invite responsible teams, and write targeted stories for their backlogs.",w:"It breaks down silos by making the gaps clearly visible to everyone and assigning cross-functional accountability for the overall user experience."},
-{id:105,t:"t5",d:"h",q:"How should a team resolve the conflict of an 8-week research study not fitting into a 2-week sprint?",a:"Redefine 'done' for research by presenting early results and conclusions transparently at the end of each sprint.",w:"Forcing research to finish in 2 weeks breaks the 'beware of phases' principle; showing early value maintains Agile's transparency without compromising the study."},
-{id:106,t:"t5",d:"h",q:"Why must proposed solutions in an Outcome-Based roadmap be treated as disposable?",a:"Because they are just testable hypotheses.",w:"If experiments show the feature doesn't move the needle on the tied metrics, the team must be free to kill or pivot it without failing the roadmap."}
+{id:88,t:"t5",q:"What are the 4 main components that make Agile work for any team?",a:"Work in short cycles, deliver value, hold daily scrums, and hold retrospectives.",w:"These parts ensure a dedicated team stays aligned, moves quickly, and continuously improves their process."},
+{id:89,t:"t5",q:"Should designers participate in backlog planning and standups?",a:"Yes, they must be involved in all aspects.",w:"It ensures design needs are met in project plans and maintains the shared understanding of the team."},
+{id:90,t:"t5",q:"What is Agilefall?",a:"Waterfall processes or 'Big Design Upfront' sneaking into an agile workflow.",w:"It occurs when teams create a 'communication at handoff' culture, destroying true collaboration."},
+{id:91,t:"t5",q:"How does Lean UX recommend handling documentation?",a:"Lead with conversation and trail with documentation.",w:"Software working as designed is more important than complex documentation; conversation is faster and builds better alignment."},
+{id:92,t:"t5",q:"What does it mean to 'manage up and out'?",a:"Constantly communicating with the broader organization to show what is coming.",w:"Other departments are impacted by your work, and keeping stakeholders informed prevents micromanagement."},
+{id:93,t:"t5",q:"Why must the definition of 'Done' be redefined in Lean UX?",a:"Software is only 'done' when it is validated by measuring customer behavior change.",w:"Simply passing acceptance testing only proves the software works as designed, not that it actually solved a user problem."},
+{id:94,t:"t5",q:"What is a Sprint Goal (or Product Goal) in this context?",a:"A multi-sprint theme centered around a risky hypothesis.",w:"It aligns the team's short-term delivery cycles with a larger strategic focus and desired outcome."},
+{id:95,t:"t5",q:"Why are traditional date-based roadmaps problematic for Lean UX?",a:"They create a fixed starting and end point.",w:"Digital product development is iterative, not linear; fixed dates force a focus on outputs (shipping features) rather than outcomes."},
+{id:96,t:"t5",q:"In an Outcome-Based Roadmap, how is progress measured?",a:"It is measured strictly by how well the team changed customer behavior.",w:"Shipping a list of features does not matter if the metrics and OKRs (like retention or conversion) do not improve."},
+{id:97,t:"t5",q:"How should Design Sprints be utilized within a Lean UX environment?",a:"As targeted interventions for high-risk kickoffs or unblocking stagnant features.",w:"Running them back-to-back exhausts teams; they are best used when uncertainty is exceptionally high."},
+{id:98,t:"t5",q:"How does Lean UX suggest a single team track UX debt?",a:"Create a specific, dedicated section in the backlog specifically for UX debt stories.",w:"Teams focused purely on speed often ignore UI/UX polish; tracking it ensures a commitment to eventually iterating on the design."},
+{id:99,t:"t5",q:"Why are honest, blameless retrospectives considered almost the most important part of Agile?",a:"They give the team the opportunity to judge how they worked and adapt.",w:"Looking back to ask what worked, what didn't, and what to change drives the continuous improvement loop."},
+{id:100,t:"t5",q:"What is the danger of 'staggered sprints' (where design works one sprint ahead of dev)?",a:"It creates a 'communication at handoff' culture.",w:"It turns the process into Agilefall, meaning the teams are never working on the same thing at the same time, leading to unnecessary waste and lack of context for developers."},
+{id:101,t:"t5",q:"What is the purpose of Experiment Stories in an agile backlog?",a:"To explicitly visualize and prioritize discovery/learning work alongside standard delivery work.",w:"Without a specific ticket for research or interviews, discovery work gets pushed aside by the pressure to deliver code."},
+{id:102,t:"t5",q:"What are the three columns of a Risks Dashboard for stakeholders?",a:"1) The specific risk, 2) A severity/trend scale, 3) The mitigation actions currently being taken.",w:"It proactively communicates roadblocks to management, keeping them out of your way while highlighting when your time is blocked out."},
+{id:103,t:"t5",q:"What are the three time horizons used in an Outcome-Based Roadmap?",a:"Now (active experiments), Next (prioritized discovery), and Later (long-term strategic opportunities).",w:"This replaces fixed Gantt charts and quarters with horizons based on certainty and learning, reflecting the true nature of software development."},
+{id:104,t:"t5",q:"How do you address UX debt that spans across multiple different teams?",a:"Map the current versus ideal customer journey on a wall, invite responsible teams, and write targeted stories for their backlogs.",w:"It breaks down silos by making the gaps clearly visible to everyone and assigning cross-functional accountability for the overall user experience."},
+{id:105,t:"t5",q:"How should a team resolve the conflict of an 8-week research study not fitting into a 2-week sprint?",a:"Redefine 'done' for research by presenting early results and conclusions transparently at the end of each sprint.",w:"Forcing research to finish in 2 weeks breaks the 'beware of phases' principle; showing early value maintains Agile's transparency without compromising the study."},
+{id:106,t:"t5",q:"Why must proposed solutions in an Outcome-Based roadmap be treated as disposable?",a:"Because they are just testable hypotheses.",w:"If experiments show the feature doesn't move the needle on the tied metrics, the team must be free to kill or pivot it without failing the roadmap."}
 ];
 const CARD_BY_ID = Object.fromEntries(CARDS.map(c=>[c.id,c]));
 
@@ -1100,7 +1083,7 @@ function cardsScheduledOn(dateStr, horizonDays){
 
 /* ============================== SESSION / QUEUE ============================== */
 let session = { queue: [], pos: 0, flipped:false, reviewedToday0:0, correctToday0:0 };
-let filters = { theme:"all", diffs:{e:true,m:true,h:true} };
+let filters = { theme:"all" };
 let calState = (function(){ const t = todayStr(); return { year: Number(t.slice(0,4)), month: Number(t.slice(5,7))-1, selected:null }; })();
 let overrideQueue = null; // set when launched from calendar
 // Native confirm()/alert() dialogs are unreliable inside a sandboxed iframe
@@ -1112,7 +1095,6 @@ let resetArmed = false, resetArmTimer = null;
 function cardsMatchingFilters(){
   return CARDS.filter(c=>{
     if(filters.theme !== "all" && c.t !== filters.theme) return false;
-    if(!filters.diffs[c.d]) return false;
     return true;
   });
 }
@@ -1250,11 +1232,6 @@ function renderCard(){
   document.getElementById("frontQ").textContent = card.q;
   document.getElementById("backA").textContent = card.a;
   document.getElementById("backW").textContent = card.w;
-
-  const dotsWrap = document.getElementById("frontDiff");
-  const level = {e:1,m:2,h:3}[card.d];
-  dotsWrap.innerHTML = [1,2,3].map(i=>"<span class=\"" + (i<=level?"on":"") + "\"></span>").join("");
-  dotsWrap.title = DIFF_LABEL[card.d];
 }
 
 function toggleFlip(){
@@ -1355,17 +1332,6 @@ function initStudyToolbar(){
   sel.innerHTML = "<option value=\"all\">All sections</option>" + THEMES.map(t=>"<option value=\""+t.id+"\">"+t.name+"</option>").join("");
   sel.addEventListener("change", ()=>{
     filters.theme = sel.value;
-    buildQueue();
-    renderCard();
-  });
-  document.getElementById("diffToggle").addEventListener("click",(e)=>{
-    const btn = e.target.closest(".diff-chip");
-    if(!btn) return;
-    const d = btn.dataset.d;
-    const activeCount = Object.values(filters.diffs).filter(Boolean).length;
-    if(filters.diffs[d] && activeCount===1) return; // keep at least one
-    filters.diffs[d] = !filters.diffs[d];
-    btn.classList.toggle("active", filters.diffs[d]);
     buildQueue();
     renderCard();
   });
