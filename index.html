@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,440;0,9..144,560;0,9..144,650;1,9..144,500&family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#f2f3ee;
@@ -482,28 +483,112 @@
   .back-link:hover{color:var(--ink);}
   .pack-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; margin-top:6px;}
   .pack-tile{
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m);
+    position:relative; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m);
     padding:20px 20px 18px; box-shadow:var(--shadow-soft); cursor:pointer; text-align:left;
     display:flex; flex-direction:column; gap:10px; font:inherit; color:inherit;
     transition:border-color .12s ease, transform .12s ease;
   }
   .pack-tile:hover{border-color:var(--border-strong); transform:translateY(-1px);}
-  .pack-tile h3{font-size:1.12rem; font-weight:600;}
+  .pack-tile h3{font-size:1.12rem; font-weight:600; padding-right:16px;}
   .pack-tagline{margin:0; font-size:0.82rem; color:var(--ink-soft); line-height:1.4;}
   .pack-progress-track{height:5px; border-radius:999px; background:var(--surface-3); overflow:hidden;}
   .pack-progress-fill{height:100%; background:var(--good); border-radius:999px; width:0%;}
   .pack-stats-row{display:flex; gap:14px; flex-wrap:wrap; font-size:0.76rem; color:var(--ink-soft);}
   .pack-stats-row b{color:var(--ink); font-weight:600;}
-  .pack-tile-add{
-    border-style:dashed; opacity:0.65; cursor:default; align-items:center; text-align:center;
+  .pack-tile-delete{
+    position:absolute; top:12px; right:12px; width:22px; height:22px; border-radius:50%;
+    border:1px solid var(--border); background:var(--surface); color:var(--ink-faint); font-size:0.85rem;
+    line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
-  .pack-tile-add:hover{border-color:var(--border); transform:none;}
+  .pack-tile-delete:hover, .pack-tile-delete.armed{color:var(--again); border-color:var(--again); background:var(--again-soft);}
+  .pack-tile-add{
+    border-style:dashed; align-items:center; text-align:center; color:var(--ink-soft);
+  }
+  .pack-tile-add:hover{border-color:var(--border-strong); background:var(--surface-2);}
   .pack-add-icon{
     width:34px; height:34px; border-radius:50%; border:1px dashed var(--border-strong);
     display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--ink-faint);
     margin:0 auto;
   }
-  .pack-tile-add h3{font-size:0.98rem;}
+  .pack-tile-add h3{font-size:0.98rem; padding-right:0;}
+
+  /* ---------- add-pack modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(10,14,10,0.55); display:flex; align-items:flex-start;
+    justify-content:center; padding:40px 16px; z-index:2000; overflow-y:auto;
+  }
+  .modal-card{
+    position:relative; width:100%; max-width:640px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-l); padding:28px 26px 26px; box-shadow:var(--shadow-card); margin-bottom:40px;
+  }
+  .modal-close{
+    position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:50%;
+    border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); cursor:pointer;
+    font-size:1.05rem; line-height:1; display:flex; align-items:center; justify-content:center;
+  }
+  .modal-close:hover{color:var(--ink);}
+  .modal-card h2{font-size:1.3rem; margin:0 0 6px; padding-right:30px;}
+  .modal-sub{color:var(--ink-soft); font-size:0.86rem; margin:0 0 20px;}
+  .wizard-back{
+    background:none; border:none; color:var(--ink-soft); font-size:0.82rem; font-weight:600;
+    cursor:pointer; padding:0; margin-bottom:16px; display:inline-flex; align-items:center; gap:6px;
+  }
+  .wizard-back:hover{color:var(--ink);}
+
+  .method-grid{display:flex; flex-direction:column; gap:10px;}
+  .method-card{
+    display:flex; gap:14px; align-items:flex-start; text-align:left; width:100%;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:16px; cursor:pointer; font:inherit; color:inherit;
+  }
+  .method-card:hover{border-color:var(--border-strong);}
+  .method-icon{
+    width:38px; height:38px; flex:none; border-radius:var(--radius-s); background:var(--surface);
+    border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--accent);
+  }
+  .method-icon svg{width:19px; height:19px;}
+  .method-card h3{font-size:0.98rem; margin:0 0 3px;}
+  .method-card p{margin:0; font-size:0.8rem; color:var(--ink-soft); line-height:1.4;}
+
+  .form-field{margin-bottom:14px;}
+  .form-field label{display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:var(--ink-faint); margin-bottom:6px;}
+  .form-field input[type=text], .form-field input[type=number], .form-field textarea, .form-field select{
+    width:100%; font:inherit; font-size:0.9rem; color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:var(--radius-s); padding:9px 11px; box-sizing:border-box; resize:vertical;
+  }
+  .form-hint{font-size:0.76rem; color:var(--ink-faint); margin:5px 0 0;}
+
+  .manual-card-row{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:12px 14px; margin-bottom:10px; position:relative;
+  }
+  .manual-card-row .mcr-remove{
+    position:absolute; top:10px; right:10px; background:none; border:none; color:var(--ink-faint);
+    cursor:pointer; font-size:1rem; line-height:1;
+  }
+  .manual-card-row .mcr-remove:hover{color:var(--again);}
+  .manual-card-row .form-field{margin-bottom:9px; padding-right:20px;}
+  .manual-card-row .form-field:last-child{margin-bottom:0;}
+
+  .sheet-map-card{background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-m); padding:14px 16px; margin-bottom:12px;}
+  .sheet-map-top{display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+  .sheet-map-top input[type=text]{flex:1; min-width:120px; font:inherit; font-size:0.88rem; color:var(--ink); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s); padding:7px 10px;}
+  .sheet-map-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;}
+  .sheet-map-grid label{display:block; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-faint); font-weight:700; margin-bottom:4px;}
+  .sheet-map-grid select{width:100%; font:inherit; font-size:0.84rem; color:var(--ink); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s); padding:7px 9px;}
+  .sheet-preview{font-size:0.78rem; color:var(--ink-soft); background:var(--surface); border:1px dashed var(--border); border-radius:var(--radius-s); padding:8px 10px; margin-top:6px;}
+  .sheet-preview div{padding:2px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .checkbox-row{display:flex; align-items:center; gap:7px; font-size:0.82rem; color:var(--ink-soft); font-weight:600; cursor:pointer;}
+  .checkbox-row input{margin:0;}
+
+  .prompt-box{
+    width:100%; font-family:"IBM Plex Mono",monospace; font-size:0.76rem; color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:var(--radius-s); padding:12px; box-sizing:border-box; resize:vertical; line-height:1.5;
+  }
+  .step-list{margin:0 0 16px; padding-left:18px; font-size:0.85rem; color:var(--ink-soft); line-height:1.6;}
+  .wizard-error{color:var(--again); background:var(--again-soft); border-radius:var(--radius-s); padding:9px 12px; font-size:0.82rem; margin:10px 0 0;}
+  .wizard-note{color:var(--ink-soft); background:var(--surface-2); border-radius:var(--radius-s); padding:9px 12px; font-size:0.82rem; margin:10px 0 0;}
+  .wizard-actions{display:flex; gap:10px; margin-top:18px; align-items:center; flex-wrap:wrap;}
 
   /* ---------- card editor ---------- */
   .card-edit-group{display:flex; flex-direction:column; gap:9px; margin-bottom:26px;}
@@ -714,8 +799,10 @@
               <div class="card-back-content">
                 <p class="card-label">Answer</p>
                 <p class="card-answer" id="backA"></p>
-                <p class="card-label">Why</p>
-                <p class="card-why" id="backW"></p>
+                <div id="backWhyWrap">
+                  <p class="card-label">Why</p>
+                  <p class="card-why" id="backW"></p>
+                </div>
               </div>
               <div class="flip-hint">Click or press Space to flip back</div>
             </div>
@@ -770,21 +857,27 @@
   </main>
 </div>
 
+<div class="modal-overlay" id="addPackOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="addPackCloseBtn" aria-label="Close">&times;</button>
+    <div id="addPackBody"></div>
+  </div>
+</div>
+
 <script>
 (function(){
 "use strict";
 
 /* ============================== DATA ============================== */
-const THEMES = [
+const LEAN_UX_THEMES = [
   {id:"t1", name:"Core Concepts & Principles"},
   {id:"t2", name:"The Lean UX Canvas & Frameworks"},
   {id:"t3", name:"MVPs & Experimentation"},
   {id:"t4", name:"Collaboration, Culture & Research"},
   {id:"t5", name:"Agile Integration & Management"}
 ];
-const THEME_BY_ID = Object.fromEntries(THEMES.map(t=>[t.id,t]));
 
-const CARDS = [
+const LEAN_UX_CARDS = [
 {id:1,t:"t1",q:"What is the primary definition of Lean UX?",a:"Continuous learning.",w:"Because it is an ongoing process of acquiring knowledge rather than just delivering static, finished features."},
 {id:2,t:"t1",q:"What is the core mantra comparing results to deliverables?",a:"Outcome over output.",w:"The ultimate goal is to change customer behavior positively (value) rather than just ship features (ego)."},
 {id:3,t:"t1",q:"How is an 'outcome' defined in Lean UX?",a:"A change in customer behavior.",w:"It is a measurable impact that shows the product is actually delivering value, whereas an output is just the feature itself."},
@@ -896,17 +989,28 @@ const CARDS = [
 {id:105,t:"t5",q:"How should a team resolve the conflict of an 8-week research study not fitting into a 2-week sprint?",a:"Redefine 'done' for research by presenting early results and conclusions transparently at the end of each sprint.",w:"Forcing research to finish in 2 weeks breaks the 'beware of phases' principle; showing early value maintains Agile's transparency without compromising the study."},
 {id:106,t:"t5",q:"Why must proposed solutions in an Outcome-Based roadmap be treated as disposable?",a:"Because they are just testable hypotheses.",w:"If experiments show the feature doesn't move the needle on the tied metrics, the team must be free to kill or pivot it without failing the roadmap."}
 ];
-const CARD_BY_ID = Object.fromEntries(CARDS.map(c=>[c.id,c]));
 
 /* ============================== PACKS ==============================
-   Registry of flashcard packs. Only one pack exists today, but state is
-   already keyed by pack id (see STATE below) so adding real pack creation
-   later — file upload, AI research, or manual entry — doesn't require
-   another data migration. */
-const PACKS_META = [
-  {id:"lean-ux", name:"Lean UX Drills", tagline:"Spaced-repetition practice from the Lean UX notes", themes:THEMES, cards:CARDS}
+   Registry of built-in packs, plus user-created ones stored in
+   state.customPacks (see STATE below). CARDS/THEMES/CARD_BY_ID/THEME_BY_ID/
+   INTRO_ORDER/INTRO_INDEX further down are mutable "currently active pack"
+   bindings: rebuildEngineGlobals() repoints them at whichever pack was just
+   entered, so every render/scheduling function that already reads those
+   names (unchanged from the single-pack version of this app) works for any
+   pack — built-in or custom — without threading a pack argument through the
+   whole engine. */
+const BUILTIN_PACKS_META = [
+  {id:"lean-ux", name:"Lean UX Drills", tagline:"Spaced-repetition practice from the Lean UX notes", themes:LEAN_UX_THEMES, cards:LEAN_UX_CARDS}
 ];
-const PACK_BY_ID = Object.fromEntries(PACKS_META.map(p=>[p.id,p]));
+function customPackMeta(cp){
+  return {id:cp.id, name:cp.name, tagline:cp.tagline, themes:cp.themes, cards:cp.cards, custom:true};
+}
+function allPacksMeta(){
+  return BUILTIN_PACKS_META.concat(Object.keys(state.customPacks).map(id=>customPackMeta(state.customPacks[id])));
+}
+function findPackMeta(id){
+  return allPacksMeta().find(p=>p.id===id);
+}
 
 function escHtml(s){
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -950,8 +1054,18 @@ function buildIntroOrder(){
   }
   return order;
 }
-const INTRO_ORDER = buildIntroOrder();
-const INTRO_INDEX = Object.fromEntries(INTRO_ORDER.map((id,i)=>[id,i]));
+// The "currently active pack" bindings — see the PACKS comment above.
+// Undefined until the first rebuildEngineGlobals() call (enterPack() or
+// renderHome()'s tile-stats loop); nothing reads them before then.
+let CARDS, THEMES, CARD_BY_ID, THEME_BY_ID, INTRO_ORDER, INTRO_INDEX;
+function rebuildEngineGlobals(meta){
+  CARDS = meta.cards;
+  THEMES = meta.themes;
+  CARD_BY_ID = Object.fromEntries(CARDS.map(c=>[c.id,c]));
+  THEME_BY_ID = Object.fromEntries(THEMES.map(t=>[t.id,t]));
+  INTRO_ORDER = buildIntroOrder();
+  INTRO_INDEX = Object.fromEntries(INTRO_ORDER.map((id,i)=>[id,i]));
+}
 function introDayFor(cardId){
   const idx = INTRO_INDEX[cardId];
   return addDays(pack().startDate, Math.floor(idx / CARDS_PER_DAY));
@@ -976,6 +1090,7 @@ function defaultPackState(){
 function defaultState(){
   return {
     packs:{},
+    customPacks:{},      // packId -> {id, name, tagline, themes:[{id,name}], cards:[{id,t,q,a,w}], createdAt}
     updatedAt:new Date().toISOString()
   };
 }
@@ -990,9 +1105,11 @@ function migrateFlatState(raw){
         streak: raw.streak||{current:0,longest:0,lastActiveDate:null},
         startDate: raw.startDate || todayStr(), overrides:{}
       }},
+      customPacks:{},
       updatedAt: raw.updatedAt || new Date().toISOString()
     };
   }
+  if(raw && !raw.customPacks) raw.customPacks = {};
   return raw;
 }
 
@@ -1382,6 +1499,7 @@ function renderCard(){
   document.getElementById("frontQ").textContent = card.q;
   document.getElementById("backA").textContent = card.a;
   document.getElementById("backW").textContent = card.w;
+  document.getElementById("backWhyWrap").hidden = !card.w;
 }
 
 function toggleFlip(){
@@ -1486,9 +1604,13 @@ function checkDateRollover(){
 }
 
 /* ============================== STUDY TOOLBAR ============================== */
-function initStudyToolbar(){
+function populateThemeFilter(){
   const sel = document.getElementById("themeFilter");
   sel.innerHTML = "<option value=\"all\">All sections</option>" + THEMES.map(t=>"<option value=\""+t.id+"\">"+t.name+"</option>").join("");
+  sel.value = "all";
+}
+function initStudyToolbar(){
+  const sel = document.getElementById("themeFilter");
   sel.addEventListener("change", ()=>{
     filters.theme = sel.value;
     buildQueue();
@@ -1503,6 +1625,7 @@ function initStudyToolbar(){
     grade(btn.dataset.g);
   });
   document.addEventListener("keydown",(e)=>{
+    if(document.getElementById("appShell").hidden) return;
     if(!document.getElementById("view-study").classList.contains("active")) return;
     if(e.code === "Space"){ e.preventDefault(); toggleFlip(); }
     if(session.flipped && ["1","2","3","4"].includes(e.key)){
@@ -1848,7 +1971,7 @@ function cardEditRowHTML(c){
     + (edited ? "<span class=\"cer-edited-badge\">Edited</span>" : "")
     + "<p class=\"cer-q\">"+escHtml(ec.q)+"</p>"
     + "<p class=\"cer-a\"><b>Answer&nbsp;</b>"+escHtml(ec.a)+"</p>"
-    + "<p class=\"cer-w\"><b>Why&nbsp;</b>"+escHtml(ec.w)+"</p>"
+    + (ec.w ? "<p class=\"cer-w\"><b>Why&nbsp;</b>"+escHtml(ec.w)+"</p>" : "")
     + "<div class=\"cer-actions\"><button class=\"link-btn\" data-action=\"edit\" data-id=\""+c.id+"\">Edit</button>"
     + (edited ? "<button class=\"link-btn\" data-action=\"revert\" data-id=\""+c.id+"\">Revert to original</button>" : "")
     + "</div></div>";
@@ -1885,7 +2008,7 @@ function initCardsEditorUI(){
       const q = row.querySelector("[data-field=\"q\"]").value.trim();
       const a = row.querySelector("[data-field=\"a\"]").value.trim();
       const w = row.querySelector("[data-field=\"w\"]").value.trim();
-      if(!q || !a || !w) return;
+      if(!q || !a) return;
       const base = CARD_BY_ID[id];
       const p = pack();
       if(q === base.q && a === base.a && w === base.w) delete p.overrides[id];
@@ -1899,22 +2022,26 @@ function initCardsEditorUI(){
 }
 
 /* ============================== HOMEPAGE / PACK NAV ============================== */
+let deleteArmedPackId = null, deleteArmTimer = null;
+
 function renderHome(){
   const grid = document.getElementById("packGrid");
-  const savedPackId = currentPackId;
-  const tiles = PACKS_META.map(meta=>{
-    // Stat helpers all read the "current" pack via pack(), so briefly point
-    // currentPackId at each pack in turn to compute its tile stats. Safe:
-    // this loop is synchronous and nothing else runs between the swaps.
+  const tiles = allPacksMeta().map(meta=>{
+    // Stat helpers all read the "current" pack via pack()/CARDS/THEMES, so
+    // briefly point currentPackId + the engine globals at each pack in turn
+    // to compute its tile stats. Safe: this loop is synchronous and nothing
+    // else runs between the swaps.
     currentPackId = meta.id;
+    rebuildEngineGlobals(meta);
     const total = meta.cards.length;
     const mastered = meta.cards.filter(c=>statusOf(c.id)==="mastered").length;
     const pct = total ? Math.round((mastered/total)*100) : 0;
     const due = cardsDueOrNewToday().length;
     const streak = computeCurrentStreakDisplay();
     return "<button class=\"pack-tile\" data-pack=\""+meta.id+"\">"
+      + (meta.custom ? "<span class=\"pack-tile-delete\" data-delete=\""+meta.id+"\" title=\"Delete pack\">&times;</span>" : "")
       + "<h3>"+escHtml(meta.name)+"</h3>"
-      + "<p class=\"pack-tagline\">"+escHtml(meta.tagline)+"</p>"
+      + "<p class=\"pack-tagline\">"+escHtml(meta.tagline||"")+"</p>"
       + "<div class=\"pack-progress-track\"><div class=\"pack-progress-fill\" style=\"width:"+pct+"%\"></div></div>"
       + "<div class=\"pack-stats-row\">"
         + "<span><b class=\"mono\">"+pct+"%</b> mastered</span>"
@@ -1922,21 +2049,24 @@ function renderHome(){
         + "<span><b class=\"mono\">"+streak+"</b> day streak</span>"
       + "</div></button>";
   }).join("");
-  currentPackId = savedPackId;
+  currentPackId = null;
   grid.innerHTML = tiles
-    + "<div class=\"pack-tile pack-tile-add\">"
+    + "<button class=\"pack-tile pack-tile-add\" id=\"addPackTile\">"
       + "<div class=\"pack-add-icon\">+</div>"
       + "<h3>Add a new Flashcard Pack</h3>"
-      + "<p class=\"pack-tagline\">Coming soon &mdash; upload a file, ask AI to research a topic, or write your own.</p>"
-    + "</div>";
+      + "<p class=\"pack-tagline\">Upload a file, ask AI to research a topic, or write your own.</p>"
+    + "</button>";
 }
 
 function enterPack(id){
-  const meta = PACK_BY_ID[id];
+  const meta = findPackMeta(id);
   if(!meta) return;
   currentPackId = id;
+  rebuildEngineGlobals(meta);
+  filters.theme = "all";
+  populateThemeFilter();
   document.getElementById("packBrandTitle").textContent = meta.name;
-  document.getElementById("packBrandTagline").textContent = meta.tagline;
+  document.getElementById("packBrandTagline").textContent = meta.tagline || "";
   document.getElementById("homeShell").hidden = true;
   document.getElementById("appShell").hidden = false;
   switchTab("study");
@@ -1951,6 +2081,13 @@ function goHome(){
   renderHome();
 }
 
+function deleteCustomPack(id){
+  delete state.customPacks[id];
+  delete state.packs[id];
+  persist();
+  renderHome();
+}
+
 function initHomeUI(){
   document.getElementById("homeSettingsBtn").addEventListener("click", ()=>{
     document.getElementById("home-list-view").hidden = true;
@@ -1961,11 +2098,462 @@ function initHomeUI(){
     document.getElementById("home-list-view").hidden = false;
   });
   document.getElementById("packGrid").addEventListener("click",(e)=>{
+    const delBtn = e.target.closest("[data-delete]");
+    if(delBtn){
+      e.stopPropagation();
+      const id = delBtn.dataset.delete;
+      if(deleteArmedPackId !== id){
+        deleteArmedPackId = id;
+        delBtn.title = "Tap again to delete";
+        delBtn.classList.add("armed");
+        clearTimeout(deleteArmTimer);
+        deleteArmTimer = setTimeout(()=>{ deleteArmedPackId = null; }, 6000);
+        return;
+      }
+      clearTimeout(deleteArmTimer);
+      deleteArmedPackId = null;
+      deleteCustomPack(id);
+      return;
+    }
+    if(e.target.closest("#addPackTile")){
+      openAddPackModal();
+      return;
+    }
     const tile = e.target.closest(".pack-tile[data-pack]");
     if(!tile) return;
     enterPack(tile.dataset.pack);
   });
   document.getElementById("packBackBtn").addEventListener("click", goHome);
+}
+
+/* ============================== ADD PACK WIZARD ==============================
+   Three ways to create a custom pack, all funnelling into saveNewCustomPack():
+   1) Spreadsheet — parsed client-side with SheetJS. Rather than an AI call per
+      row (slow, costly, and unreliable at ~1000 rows), the "smart" part is a
+      one-time column-mapping decision per tab, with a live preview to confirm
+      it before the whole sheet is bulk-transformed deterministically.
+   2) AI research — this app has no backend/API key, so it can't call an LLM
+      itself. It generates a prompt with a strict JSON schema for the user to
+      run in their own Claude conversation, then imports the pasted-back JSON
+      through the same importPackFromJSON() parser used elsewhere.
+   3) Manual — a plain repeatable Q/A/Why form.
+   Custom pack themes are assigned ids by cycling t1..t5 so they reuse the
+   existing theme-tN CSS classes/colors without new styling. */
+function themeIdForIndex(i){ return "t"+((i%5)+1); }
+function nextCustomPackId(){ return "custom-"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+function saveNewCustomPack(name, tagline, themes, cards){
+  const id = nextCustomPackId();
+  const numberedCards = cards.map((c,i)=>({id:i+1, t:c.t, q:c.q, a:c.a, w:c.w||""}));
+  state.customPacks[id] = {
+    id, name:(name||"").trim() || "Untitled pack", tagline:(tagline||"").trim(),
+    themes, cards:numberedCards, createdAt:new Date().toISOString()
+  };
+  persist();
+  return id;
+}
+
+// Groups a flat list of {section,q,a,w} rows into theme buckets by section
+// label (blank -> "General"), in order of first appearance. Used by manual
+// entry. Returns null if nothing had both a question and an answer.
+function buildThemesAndCards(rawCards){
+  const valid = rawCards.filter(c=>c.q.trim() && c.a.trim());
+  if(!valid.length) return null;
+  const order = [];
+  const index = {};
+  valid.forEach(c=>{
+    const label = (c.section||"").trim() || "General";
+    if(!(label in index)){ index[label] = order.length; order.push(label); }
+  });
+  const themes = order.map((label,i)=>({id:themeIdForIndex(i), name:label}));
+  const cards = valid.map(c=>{
+    const label = (c.section||"").trim() || "General";
+    return {t:themes[index[label]].id, q:c.q.trim(), a:c.a.trim(), w:(c.w||"").trim()};
+  });
+  return {themes, cards};
+}
+
+// Parses an AI reply (or any hand-written JSON) into {name, tagline, themes,
+// cards}. Theme ids from the source JSON are trusted only as a way to group
+// cards by name — they're re-assigned to our own t1..t5 cycle so the CSS
+// classes always resolve, regardless of what ids the source used.
+function importPackFromJSON(rawText){
+  let data;
+  try{ data = JSON.parse(rawText); }
+  catch(e){ return {ok:false, error:"That doesn't look like valid JSON. Make sure you copied the whole reply, including the { and } braces."}; }
+  if(!data || typeof data !== "object" || !Array.isArray(data.cards) || !data.cards.length){
+    return {ok:false, error:"Expected an object with a non-empty \"cards\" array."};
+  }
+  const rawThemes = Array.isArray(data.themes) ? data.themes : [];
+  const nameByOldId = {};
+  const orderedNames = [];
+  rawThemes.forEach(t=>{
+    const name = (t && t.name ? String(t.name) : "General").trim() || "General";
+    if(t && t.id != null) nameByOldId[String(t.id)] = name;
+    if(orderedNames.indexOf(name) === -1) orderedNames.push(name);
+  });
+  const rows = [];
+  data.cards.forEach(c=>{
+    if(!c || !c.q || !c.a) return;
+    let themeName = c.t!=null && nameByOldId[String(c.t)] ? nameByOldId[String(c.t)] : (orderedNames[0] || "General");
+    if(orderedNames.indexOf(themeName) === -1) orderedNames.push(themeName);
+    rows.push({themeName, q:String(c.q).trim(), a:String(c.a).trim(), w:c.w?String(c.w).trim():""});
+  });
+  if(!rows.length) return {ok:false, error:"None of the cards had both a question and an answer."};
+  const themes = orderedNames.map((name,i)=>({id:themeIdForIndex(i), name}));
+  const nameToId = Object.fromEntries(themes.map(t=>[t.name,t.id]));
+  const cards = rows.map(r=>({t:nameToId[r.themeName], q:r.q, a:r.a, w:r.w}));
+  return {
+    ok:true,
+    name:(data.name ? String(data.name) : "").trim() || "Untitled pack",
+    tagline:(data.tagline ? String(data.tagline) : "").trim(),
+    themes, cards
+  };
+}
+
+let addPackStep = "choose";
+let manualDraft = null, sheetDraft = null, aiDraft = null;
+
+function openAddPackModal(){
+  addPackStep = "choose";
+  manualDraft = null; sheetDraft = null; aiDraft = null;
+  document.getElementById("addPackOverlay").hidden = false;
+  renderAddPackModal();
+}
+function closeAddPackModal(){
+  document.getElementById("addPackOverlay").hidden = true;
+}
+function renderAddPackModal(){
+  const body = document.getElementById("addPackBody");
+  if(addPackStep === "manual") body.innerHTML = addPackManualHTML();
+  else if(addPackStep === "spreadsheet") body.innerHTML = addPackSpreadsheetHTML();
+  else if(addPackStep === "ai") body.innerHTML = addPackAiHTML();
+  else body.innerHTML = addPackChooseHTML();
+}
+
+function addPackChooseHTML(){
+  return "<h2>Add a new Flashcard Pack</h2>"
+    + "<p class=\"modal-sub\">Pick how you want to build this pack.</p>"
+    + "<div class=\"method-grid\">"
+      + "<button class=\"method-card\" data-method=\"spreadsheet\">"
+        + "<div class=\"method-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2\" stroke=\"currentColor\" stroke-width=\"1.6\"/><path d=\"M4 10H20M10 4V20\" stroke=\"currentColor\" stroke-width=\"1.6\"/></svg></div>"
+        + "<div><h3>Upload a spreadsheet</h3><p>Import an .xlsx or .csv file &mdash; each tab becomes a section. Confirm the column mapping once, then every row imports automatically.</p></div>"
+      + "</button>"
+      + "<button class=\"method-card\" data-method=\"ai\">"
+        + "<div class=\"method-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M12 3L14.4 8.5L20.5 9.2L16 13.2L17.3 19.2L12 16.1L6.7 19.2L8 13.2L3.5 9.2L9.6 8.5L12 3Z\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linejoin=\"round\"/></svg></div>"
+        + "<div><h3>Ask AI to research a topic</h3><p>Get a ready-to-run research prompt for your own Claude conversation, then paste the result back in to create the pack.</p></div>"
+      + "</button>"
+      + "<button class=\"method-card\" data-method=\"manual\">"
+        + "<div class=\"method-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M4 20l4-1 10-10-3-3L5 16l-1 4Z\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/></svg></div>"
+        + "<div><h3>Add cards manually</h3><p>Type your own questions, answers and why-explanations directly.</p></div>"
+      + "</button>"
+    + "</div>";
+}
+
+/* ---------- manual entry ---------- */
+function freshManualDraft(){ return {name:"", tagline:"", cards:[{section:"", q:"", a:"", w:""}]}; }
+function syncManualDraftFromDOM(){
+  if(!manualDraft) return;
+  const body = document.getElementById("addPackBody");
+  const nameEl = body.querySelector("#manualPackName");
+  const taglineEl = body.querySelector("#manualPackTagline");
+  if(nameEl) manualDraft.name = nameEl.value;
+  if(taglineEl) manualDraft.tagline = taglineEl.value;
+  body.querySelectorAll(".manual-card-row").forEach((row,i)=>{
+    manualDraft.cards[i] = {
+      section: row.querySelector("[data-mf=section]").value,
+      q: row.querySelector("[data-mf=q]").value,
+      a: row.querySelector("[data-mf=a]").value,
+      w: row.querySelector("[data-mf=w]").value
+    };
+  });
+}
+function addPackManualHTML(){
+  if(!manualDraft) manualDraft = freshManualDraft();
+  const rows = manualDraft.cards.map((c,i)=>
+    "<div class=\"manual-card-row\" data-idx=\""+i+"\">"
+      + (manualDraft.cards.length>1 ? "<button class=\"mcr-remove\" data-action=\"mcr-remove\" data-idx=\""+i+"\" title=\"Remove card\">&times;</button>" : "")
+      + "<div class=\"form-field\"><label>Section (optional)</label><input type=\"text\" data-mf=\"section\" value=\""+escHtml(c.section)+"\" placeholder=\"e.g. Chapter 1\"></div>"
+      + "<div class=\"form-field\"><label>Question</label><textarea data-mf=\"q\" rows=\"2\">"+escHtml(c.q)+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Answer</label><textarea data-mf=\"a\" rows=\"2\">"+escHtml(c.a)+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Why (optional)</label><textarea data-mf=\"w\" rows=\"2\">"+escHtml(c.w)+"</textarea></div>"
+    + "</div>"
+  ).join("");
+  return "<button class=\"wizard-back\" data-action=\"back-choose\">&larr; Back</button>"
+    + "<h2>Add cards manually</h2>"
+    + "<p class=\"modal-sub\">Give the pack a name, then add as many cards as you like.</p>"
+    + "<div class=\"form-field\"><label>Pack name</label><input type=\"text\" id=\"manualPackName\" value=\""+escHtml(manualDraft.name)+"\" placeholder=\"e.g. Spanish Verbs\"></div>"
+    + "<div class=\"form-field\"><label>Tagline (optional)</label><input type=\"text\" id=\"manualPackTagline\" value=\""+escHtml(manualDraft.tagline)+"\" placeholder=\"Short description\"></div>"
+    + rows
+    + "<button class=\"btn ghost\" data-action=\"mcr-add\" style=\"margin-bottom:6px;\">+ Add another card</button>"
+    + "<div id=\"manualError\"></div>"
+    + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"manual-create\">Create pack</button></div>";
+}
+
+/* ---------- spreadsheet import ---------- */
+const SHEET_FRONT_HINTS = ["english","front","question","term","word","q"];
+const SHEET_BACK_HINTS = ["polish","spanish","french","german","italian","translation","back","answer","definition","a"];
+function guessSheetColumns(headerRow){
+  let front = 0, back = 1;
+  if(headerRow && headerRow.length){
+    const lower = headerRow.map(h=>String(h||"").toLowerCase().trim());
+    const fi = lower.findIndex(h=>SHEET_FRONT_HINTS.some(k=>h.includes(k)));
+    const bi = lower.findIndex(h=>SHEET_BACK_HINTS.some(k=>h.includes(k)));
+    if(fi !== -1) front = fi;
+    if(bi !== -1 && bi !== front) back = bi;
+    else back = front === 0 ? 1 : 0;
+  }
+  return {front, back};
+}
+function loadWorkbookFile(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:"array"});
+      const sheets = wb.SheetNames.map(name=>{
+        let rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:""});
+        rows = rows.filter(r=>r.some(cell=>String(cell).trim()!==""));
+        const colCount = rows.reduce((m,r)=>Math.max(m,r.length), 2);
+        const guess = guessSheetColumns(rows[0]||[]);
+        return {name, sectionName:name, include:true, hasHeader:true, rows, colCount, frontCol:guess.front, backCol:guess.back, whyCol:-1, prefix:""};
+      });
+      sheetDraft = {fileName:file.name, packName:file.name.replace(/\.[^.]+$/,""), tagline:"", sheets, error: sheets.length ? null : "That file doesn't seem to have any data in it."};
+    }catch(err){
+      sheetDraft = {fileName:file.name, packName:"", tagline:"", sheets:[], error:"Couldn't read that file. Make sure it's a .xlsx, .xls or .csv file."};
+    }
+    renderAddPackModal();
+  };
+  reader.onerror = ()=>{
+    sheetDraft = {fileName:file.name, packName:"", tagline:"", sheets:[], error:"Couldn't read that file."};
+    renderAddPackModal();
+  };
+  reader.readAsArrayBuffer(file);
+}
+function sheetColLabel(idx, headerRow, hasHeader){
+  const h = hasHeader && headerRow[idx]!==undefined && String(headerRow[idx]).trim()!=="" ? String(headerRow[idx]).trim() : null;
+  return h ? (String.fromCharCode(65+idx)+": "+h) : ("Column "+String.fromCharCode(65+idx));
+}
+function sheetColOptions(sheet, selectedIdx){
+  const headerRow = sheet.rows[0] || [];
+  let html = "";
+  for(let i=0;i<sheet.colCount;i++){
+    html += "<option value=\""+i+"\""+(i===selectedIdx?" selected":"")+">"+escHtml(sheetColLabel(i, headerRow, sheet.hasHeader))+"</option>";
+  }
+  return html;
+}
+function sheetDataRows(sheet){
+  return sheet.hasHeader ? sheet.rows.slice(1) : sheet.rows;
+}
+function sheetValidRows(sheet){
+  return sheetDataRows(sheet).filter(r=>String(r[sheet.frontCol]||"").trim() && String(r[sheet.backCol]||"").trim());
+}
+function sheetPreviewHTML(sheet){
+  const sample = sheetValidRows(sheet).slice(0,3);
+  if(!sample.length) return "<div class=\"sheet-preview\"><div>No valid rows with this mapping yet.</div></div>";
+  return "<div class=\"sheet-preview\">"+sample.map(r=>
+    "<div>"+escHtml(String(r[sheet.frontCol]))+" &rarr; "+escHtml(String(r[sheet.backCol]))+"</div>"
+  ).join("")+"</div>";
+}
+function syncSheetDraftFromDOM(){
+  if(!sheetDraft || !sheetDraft.sheets.length) return;
+  const body = document.getElementById("addPackBody");
+  const nameEl = body.querySelector("#sheetPackName");
+  const taglineEl = body.querySelector("#sheetPackTagline");
+  if(nameEl) sheetDraft.packName = nameEl.value;
+  if(taglineEl) sheetDraft.tagline = taglineEl.value;
+  body.querySelectorAll("[data-sheet]").forEach(card=>{
+    const sheet = sheetDraft.sheets[Number(card.dataset.sheet)];
+    if(!sheet) return;
+    const sn = card.querySelector("[data-sf=sectionName]");
+    const pf = card.querySelector("[data-sf=prefix]");
+    if(sn) sheet.sectionName = sn.value;
+    if(pf) sheet.prefix = pf.value;
+  });
+}
+function addPackSpreadsheetHTML(){
+  let html = "<button class=\"wizard-back\" data-action=\"back-choose\">&larr; Back</button>"
+    + "<h2>Upload a spreadsheet</h2>"
+    + "<p class=\"modal-sub\">Each tab becomes a section. Confirm the column mapping once below &mdash; every row then imports automatically, with no AI call per row.</p>"
+    + "<div class=\"form-field\"><label>Spreadsheet file (.xlsx, .xls, .csv)</label><input type=\"file\" id=\"sheetFileInput\" accept=\".xlsx,.xls,.csv\"></div>";
+  if(sheetDraft && sheetDraft.error) html += "<p class=\"wizard-error\">"+escHtml(sheetDraft.error)+"</p>";
+  if(sheetDraft && sheetDraft.sheets.length){
+    html += "<div class=\"form-field\"><label>Pack name</label><input type=\"text\" id=\"sheetPackName\" value=\""+escHtml(sheetDraft.packName)+"\"></div>"
+      + "<div class=\"form-field\"><label>Tagline (optional)</label><input type=\"text\" id=\"sheetPackTagline\" value=\""+escHtml(sheetDraft.tagline)+"\"></div>";
+    html += sheetDraft.sheets.map((sheet,si)=>{
+      const count = sheetValidRows(sheet).length;
+      return "<div class=\"sheet-map-card\" data-sheet=\""+si+"\">"
+        + "<div class=\"sheet-map-top\">"
+          + "<label class=\"checkbox-row\"><input type=\"checkbox\" data-sf=\"include\" "+(sheet.include?"checked":"")+"> Include</label>"
+          + "<input type=\"text\" data-sf=\"sectionName\" value=\""+escHtml(sheet.sectionName)+"\" placeholder=\"Section name\">"
+          + "<span class=\"form-hint\">"+(sheet.include?count:0)+" card"+(count===1?"":"s")+"</span>"
+        + "</div>"
+        + "<label class=\"checkbox-row\" style=\"margin-bottom:8px;\"><input type=\"checkbox\" data-sf=\"hasHeader\" "+(sheet.hasHeader?"checked":"")+"> First row is a header, not a card</label>"
+        + "<div class=\"sheet-map-grid\">"
+          + "<div><label>Question column</label><select data-sf=\"frontCol\">"+sheetColOptions(sheet, sheet.frontCol)+"</select></div>"
+          + "<div><label>Answer column</label><select data-sf=\"backCol\">"+sheetColOptions(sheet, sheet.backCol)+"</select></div>"
+        + "</div>"
+        + "<div class=\"sheet-map-grid\">"
+          + "<div><label>Why column (optional)</label><select data-sf=\"whyCol\"><option value=\"-1\""+(sheet.whyCol===-1?" selected":"")+">None</option>"+sheetColOptions(sheet, sheet.whyCol)+"</select></div>"
+          + "<div><label>Prefix question with (optional)</label><input type=\"text\" data-sf=\"prefix\" value=\""+escHtml(sheet.prefix)+"\" placeholder=\"e.g. Translate to Polish:\"></div>"
+        + "</div>"
+        + sheetPreviewHTML(sheet)
+      + "</div>";
+    }).join("");
+    const total = sheetDraft.sheets.reduce((sum,s)=>sum+(s.include?sheetValidRows(s).length:0),0);
+    html += "<div id=\"sheetError\"></div>"
+      + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"sheet-create\""+(total?"":" disabled")+">Import "+total+" card"+(total===1?"":"s")+"</button></div>";
+  }
+  return html;
+}
+
+/* ---------- AI research ---------- */
+function aiPromptText(topic, count, focus){
+  return "Research \""+topic+"\" deeply and create "+count+" high-quality spaced-repetition flashcards from it. Each card needs a clear, specific question, a concise answer, and a short \"why\" explaining the reasoning or context."
+    + (focus ? " Additional focus: "+focus+"." : "")
+    + "\n\nGroup the cards into 3-6 logical sections.\n\nReturn ONLY a JSON object in exactly this shape, with no other text before or after it:\n\n"
+    + "{\n  \"name\": \"<short pack title>\",\n  \"tagline\": \"<one-line description>\",\n"
+    + "  \"themes\": [{\"id\": \"t1\", \"name\": \"<section name>\"}, ...],\n"
+    + "  \"cards\": [{\"t\": \"t1\", \"q\": \"<question>\", \"a\": \"<answer>\", \"w\": \"<why>\"}, ...]\n}";
+}
+function addPackAiHTML(){
+  if(!aiDraft) aiDraft = {topic:"", count:30, focus:""};
+  const prompt = aiDraft.topic.trim() ? aiPromptText(aiDraft.topic.trim(), aiDraft.count||30, aiDraft.focus.trim()) : "";
+  return "<button class=\"wizard-back\" data-action=\"back-choose\">&larr; Back</button>"
+    + "<h2>Ask AI to research a topic</h2>"
+    + "<p class=\"modal-sub\">This app has no AI built in, so it builds a prompt for you to run in a Claude conversation on your own subscription &mdash; then you paste the result back in here.</p>"
+    + "<div class=\"form-field\"><label>Topic</label><input type=\"text\" id=\"aiTopic\" value=\""+escHtml(aiDraft.topic)+"\" placeholder=\"e.g. The French Revolution\"></div>"
+    + "<div class=\"form-field\"><label>Number of cards</label><input type=\"number\" id=\"aiCount\" value=\""+(aiDraft.count||30)+"\" min=\"5\" max=\"200\"></div>"
+    + "<div class=\"form-field\"><label>Focus or angle (optional)</label><textarea id=\"aiFocus\" rows=\"2\" placeholder=\"e.g. focus on causes and key figures\">"+escHtml(aiDraft.focus)+"</textarea></div>"
+    + "<div class=\"wizard-actions\"><button class=\"btn ghost\" data-action=\"ai-generate\">Generate prompt</button></div>"
+    + (prompt ?
+        "<div class=\"form-field\" style=\"margin-top:18px;\"><label>Copy this into a Claude conversation</label><textarea class=\"prompt-box\" id=\"aiPromptBox\" rows=\"10\" readonly>"+escHtml(prompt)+"</textarea></div>"
+        + "<div class=\"wizard-actions\"><button class=\"btn ghost\" data-action=\"ai-copy\">Copy prompt</button><span id=\"aiCopyStatus\" class=\"form-hint\"></span></div>"
+        + "<ol class=\"step-list\"><li>Copy the prompt above.</li><li>Paste it into a Claude conversation (claude.ai or Claude Code) and let it research.</li><li>Copy Claude's JSON reply and paste it below.</li></ol>"
+        + "<div class=\"form-field\"><label>Paste Claude's JSON reply</label><textarea id=\"aiJsonInput\" rows=\"8\" placeholder=\"Paste the JSON reply here\"></textarea></div>"
+        + "<div id=\"aiError\"></div>"
+        + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"ai-create\">Create pack from JSON</button></div>"
+      : "");
+}
+
+function initAddPackUI(){
+  document.getElementById("addPackCloseBtn").addEventListener("click", closeAddPackModal);
+  document.getElementById("addPackOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "addPackOverlay") closeAddPackModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("addPackOverlay").hidden) closeAddPackModal();
+  });
+
+  const body = document.getElementById("addPackBody");
+  body.addEventListener("click",(e)=>{
+    const methodBtn = e.target.closest("[data-method]");
+    if(methodBtn){ addPackStep = methodBtn.dataset.method; renderAddPackModal(); return; }
+    const action = e.target.closest("[data-action]");
+    if(!action) return;
+    const act = action.dataset.action;
+
+    if(act === "back-choose"){ addPackStep = "choose"; renderAddPackModal(); }
+
+    else if(act === "mcr-add"){
+      syncManualDraftFromDOM();
+      manualDraft.cards.push({section:"", q:"", a:"", w:""});
+      renderAddPackModal();
+    } else if(act === "mcr-remove"){
+      syncManualDraftFromDOM();
+      manualDraft.cards.splice(Number(action.dataset.idx), 1);
+      renderAddPackModal();
+    } else if(act === "manual-create"){
+      syncManualDraftFromDOM();
+      const built = buildThemesAndCards(manualDraft.cards);
+      if(!built){
+        document.getElementById("manualError").innerHTML = "<p class=\"wizard-error\">Add at least one card with both a question and an answer.</p>";
+        return;
+      }
+      const id = saveNewCustomPack(manualDraft.name, manualDraft.tagline, built.themes, built.cards);
+      manualDraft = null;
+      closeAddPackModal();
+      enterPack(id);
+    }
+
+    else if(act === "sheet-create"){
+      syncSheetDraftFromDOM();
+      const themes = [];
+      const cards = [];
+      let themeIdx = 0;
+      sheetDraft.sheets.forEach(sheet=>{
+        if(!sheet.include) return;
+        const validRows = sheetValidRows(sheet);
+        if(!validRows.length) return;
+        const themeId = themeIdForIndex(themeIdx++);
+        themes.push({id:themeId, name:(sheet.sectionName||sheet.name).trim() || sheet.name});
+        validRows.forEach(r=>{
+          const front = String(r[sheet.frontCol]).trim();
+          const back = String(r[sheet.backCol]).trim();
+          const why = sheet.whyCol>=0 && r[sheet.whyCol]!==undefined ? String(r[sheet.whyCol]).trim() : "";
+          const q = sheet.prefix && sheet.prefix.trim() ? (sheet.prefix.trim()+" "+front) : front;
+          cards.push({t:themeId, q, a:back, w:why});
+        });
+      });
+      if(!cards.length){
+        document.getElementById("sheetError").innerHTML = "<p class=\"wizard-error\">No cards to import &mdash; check at least one section is included with a valid question/answer mapping.</p>";
+        return;
+      }
+      const id = saveNewCustomPack(sheetDraft.packName, sheetDraft.tagline, themes, cards);
+      sheetDraft = null;
+      closeAddPackModal();
+      enterPack(id);
+    }
+
+    else if(act === "ai-generate"){
+      aiDraft = aiDraft || {topic:"", count:30, focus:""};
+      aiDraft.topic = document.getElementById("aiTopic").value;
+      aiDraft.count = Number(document.getElementById("aiCount").value) || 30;
+      aiDraft.focus = document.getElementById("aiFocus").value;
+      if(!aiDraft.topic.trim()) return;
+      renderAddPackModal();
+    } else if(act === "ai-copy"){
+      const box = document.getElementById("aiPromptBox");
+      const statusEl = document.getElementById("aiCopyStatus");
+      box.select();
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(box.value)
+          .then(()=>{ statusEl.textContent = "Copied!"; })
+          .catch(()=>{ statusEl.textContent = "Select and copy manually."; });
+      } else {
+        statusEl.textContent = "Select and copy manually.";
+      }
+    } else if(act === "ai-create"){
+      const result = importPackFromJSON(document.getElementById("aiJsonInput").value);
+      if(!result.ok){
+        document.getElementById("aiError").innerHTML = "<p class=\"wizard-error\">"+escHtml(result.error)+"</p>";
+        return;
+      }
+      const id = saveNewCustomPack(result.name, result.tagline, result.themes, result.cards);
+      aiDraft = null;
+      closeAddPackModal();
+      enterPack(id);
+    }
+  });
+
+  body.addEventListener("change",(e)=>{
+    if(e.target.id === "sheetFileInput"){
+      const file = e.target.files[0];
+      if(file) loadWorkbookFile(file);
+      return;
+    }
+    const sf = e.target.dataset.sf;
+    if(!sf) return;
+    syncSheetDraftFromDOM();
+    const card = e.target.closest("[data-sheet]");
+    if(!card) return;
+    const sheet = sheetDraft.sheets[Number(card.dataset.sheet)];
+    if(sf === "include") sheet.include = e.target.checked;
+    else if(sf === "hasHeader") sheet.hasHeader = e.target.checked;
+    else if(sf === "frontCol") sheet.frontCol = Number(e.target.value);
+    else if(sf === "backCol") sheet.backCol = Number(e.target.value);
+    else if(sf === "whyCol") sheet.whyCol = Number(e.target.value);
+    renderAddPackModal();
+  });
 }
 
 /* ============================== INIT ============================== */
@@ -2066,6 +2654,7 @@ function boot(){
   initSettingsUI();
   initHomeUI();
   initCardsEditorUI();
+  initAddPackUI();
   calState.selected = todayStr();
 
   document.addEventListener("visibilitychange", ()=>{
