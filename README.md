@@ -2,7 +2,8 @@
 
 A spaced-repetition (SM-2) flashcard app for studying Lean UX concepts, built as a single self-contained HTML file.
 
-- **Live app:** https://claude.ai/artifact/XDxJj2eonxjQgwneK9Wv1m
-- **Source:** [`lean-ux-flashcards.html`](./lean-ux-flashcards.html)
+- **Source:** [`index.html`](./index.html)
+- **Hosting:** Vercel (deploys automatically from this repo's `main` branch)
+- **Data:** Supabase (Postgres + email magic-link auth) — progress is synced per signed-in user across every device, not stored per-browser
 
-Progress is saved in the live artifact's own database (and can be exported/imported manually from the Progress tab). This repo is a version-history backup of the app's code, not the study progress itself.
+This repo is the single source of truth for the app's code. Every change is committed and pushed here.

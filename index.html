@@ -1,7 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lean UX Drills</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,440;0,9..144,560;0,9..144,650;1,9..144,500&family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
     --bg:#f2f3ee;
@@ -257,6 +263,7 @@
 
   .grade-row{max-width:560px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:9px;}
   .grade-row[hidden]{display:none;}
+  .auth-gate[hidden]{display:none;}
   .grade-btn{
     border:1px solid var(--border); border-radius:var(--radius-s); background:var(--surface);
     padding:12px 6px 10px; cursor:pointer; font-weight:700; font-size:0.88rem; color:var(--ink);
@@ -406,19 +413,6 @@
   .heatmap-day[data-lvl="2"]{background:color-mix(in srgb, var(--accent) 55%, var(--accent-soft));}
   .heatmap-day[data-lvl="3"]{background:var(--accent);}
 
-  .sync-panel{
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m);
-    padding:16px 18px; margin-bottom:8px;
-  }
-  .sync-hint{font-size:0.82rem; color:var(--ink-soft); margin:0 0 12px;}
-  .sync-box{
-    width:100%; font-family:"IBM Plex Mono", monospace; font-size:0.72rem; color:var(--ink);
-    background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-s);
-    padding:10px; resize:vertical; margin-bottom:10px; box-sizing:border-box;
-  }
-  .sync-actions{display:flex; gap:8px; flex-wrap:wrap;}
-  .sync-status{font-size:0.78rem; color:var(--ink-soft); margin:10px 0 0;}
-
   .danger-zone{margin-top:30px; padding-top:16px; border-top:1px dashed var(--border);}
   .link-btn{background:none; border:none; color:var(--ink-faint); font-size:0.78rem; cursor:pointer; text-decoration:underline; padding:0;}
   .link-btn:hover{color:var(--again);}
@@ -432,9 +426,55 @@
     .stats-strip{width:100%;}
     .stat-pill{flex:1; justify-content:center;}
   }
+  .auth-gate{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .auth-card{
+    width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-m); padding:32px 28px; box-shadow:var(--shadow-card); text-align:center;
+  }
+  .auth-card .brand-mark{margin:0 auto 16px;}
+  .auth-card h1{font-size:1.5rem; margin-bottom:6px;}
+  .auth-card .tagline{margin:0 0 24px; color:var(--ink-soft); font-size:0.88rem;}
+  .auth-field{text-align:left; margin-bottom:14px;}
+  .auth-field label{display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:var(--ink-faint); margin-bottom:6px;}
+  .auth-field input{
+    width:100%; font:inherit; font-size:0.92rem; color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:var(--radius-s); padding:10px 12px; box-sizing:border-box;
+  }
+  .auth-card .btn{width:100%; margin-top:4px;}
+  .auth-error{color:var(--again); font-size:0.82rem; margin:12px 0 0;}
+  .auth-sent p{color:var(--ink-soft); font-size:0.88rem; line-height:1.5; margin:0 0 16px;}
+  .auth-sent b{color:var(--ink);}
+  .auth-signed-in{font-size:0.76rem; color:var(--ink-faint); display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .auth-signed-in button{background:none; border:none; color:var(--accent); font:inherit; font-size:0.76rem; cursor:pointer; padding:0; text-decoration:underline;}
 </style>
+</head>
+<body>
 
-<div class="shell">
+<div class="auth-gate" id="authGate">
+  <div class="auth-card">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H14V16H5.5C4.67 16 4 16.67 4 17.5V5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 17.5C4 18.33 4.67 19 5.5 19H18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 4H18.5C19.33 4 20 4.67 20 5.5V17.5C20 18.33 19.33 19 18.5 19H14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </div>
+    <h1>Lean UX Drills</h1>
+    <p class="tagline">Sign in to keep your progress in sync on every device.</p>
+    <div id="authFormStep">
+      <div class="auth-field">
+        <label for="authEmail">Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <button class="btn" id="authSendBtn">Send magic link</button>
+      <p class="auth-error" id="authError" hidden></p>
+    </div>
+    <div id="authSentStep" class="auth-sent" hidden>
+      <p>Check <b id="authSentEmail"></b> for a sign-in link, and open it on this device to continue.</p>
+      <button class="link-btn" id="authRetryBtn">Use a different email</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell" id="appShell" hidden>
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">
@@ -443,6 +483,7 @@
       <div>
         <h1>Lean UX Drills</h1>
         <p class="tagline">Spaced-repetition practice from the Lean UX notes</p>
+        <p class="auth-signed-in">Signed in as <span id="authEmailLabel"></span> &middot; <button id="signOutBtn">Sign out</button></p>
       </div>
     </div>
     <div class="stats-strip">
@@ -561,17 +602,6 @@
       <div class="trouble-panel" id="troublePanel"></div>
       <p class="section-title">Last 14 weeks of practice</p>
       <div class="heatmap" id="activityHeatmap"></div>
-
-      <p class="section-title">Move progress between devices</p>
-      <div class="sync-panel">
-        <p class="sync-hint">If a device isn't picking up your saved progress automatically, copy it here and paste it into this same box on that device.</p>
-        <textarea id="syncBox" class="sync-box" rows="4" placeholder="Tap &quot;Copy my progress&quot; below to fill this box &mdash; or paste progress copied from another device here, then tap Import."></textarea>
-        <div class="sync-actions">
-          <button class="btn ghost" id="syncCopyBtn">Copy my progress</button>
-          <button class="btn ghost" id="syncImportBtn">Import from box</button>
-        </div>
-        <p class="sync-status" id="syncStatus"></p>
-      </div>
 
       <div class="danger-zone">
         <button class="link-btn" id="resetBtn">Reset all progress</button>
@@ -768,8 +798,11 @@ function defaultState(){
 }
 
 let state = defaultState();
-let db = null;
-let dbAvailable = false;
+
+const SUPABASE_URL = "https://wfjadtemyzwzwpaehfib.supabase.co";
+const SUPABASE_KEY = "sb_publishable_nCGbYoxQyY3Jg5lGkDV9NQ_R8ORvBBP";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentUser = null;
 
 function loadLocal(){
   try{
@@ -800,38 +833,41 @@ async function persist(){
   state.updatedAt = new Date().toISOString();
   pruneHistory();
   saveLocal();
-  if(dbAvailable && db){
-    try{ await db.doc("progress/state").set(state); }catch(e){ /* offline is fine, localStorage has it */ }
+  if(currentUser){
+    try{
+      await supabase.from("progress").upsert({
+        user_id: currentUser.id,
+        data: state,
+        updated_at: state.updatedAt
+      });
+    }catch(e){ /* offline is fine — localStorage has it, next persist() retries */ }
   }
 }
 
-async function initDb(){
+async function loadFromSupabase(){
   try{
-    db = await claude.use("db");
-  }catch(e){ db = null; }
-  if(!db) return;
-  try{
-    const snap = await db.doc("progress/state").get();
-    if(snap.exists){
-      const remote = snap.data();
-      if(remote && remote.cards){
-        const remoteTime = remote.updatedAt ? Date.parse(remote.updatedAt) : 0;
-        const localTime = state.updatedAt ? Date.parse(state.updatedAt) : 0;
-        if(remoteTime >= localTime){
-          // db.get() snapshots are frozen — clone before treating this as
-          // live, mutable app state, or every future grade() throws trying
-          // to write to a read-only record.
-          state = JSON.parse(JSON.stringify(remote));
-          ensureStartDate();
-          saveLocal();
-        }
+    const { data, error } = await supabase
+      .from("progress")
+      .select("data,updated_at")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+    if(error) throw error;
+    if(data && data.data && data.data.cards){
+      const remoteTime = data.updated_at ? Date.parse(data.updated_at) : 0;
+      const localTime = state.updatedAt ? Date.parse(state.updatedAt) : 0;
+      if(remoteTime >= localTime){
+        state = data.data;
+        ensureStartDate();
+        saveLocal();
       }
     } else {
-      await db.doc("progress/state").set(state);
+      await supabase.from("progress").upsert({
+        user_id: currentUser.id,
+        data: state,
+        updated_at: state.updatedAt
+      });
     }
-    dbAvailable = true;
-    renderAll();
-  }catch(e){ dbAvailable = false; }
+  }catch(e){ /* stay on local/cached state; next persist() retries the sync */ }
 }
 
 /* ============================== SCHEDULER (SM-2) ============================== */
@@ -978,7 +1014,6 @@ let overrideQueue = null; // set when launched from calendar
 // destructive actions use an in-page "tap again to confirm" arm/disarm
 // pattern instead, tracked here so it survives re-renders.
 let resetArmed = false, resetArmTimer = null;
-let importArmed = false, importArmTimer = null;
 
 function cardsMatchingFilters(){
   return CARDS.filter(c=>{
@@ -1555,64 +1590,6 @@ function renderProgress(){
     renderAll();
   };
 
-  document.getElementById("syncCopyBtn").onclick = ()=>{
-    const box = document.getElementById("syncBox");
-    const statusEl = document.getElementById("syncStatus");
-    box.value = JSON.stringify(state);
-    box.focus();
-    box.select();
-    let copied = false;
-    try{
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(box.value);
-        copied = true;
-      }
-    }catch(e){ /* fall through to manual-copy instructions below */ }
-    statusEl.textContent = copied
-      ? "Copied. Open this same link on your other device, paste it into this box there, then tap Import."
-      : "Selected below - copy it (long-press, then Copy), then paste it into this box on your other device and tap Import.";
-  };
-
-  function disarmImport(){
-    importArmed = false;
-    importBtn.textContent = "Import from box";
-    importBtn.classList.remove("armed");
-  }
-  const importBtn = document.getElementById("syncImportBtn");
-  disarmImport();
-  importBtn.onclick = ()=>{
-    const box = document.getElementById("syncBox");
-    const statusEl = document.getElementById("syncStatus");
-    let parsed;
-    try{
-      parsed = JSON.parse(box.value);
-    }catch(e){
-      disarmImport();
-      statusEl.textContent = "That doesn't look like valid progress text - make sure you copied the whole thing.";
-      return;
-    }
-    if(!parsed || typeof parsed !== "object" || !parsed.cards || !parsed.history){
-      disarmImport();
-      statusEl.textContent = "That doesn't look like progress data from this app.";
-      return;
-    }
-    if(!importArmed){
-      importArmed = true;
-      importBtn.textContent = "Tap again to confirm import";
-      importBtn.classList.add("armed");
-      statusEl.textContent = "This replaces the progress saved on this device. Tap the button again within a few seconds to confirm.";
-      clearTimeout(importArmTimer);
-      importArmTimer = setTimeout(disarmImport, 6000);
-      return;
-    }
-    clearTimeout(importArmTimer);
-    disarmImport();
-    state = parsed;
-    ensureStartDate();
-    persist();
-    renderAll();
-    statusEl.textContent = "Imported - this device now has that progress.";
-  };
 }
 
 /* ============================== INIT ============================== */
@@ -1624,31 +1601,106 @@ function renderAll(){
   if(document.getElementById("view-progress").classList.contains("active")) renderProgress();
 }
 
-function boot(bootData){
-  if(bootData && bootData.state) state = JSON.parse(JSON.stringify(bootData.state));
+/* ============================== AUTH ============================== */
+function showAuthGate(){
+  document.getElementById("authGate").hidden = false;
+  document.getElementById("appShell").hidden = true;
+}
+function hideAuthGate(){
+  document.getElementById("authGate").hidden = true;
+  document.getElementById("appShell").hidden = false;
+}
+
+async function handleAuthed(session){
+  currentUser = session.user;
+  document.getElementById("authEmailLabel").textContent = currentUser.email;
+  await loadFromSupabase();
+  hideAuthGate();
+  renderAll();
+}
+
+function initAuthUI(){
+  const emailInput = document.getElementById("authEmail");
+  const sendBtn = document.getElementById("authSendBtn");
+  const errorEl = document.getElementById("authError");
+  const formStep = document.getElementById("authFormStep");
+  const sentStep = document.getElementById("authSentStep");
+
+  sendBtn.onclick = async ()=>{
+    const email = emailInput.value.trim();
+    errorEl.hidden = true;
+    if(!email || !email.includes("@")){
+      errorEl.textContent = "Enter a valid email address.";
+      errorEl.hidden = false;
+      return;
+    }
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Sending...";
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options:{ emailRedirectTo: window.location.origin }
+    });
+    sendBtn.disabled = false;
+    sendBtn.textContent = "Send magic link";
+    if(error){
+      errorEl.textContent = error.message;
+      errorEl.hidden = false;
+      return;
+    }
+    document.getElementById("authSentEmail").textContent = email;
+    formStep.hidden = true;
+    sentStep.hidden = false;
+  };
+
+  emailInput.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter") sendBtn.click();
+  });
+
+  document.getElementById("authRetryBtn").onclick = ()=>{
+    formStep.hidden = false;
+    sentStep.hidden = true;
+    emailInput.value = "";
+    emailInput.focus();
+  };
+
+  document.getElementById("signOutBtn").onclick = async ()=>{
+    await supabase.auth.signOut();
+  };
+}
+
+/* ============================== BOOT ============================== */
+function boot(){
   loadLocal();
   initTabs();
   initStudyToolbar();
   initCalendarNav();
+  initAuthUI();
   calState.selected = todayStr();
   renderAll();
-  initDb();
 
   document.addEventListener("visibilitychange", ()=>{
     if(!document.hidden) checkDateRollover();
   });
   setInterval(checkDateRollover, 5*60*1000);
 
-  if(window.claude && window.claude.hot){
-    window.claude.hot.snapshot(()=>({state}));
-  }
+  supabase.auth.getSession().then(({data:{session}})=>{
+    if(session) handleAuthed(session);
+    else showAuthGate();
+  });
+
+  supabase.auth.onAuthStateChange((event, session)=>{
+    if(event === "SIGNED_IN" && session){
+      handleAuthed(session);
+    } else if(event === "SIGNED_OUT"){
+      currentUser = null;
+      showAuthGate();
+    }
+  });
 }
 
-if(window.claude && window.claude.hot && window.claude.hot.ready){
-  window.claude.hot.ready((data)=>boot(data));
-} else {
-  boot(window.claude && window.claude.hot ? window.claude.hot.data : null);
-}
+boot();
 
 })();
 </script>
+</body>
+</html>
