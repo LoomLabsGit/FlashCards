@@ -448,6 +448,10 @@
   .auth-sent b{color:var(--ink);}
   .auth-signed-in{font-size:0.76rem; color:var(--ink-faint); display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
   .auth-signed-in button{background:none; border:none; color:var(--accent); font:inherit; font-size:0.76rem; cursor:pointer; padding:0; text-decoration:underline;}
+  .auth-signed-in input{
+    font:inherit; font-size:0.76rem; color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:6px; padding:4px 8px;
+  }
 </style>
 </head>
 <body>
@@ -464,12 +468,12 @@
         <label for="authEmail">Email</label>
         <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
       </div>
-      <button class="btn" id="authSendBtn">Send magic link</button>
+      <div class="auth-field">
+        <label for="authPassword">Password</label>
+        <input type="password" id="authPassword" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
+      </div>
+      <button class="btn" id="authSendBtn">Sign in</button>
       <p class="auth-error" id="authError" hidden></p>
-    </div>
-    <div id="authSentStep" class="auth-sent" hidden>
-      <p>Check <b id="authSentEmail"></b> for a sign-in link, and open it on this device to continue.</p>
-      <button class="link-btn" id="authRetryBtn">Use a different email</button>
     </div>
   </div>
 </div>
@@ -483,7 +487,12 @@
       <div>
         <h1>Lean UX Drills</h1>
         <p class="tagline">Spaced-repetition practice from the Lean UX notes</p>
-        <p class="auth-signed-in">Signed in as <span id="authEmailLabel"></span> &middot; <button id="signOutBtn">Sign out</button></p>
+        <p class="auth-signed-in">Signed in as <span id="authEmailLabel"></span> &middot; <button id="changePasswordBtn">Change password</button> &middot; <button id="signOutBtn">Sign out</button></p>
+        <p class="auth-signed-in" id="changePasswordRow" hidden>
+          <input type="password" id="newPasswordInput" placeholder="New password (8+ characters)" autocomplete="new-password">
+          <button id="savePasswordBtn">Save</button>
+          <span id="changePasswordStatus"></span>
+        </p>
       </div>
     </div>
     <div class="stats-strip">
@@ -1621,50 +1630,61 @@ async function handleAuthed(session){
 
 function initAuthUI(){
   const emailInput = document.getElementById("authEmail");
+  const passwordInput = document.getElementById("authPassword");
   const sendBtn = document.getElementById("authSendBtn");
   const errorEl = document.getElementById("authError");
-  const formStep = document.getElementById("authFormStep");
-  const sentStep = document.getElementById("authSentStep");
 
-  sendBtn.onclick = async ()=>{
+  const doSignIn = async ()=>{
     const email = emailInput.value.trim();
+    const password = passwordInput.value;
     errorEl.hidden = true;
     if(!email || !email.includes("@")){
       errorEl.textContent = "Enter a valid email address.";
       errorEl.hidden = false;
       return;
     }
-    sendBtn.disabled = true;
-    sendBtn.textContent = "Sending...";
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options:{ emailRedirectTo: window.location.origin }
-    });
-    sendBtn.disabled = false;
-    sendBtn.textContent = "Send magic link";
-    if(error){
-      errorEl.textContent = error.message;
+    if(!password){
+      errorEl.textContent = "Enter your password.";
       errorEl.hidden = false;
       return;
     }
-    document.getElementById("authSentEmail").textContent = email;
-    formStep.hidden = true;
-    sentStep.hidden = false;
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Signing in...";
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    sendBtn.disabled = false;
+    sendBtn.textContent = "Sign in";
+    if(error){
+      errorEl.textContent = error.message;
+      errorEl.hidden = false;
+    }
   };
 
-  emailInput.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter") sendBtn.click();
-  });
-
-  document.getElementById("authRetryBtn").onclick = ()=>{
-    formStep.hidden = false;
-    sentStep.hidden = true;
-    emailInput.value = "";
-    emailInput.focus();
-  };
+  sendBtn.onclick = doSignIn;
+  emailInput.addEventListener("keydown", (e)=>{ if(e.key === "Enter") passwordInput.focus(); });
+  passwordInput.addEventListener("keydown", (e)=>{ if(e.key === "Enter") doSignIn(); });
 
   document.getElementById("signOutBtn").onclick = async ()=>{
     await supabase.auth.signOut();
+  };
+
+  const changeRow = document.getElementById("changePasswordRow");
+  const newPasswordInput = document.getElementById("newPasswordInput");
+  const changeStatus = document.getElementById("changePasswordStatus");
+  document.getElementById("changePasswordBtn").onclick = ()=>{
+    changeRow.hidden = !changeRow.hidden;
+    changeStatus.textContent = "";
+    if(!changeRow.hidden) newPasswordInput.focus();
+  };
+  document.getElementById("savePasswordBtn").onclick = async ()=>{
+    const pw = newPasswordInput.value;
+    if(pw.length < 8){
+      changeStatus.textContent = "Needs to be at least 8 characters.";
+      return;
+    }
+    changeStatus.textContent = "Saving...";
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    changeStatus.textContent = error ? error.message : "Password updated.";
+    if(!error) newPasswordInput.value = "";
   };
 }
 
