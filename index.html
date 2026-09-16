@@ -95,6 +95,13 @@
   }
 
   *{box-sizing:border-box;}
+  /* Outside the Claude Artifact platform there's no injected
+     [hidden]{display:none!important} reset, so any element whose own rule
+     sets `display` unconditionally (e.g. `.x{display:flex}`) would silently
+     stay visible even with the hidden attribute set, since that rule and
+     the browser default share equal specificity and this one is later /
+     more specific. This global !important rule restores that guarantee. */
+  [hidden]{display:none !important;}
   html{-webkit-text-size-adjust:100%;}
   body{
     margin:0;
@@ -413,7 +420,21 @@
   .heatmap-day[data-lvl="2"]{background:color-mix(in srgb, var(--accent) 55%, var(--accent-soft));}
   .heatmap-day[data-lvl="3"]{background:var(--accent);}
 
-  .danger-zone{margin-top:30px; padding-top:16px; border-top:1px dashed var(--border);}
+  .settings-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:18px 20px; margin-bottom:24px;
+  }
+  .settings-row{margin:0 0 12px; font-size:0.88rem; color:var(--ink-soft);}
+  .settings-row b{color:var(--ink); font-weight:600;}
+  .settings-row:last-child{margin-bottom:0;}
+  .settings-password-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px;
+  }
+  .settings-password-row input{
+    font:inherit; font-size:0.88rem; color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:var(--radius-s); padding:8px 10px;
+  }
+  .settings-status{font-size:0.8rem; color:var(--ink-soft);}
   .link-btn{background:none; border:none; color:var(--ink-faint); font-size:0.78rem; cursor:pointer; text-decoration:underline; padding:0;}
   .link-btn:hover{color:var(--again);}
   .link-btn.armed{color:var(--again); font-weight:700; text-decoration:none;}
@@ -444,14 +465,6 @@
   }
   .auth-card .btn{width:100%; margin-top:4px;}
   .auth-error{color:var(--again); font-size:0.82rem; margin:12px 0 0;}
-  .auth-sent p{color:var(--ink-soft); font-size:0.88rem; line-height:1.5; margin:0 0 16px;}
-  .auth-sent b{color:var(--ink);}
-  .auth-signed-in{font-size:0.76rem; color:var(--ink-faint); display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-  .auth-signed-in button{background:none; border:none; color:var(--accent); font:inherit; font-size:0.76rem; cursor:pointer; padding:0; text-decoration:underline;}
-  .auth-signed-in input{
-    font:inherit; font-size:0.76rem; color:var(--ink); background:var(--surface-2);
-    border:1px solid var(--border); border-radius:6px; padding:4px 8px;
-  }
 </style>
 </head>
 <body>
@@ -487,12 +500,6 @@
       <div>
         <h1>Lean UX Drills</h1>
         <p class="tagline">Spaced-repetition practice from the Lean UX notes</p>
-        <p class="auth-signed-in">Signed in as <span id="authEmailLabel"></span> &middot; <button id="changePasswordBtn">Change password</button> &middot; <button id="signOutBtn">Sign out</button></p>
-        <p class="auth-signed-in" id="changePasswordRow" hidden>
-          <input type="password" id="newPasswordInput" placeholder="New password (8+ characters)" autocomplete="new-password">
-          <button id="savePasswordBtn">Save</button>
-          <span id="changePasswordStatus"></span>
-        </p>
       </div>
     </div>
     <div class="stats-strip">
@@ -515,6 +522,7 @@
     <button class="tab active" data-tab="study">Study</button>
     <button class="tab" data-tab="calendar">Calendar</button>
     <button class="tab" data-tab="progress">Progress</button>
+    <button class="tab" data-tab="settings">Settings</button>
   </nav>
 
   <main>
@@ -611,8 +619,24 @@
       <div class="trouble-panel" id="troublePanel"></div>
       <p class="section-title">Last 14 weeks of practice</p>
       <div class="heatmap" id="activityHeatmap"></div>
+    </section>
 
-      <div class="danger-zone">
+    <section class="view" id="view-settings">
+      <p class="section-title">Account</p>
+      <div class="settings-card">
+        <p class="settings-row">Signed in as <b id="authEmailLabel"></b></p>
+        <button class="btn ghost" id="changePasswordBtn">Change password</button>
+        <div class="settings-row settings-password-row" id="changePasswordRow" hidden>
+          <input type="password" id="newPasswordInput" placeholder="New password (8+ characters)" autocomplete="new-password">
+          <button class="btn" id="savePasswordBtn">Save</button>
+          <span id="changePasswordStatus" class="settings-status"></span>
+        </div>
+        <button class="link-btn" id="signOutBtn">Sign out</button>
+      </div>
+
+      <p class="section-title">Danger zone</p>
+      <div class="settings-card">
+        <p class="settings-row">Resetting clears every card's schedule and your entire history. This can't be undone.</p>
         <button class="link-btn" id="resetBtn">Reset all progress</button>
       </div>
     </section>
@@ -1575,7 +1599,9 @@ function renderProgress(){
     }
     heat.appendChild(col);
   }
+}
 
+function initSettingsUI(){
   function disarmReset(){
     resetArmed = false;
     resetBtn.textContent = "Reset all progress";
@@ -1598,7 +1624,6 @@ function renderProgress(){
     persist();
     renderAll();
   };
-
 }
 
 /* ============================== INIT ============================== */
@@ -1695,6 +1720,7 @@ function boot(){
   initStudyToolbar();
   initCalendarNav();
   initAuthUI();
+  initSettingsUI();
   calState.selected = todayStr();
   renderAll();
 
