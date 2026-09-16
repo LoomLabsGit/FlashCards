@@ -215,8 +215,51 @@
   }
   .diff-chip.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
 
+  .icon-btn{
+    width:34px; height:34px; flex:none; display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--border); background:var(--surface); border-radius:999px; color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .icon-btn:hover{color:var(--ink); border-color:var(--border-strong);}
+  .icon-btn svg{width:16px; height:16px;}
+
+  .focus-bar{
+    display:none; align-items:center; justify-content:space-between; margin-bottom:12px;
+  }
+  .focus-exit{
+    display:flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface);
+    color:var(--ink-soft); border-radius:999px; padding:7px 14px 7px 12px; font:inherit; font-size:0.82rem;
+    font-weight:600; cursor:pointer;
+  }
+  .focus-exit:hover{color:var(--ink);}
+  .focus-exit svg{width:13px; height:13px;}
+  .focus-count{font-family:"IBM Plex Mono", monospace; font-size:0.85rem; color:var(--ink-soft);}
+  .focus-count b{color:var(--ink);}
+
   .progress-bar-track{height:5px; border-radius:999px; background:var(--surface-3); overflow:hidden; margin-bottom:26px;}
   .progress-bar-fill{height:100%; background:var(--accent); border-radius:999px; transition:width .3s ease; width:0%;}
+
+  /* ---------- focus mode ---------- */
+  body.focus-mode{overflow:hidden;}
+  body.focus-mode .topbar,
+  body.focus-mode .tabs,
+  body.focus-mode .today-strip,
+  body.focus-mode .study-toolbar{display:none;}
+  body.focus-mode .focus-bar{display:flex;}
+  body.focus-mode #view-study{
+    position:fixed; inset:0; z-index:1000; background:var(--bg);
+    display:flex; flex-direction:column;
+    padding:16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    animation:none;
+  }
+  body.focus-mode .focus-bar{flex:none; margin-bottom:14px;}
+  body.focus-mode .progress-bar-track{flex:none;}
+  body.focus-mode .card-stage{
+    flex:1; min-height:0; max-height:640px; height:auto;
+    width:100%; max-width:560px; margin:16px auto;
+  }
+  body.focus-mode .grade-row{flex:none; width:100%; max-width:560px; margin:0 auto;}
+  body.focus-mode .session-complete{margin:auto;}
 
   /* ---------- flashcard ---------- */
   /* A fixed height (not just min-height) is required here: .card-face below
@@ -548,8 +591,20 @@
             <button class="diff-chip active" data-d="m">Medium</button>
             <button class="diff-chip active" data-d="h">Hard</button>
           </div>
+          <button class="icon-btn" id="focusModeBtn" title="Focus mode" aria-label="Enter focus mode">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 4H5.5C4.67 4 4 4.67 4 5.5V9M15 4H18.5C19.33 4 20 4.67 20 5.5V9M9 20H5.5C4.67 20 4 19.33 4 18.5V15M15 20H18.5C19.33 20 20 19.33 20 18.5V15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
       </div>
+
+      <div class="focus-bar" id="focusBar">
+        <button class="focus-exit" id="focusExitBtn">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Exit focus
+        </button>
+        <div class="focus-count"><b id="focusQueuePos">0</b> / <b id="focusQueueTotal">0</b></div>
+      </div>
+
       <div class="progress-bar-track"><div class="progress-bar-fill" id="sessionBar"></div></div>
 
       <div class="card-stage" id="cardStage">
@@ -1116,8 +1171,11 @@ function renderCard(){
   const stage = document.getElementById("cardStage");
   const bar = document.getElementById("progress-bar-fill") || document.getElementById("sessionBar");
 
-  document.getElementById("queuePos").textContent = Math.min(session.pos, session.queue.length);
+  const posLabel = Math.min(session.pos, session.queue.length);
+  document.getElementById("queuePos").textContent = posLabel;
   document.getElementById("queueTotal").textContent = session.queue.length;
+  document.getElementById("focusQueuePos").textContent = posLabel;
+  document.getElementById("focusQueueTotal").textContent = session.queue.length;
   const pct = session.queue.length ? Math.round((session.pos/session.queue.length)*100) : 0;
   document.getElementById("sessionBar").style.width = pct + "%";
 
@@ -1326,7 +1384,19 @@ function initStudyToolbar(){
       const map = {"1":"again","2":"hard","3":"good","4":"easy"};
       grade(map[e.key]);
     }
+    if(e.key === "Escape" && document.body.classList.contains("focus-mode")) exitFocusMode();
   });
+
+  document.getElementById("focusModeBtn").addEventListener("click", enterFocusMode);
+  document.getElementById("focusExitBtn").addEventListener("click", exitFocusMode);
+}
+
+function enterFocusMode(){
+  switchTab("study");
+  document.body.classList.add("focus-mode");
+}
+function exitFocusMode(){
+  document.body.classList.remove("focus-mode");
 }
 
 /* ============================== CALENDAR ============================== */
