@@ -97,7 +97,16 @@ module.exports = async (req, res) => {
     });
 
     if (!aiResp.ok) {
-      res.status(502).json({ ok: false, error: "AI request failed (" + aiResp.status + ")." });
+      const errBody = await aiResp.text().catch(() => "");
+      console.error("Anthropic API error", aiResp.status, errBody);
+      let detail = "";
+      try {
+        const errJson = JSON.parse(errBody);
+        detail = (errJson && errJson.error && errJson.error.message) || "";
+      } catch (parseErr) {
+        detail = errBody.slice(0, 300);
+      }
+      res.status(502).json({ ok: false, error: "AI request failed (" + aiResp.status + ")" + (detail ? ": " + detail : "") });
       return;
     }
 
