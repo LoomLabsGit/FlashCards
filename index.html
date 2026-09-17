@@ -1547,7 +1547,7 @@ function renderHeader(){
   document.getElementById("streakVal").textContent = computeCurrentStreakDisplay();
   document.getElementById("dueVal").textContent = cardsDueOrNewToday().length;
   const mastered = CARDS.filter(c=>statusOf(c.id)==="mastered").length;
-  document.getElementById("masteryVal").textContent = Math.round((mastered/CARDS.length)*100) + "%";
+  document.getElementById("masteryVal").textContent = (CARDS.length ? Math.round((mastered/CARDS.length)*100) : 0) + "%";
   renderTodayStrip();
 }
 
@@ -1877,13 +1877,14 @@ function renderProgress(){
     themeCards.forEach(c=>counts[statusOf(c.id)]++);
     const total = themeCards.length;
     const masteredCount = counts.mastered;
+    const pctOf = n => total ? (n/total*100) : 0;
     return "<div class=\"theme-bar-row\">"
       + "<div class=\"tbr-top\"><span class=\"tbr-dot\" style=\"background:var(--"+themeColorVar(t.id)+")\"></span><span class=\"tbr-name\">"+t.name+"</span><span class=\"tbr-count\">"+masteredCount+" / "+total+" mastered</span></div>"
       + "<div class=\"tbr-track\">"
-        + "<div class=\"tbr-seg seg-mastered\" style=\"width:"+(counts.mastered/total*100)+"%\"></div>"
-        + "<div class=\"tbr-seg seg-review\" style=\"width:"+(counts.review/total*100)+"%\"></div>"
-        + "<div class=\"tbr-seg seg-learning\" style=\"width:"+(counts.learning/total*100)+"%\"></div>"
-        + "<div class=\"tbr-seg seg-new\" style=\"width:"+(counts.new/total*100)+"%\"></div>"
+        + "<div class=\"tbr-seg seg-mastered\" style=\"width:"+pctOf(counts.mastered)+"%\"></div>"
+        + "<div class=\"tbr-seg seg-review\" style=\"width:"+pctOf(counts.review)+"%\"></div>"
+        + "<div class=\"tbr-seg seg-learning\" style=\"width:"+pctOf(counts.learning)+"%\"></div>"
+        + "<div class=\"tbr-seg seg-new\" style=\"width:"+pctOf(counts.new)+"%\"></div>"
       + "</div>"
       + "<div class=\"tbr-legend\"><span><i style=\"background:var(--good)\"></i>Mastered</span><span><i style=\"background:var(--accent)\"></i>Review</span><span><i style=\"background:var(--hard)\"></i>Learning</span><span><i style=\"background:var(--surface-3)\"></i>New</span></div>"
       + "</div>";
@@ -1980,7 +1981,50 @@ function initSettingsUI(){
    base CARD_BY_ID content by effCard() everywhere a card is displayed. */
 let editingCardId = null;
 
-function cardEditRowHTML(c){
+// Revert and delete both discard data with no way back, so both use the
+// same tap-twice-to-confirm pattern as pack deletion and progress reset
+// instead of acting instantly. cardActionArmed tracks at most one armed
+// button at a time, keyed by "action:cardId" so arming one card's revert
+// doesn't also arm another card's delete.
+let cardActionArmed = null;
+let cardActionArmTimer = null;
+function armCardAction(key){
+  cardActionArmed = key;
+  clearTimeout(cardActionArmTimer);
+  cardActionArmTimer = setTimeout(()=>{ cardActionArmed = null; renderCardsEditor(); }, 6000);
+}
+function disarmCardAction(){
+  clearTimeout(cardActionArmTimer);
+  cardActionArmed = null;
+}
+function activePackIsCustom(){
+  const meta = findPackMeta(currentPackId);
+  return !!(meta && meta.custom);
+}
+
+function deleteCardFromCustomPack(cardId){
+  const cp = state.customPacks[currentPackId];
+  if(!cp) return;
+  cp.cards = cp.cards.filter(c=>c.id!==cardId);
+  const p = state.packs[currentPackId];
+  if(p){
+    delete p.cards[cardId];
+    if(p.overrides) delete p.overrides[cardId];
+  }
+  // Drop it from the in-progress session queue too, rather than a full
+  // buildQueue() — that would reshuffle and reset the user's position in
+  // the middle of a study session just because they went and edited a
+  // card in a different tab.
+  session.queue = session.queue.filter(id=>id!==cardId);
+  if(session.pos > session.queue.length) session.pos = session.queue.length;
+  persist();
+  rebuildEngineGlobals(findPackMeta(currentPackId));
+  renderCardsEditor();
+  renderHeader();
+  renderCard();
+}
+
+function cardEditRowHTML(c, isCustomPack){
   const ec = effCard(c.id);
   const edited = !!pack().overrides[c.id];
   if(editingCardId === c.id){
@@ -1992,6 +2036,10 @@ function cardEditRowHTML(c){
       + "<div class=\"cer-actions\"><button class=\"btn\" data-action=\"save\" data-id=\""+c.id+"\">Save</button><button class=\"btn ghost\" data-action=\"cancel\" data-id=\""+c.id+"\">Cancel</button></div>"
       + "</div>";
   }
+  const revertKey = "revert:"+c.id;
+  const deleteKey = "delete:"+c.id;
+  const revertArmed = cardActionArmed === revertKey;
+  const deleteArmed = cardActionArmed === deleteKey;
   return "<div class=\"card-edit-row\" data-id=\""+c.id+"\">"
     + (edited ? "<span class=\"cer-edited-badge\">Edited</span>" : "")
     + "<p class=\"cer-q\">"+escHtml(ec.q)+"</p>"
@@ -1999,14 +2047,16 @@ function cardEditRowHTML(c){
     + "<p class=\"cer-a\"><b>Answer&nbsp;</b>"+escHtml(ec.a)+"</p>"
     + (ec.w ? "<p class=\"cer-w\"><b>Why&nbsp;</b>"+escHtml(ec.w)+"</p>" : "")
     + "<div class=\"cer-actions\"><button class=\"link-btn\" data-action=\"edit\" data-id=\""+c.id+"\">Edit</button>"
-    + (edited ? "<button class=\"link-btn\" data-action=\"revert\" data-id=\""+c.id+"\">Revert to original</button>" : "")
+    + (edited ? "<button class=\"link-btn"+(revertArmed?" armed":"")+"\" data-action=\"revert\" data-id=\""+c.id+"\">"+(revertArmed?"Tap again to revert":"Revert to original")+"</button>" : "")
+    + (isCustomPack ? "<button class=\"link-btn"+(deleteArmed?" armed":"")+"\" data-action=\"delete-card\" data-id=\""+c.id+"\">"+(deleteArmed?"Tap again to delete":"Delete card")+"</button>" : "")
     + "</div></div>";
 }
 
 function renderCardsEditor(){
   const el = document.getElementById("cardsEditorList");
+  const isCustomPack = activePackIsCustom();
   el.innerHTML = THEMES.map(t=>{
-    const rows = CARDS.filter(c=>c.t===t.id).map(cardEditRowHTML).join("");
+    const rows = CARDS.filter(c=>c.t===t.id).map(c=>cardEditRowHTML(c, isCustomPack)).join("");
     return "<p class=\"section-title\">"+escHtml(t.name)+"</p><div class=\"card-edit-group\">"+rows+"</div>";
   }).join("");
 }
@@ -2018,17 +2068,26 @@ function initCardsEditorUI(){
     const id = Number(btn.dataset.id);
     const action = btn.dataset.action;
     if(action === "edit"){
+      disarmCardAction();
       editingCardId = id;
       renderCardsEditor();
     } else if(action === "cancel"){
       editingCardId = null;
       renderCardsEditor();
     } else if(action === "revert"){
+      const key = "revert:"+id;
+      if(cardActionArmed !== key){ armCardAction(key); renderCardsEditor(); return; }
+      disarmCardAction();
       delete pack().overrides[id];
       editingCardId = null;
       persist();
       renderCardsEditor();
       renderCard();
+    } else if(action === "delete-card"){
+      const key = "delete:"+id;
+      if(cardActionArmed !== key){ armCardAction(key); renderCardsEditor(); return; }
+      disarmCardAction();
+      deleteCardFromCustomPack(id);
     } else if(action === "save"){
       const row = btn.closest(".card-edit-row");
       const q = row.querySelector("[data-field=\"q\"]").value.trim();
@@ -2305,7 +2364,7 @@ function addPackManualHTML(){
       + (manualDraft.cards.length>1 ? "<button class=\"mcr-remove\" data-action=\"mcr-remove\" data-idx=\""+i+"\" title=\"Remove card\">&times;</button>" : "")
       + "<div class=\"form-field\"><label>Section (optional)</label><input type=\"text\" data-mf=\"section\" value=\""+escHtml(c.section)+"\" placeholder=\"e.g. Chapter 1\"></div>"
       + "<div class=\"form-field\"><label>Question</label><textarea data-mf=\"q\" rows=\"2\">"+escHtml(c.q)+"</textarea></div>"
-      + "<div class=\"form-field\"><label>Explanation (optional)</label><textarea data-mf=\"e\" rows=\"2\">"+escHtml(c.e)+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Explanation (optional)</label><textarea data-mf=\"e\" rows=\"2\">"+escHtml(c.e||"")+"</textarea></div>"
       + "<div class=\"form-field\"><label>Answer</label><textarea data-mf=\"a\" rows=\"2\">"+escHtml(c.a)+"</textarea></div>"
       + "<div class=\"form-field\"><label>Why (optional)</label><textarea data-mf=\"w\" rows=\"2\">"+escHtml(c.w)+"</textarea></div>"
     + "</div>"
@@ -2490,7 +2549,7 @@ function initAddPackUI(){
 
     else if(act === "mcr-add"){
       syncManualDraftFromDOM();
-      manualDraft.cards.push({section:"", q:"", a:"", w:""});
+      manualDraft.cards.push({section:"", q:"", e:"", a:"", w:""});
       renderAddPackModal();
     } else if(act === "mcr-remove"){
       syncManualDraftFromDOM();
