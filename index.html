@@ -581,6 +581,39 @@
   .manual-card-row .form-field{margin-bottom:9px; padding-right:20px;}
   .manual-card-row .form-field:last-child{margin-bottom:0;}
 
+  .json-example{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:10px 14px; margin-bottom:12px; font-size:0.82rem;
+  }
+  .json-example summary{cursor:pointer; font-weight:600; color:var(--ink-soft); user-select:none;}
+  .json-example pre{
+    font-family:"IBM Plex Mono",monospace; font-size:0.74rem; line-height:1.5; color:var(--ink);
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:10px 12px; margin:10px 0; overflow-x:auto; white-space:pre;
+  }
+  .json-example code{font-family:"IBM Plex Mono",monospace; font-size:0.78rem;}
+
+  .imported-cards-list{
+    max-height:220px; overflow-y:auto; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:var(--radius-s); padding:6px 10px; margin-bottom:18px;
+  }
+  .imported-card-row{
+    display:flex; align-items:center; gap:8px; padding:6px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .imported-card-row:last-child{border-bottom:none;}
+  .icr-section{
+    flex:none; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em; font-weight:700;
+    color:var(--accent); background:var(--accent-soft); border-radius:var(--radius-s); padding:2px 7px;
+  }
+  .icr-q{flex:1; font-size:0.82rem; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .icr-remove{flex:none; background:none; border:none; color:var(--ink-faint); cursor:pointer; font-size:1rem; line-height:1; padding:0 2px;}
+  .icr-remove:hover{color:var(--again);}
+
+  .cards-tab-header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:2px;}
+  .cards-tab-header .section-title{margin:0;}
+  .cards-tab-header .btn.ghost{padding:7px 14px; font-size:0.8rem;}
+
   .sheet-map-card{background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-m); padding:14px 16px; margin-bottom:12px;}
   .sheet-map-top{display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
   .sheet-map-top input[type=text]{flex:1; min-width:120px; font:inherit; font-size:0.88rem; color:var(--ink); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-s); padding:7px 10px;}
@@ -896,7 +929,10 @@
     </section>
 
     <section class="view" id="view-cards">
-      <p class="section-title">Edit cards</p>
+      <div class="cards-tab-header">
+        <p class="section-title">Edit cards</p>
+        <button class="btn ghost" id="addCardsBtn" hidden>+ Add cards</button>
+      </div>
       <div id="cardsEditorList"></div>
     </section>
   </main>
@@ -906,6 +942,13 @@
   <div class="modal-card">
     <button class="modal-close" id="addPackCloseBtn" aria-label="Close">&times;</button>
     <div id="addPackBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addCardsOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="addCardsCloseBtn" aria-label="Close">&times;</button>
+    <div id="addCardsBody"></div>
   </div>
 </div>
 
@@ -2108,6 +2151,7 @@ function cardEditRowHTML(c, isCustomPack){
 function renderCardsEditor(){
   const el = document.getElementById("cardsEditorList");
   const isCustomPack = activePackIsCustom();
+  document.getElementById("addCardsBtn").hidden = !isCustomPack;
   el.innerHTML = THEMES.map(t=>{
     const rows = CARDS.filter(c=>c.t===t.id).map(c=>cardEditRowHTML(c, isCustomPack)).join("");
     return "<p class=\"section-title\">"+escHtml(t.name)+"</p><div class=\"card-edit-group\">"+rows+"</div>";
@@ -2165,6 +2209,133 @@ function saveCardOverride(id, q, e, a, w){
   if(q === base.q && a === base.a && w === (base.w||"") && e === (base.e||"")) delete p.overrides[id];
   else p.overrides[id] = {q, a, w, e};
   persist();
+}
+
+/* ============================== ADD CARDS TO PACK ==============================
+   Lets an already-saved custom pack grow later, from the Cards tab: paste
+   JSON in batches (same parser and staged-list UI as the manual-entry pack
+   wizard) and/or type cards by hand, then commit them all in one go via
+   addCardsToCustomPack(). Built-in packs can't be structurally extended
+   this way, so the button is hidden for them (see renderCardsEditor). */
+let addCardsDraft = null;
+function freshAddCardsDraft(){
+  return {cards:[{section:"", q:"", e:"", a:"", w:""}], jsonCards:[], jsonDraftText:"", jsonError:"", jsonMsg:""};
+}
+function openAddCardsModal(){
+  addCardsDraft = freshAddCardsDraft();
+  renderAddCardsModal();
+  document.getElementById("addCardsOverlay").hidden = false;
+}
+function closeAddCardsModal(){
+  document.getElementById("addCardsOverlay").hidden = true;
+  addCardsDraft = null;
+}
+function renderAddCardsModal(){
+  document.getElementById("addCardsBody").innerHTML = addCardsModalHTML();
+}
+function syncAddCardsDraftFromDOM(){
+  if(!addCardsDraft) return;
+  const body = document.getElementById("addCardsBody");
+  const jsonEl = body.querySelector("#addCardsJsonInput");
+  if(jsonEl) addCardsDraft.jsonDraftText = jsonEl.value;
+  body.querySelectorAll(".manual-card-row").forEach((row,i)=>{
+    addCardsDraft.cards[i] = {
+      section: row.querySelector("[data-mf=section]").value,
+      q: row.querySelector("[data-mf=q]").value,
+      e: row.querySelector("[data-mf=e]").value,
+      a: row.querySelector("[data-mf=a]").value,
+      w: row.querySelector("[data-mf=w]").value
+    };
+  });
+}
+function addCardsModalHTML(){
+  const rows = addCardsDraft.cards.map((c,i)=>
+    "<div class=\"manual-card-row\" data-idx=\""+i+"\">"
+      + (addCardsDraft.cards.length>1 ? "<button class=\"mcr-remove\" data-action=\"ac-remove\" data-idx=\""+i+"\" title=\"Remove card\">&times;</button>" : "")
+      + "<div class=\"form-field\"><label>Section (optional)</label><input type=\"text\" data-mf=\"section\" value=\""+escHtml(c.section)+"\" placeholder=\"e.g. Chapter 1\"></div>"
+      + "<div class=\"form-field\"><label>Question</label><textarea data-mf=\"q\" rows=\"2\">"+escHtml(c.q)+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Explanation (optional)</label><textarea data-mf=\"e\" rows=\"2\">"+escHtml(c.e||"")+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Answer</label><textarea data-mf=\"a\" rows=\"2\">"+escHtml(c.a)+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Why (optional)</label><textarea data-mf=\"w\" rows=\"2\">"+escHtml(c.w)+"</textarea></div>"
+    + "</div>"
+  ).join("");
+  const totalCount = addCardsDraft.cards.filter(c=>c.q.trim()&&c.a.trim()).length + addCardsDraft.jsonCards.length;
+  return "<h2>Add cards to this pack</h2>"
+    + "<p class=\"modal-sub\">Paste JSON in batches, type cards by hand, or both. A section name that matches an existing one is added to it; anything new becomes a new section.</p>"
+    + "<p class=\"section-title\">Paste JSON</p>"
+    + "<p class=\"form-hint\" style=\"margin:0 0 8px;\">Paste as many batches as you like &mdash; handy when a deck is too big for one AI reply.</p>"
+    + "<details class=\"json-example\"><summary>Show JSON format example</summary><pre>"+escHtml(jsonExampleText())+"</pre><p class=\"form-hint\">A bare cards array <code>[{...}, {...}]</code> or a single card object also works.</p></details>"
+    + "<div class=\"form-field\"><textarea id=\"addCardsJsonInput\" rows=\"6\" placeholder=\"Paste JSON here\">"+escHtml(addCardsDraft.jsonDraftText||"")+"</textarea></div>"
+    + (addCardsDraft.jsonError ? "<p class=\"wizard-error\">"+escHtml(addCardsDraft.jsonError)+"</p>" : "")
+    + (addCardsDraft.jsonMsg ? "<p class=\"wizard-note\">"+escHtml(addCardsDraft.jsonMsg)+"</p>" : "")
+    + "<div class=\"wizard-actions\" style=\"margin-top:10px; margin-bottom:18px;\"><button class=\"btn ghost\" data-action=\"ac-json-add\">Add cards from JSON</button></div>"
+    + (addCardsDraft.jsonCards.length ? "<p class=\"form-hint\">"+addCardsDraft.jsonCards.length+" card"+(addCardsDraft.jsonCards.length===1?"":"s")+" imported from JSON:</p>" + jsonCardsPreviewHTML(addCardsDraft.jsonCards, "ac-json-remove") : "")
+    + "<p class=\"section-title\" style=\"margin-top:22px;\">Or type cards by hand</p>"
+    + rows
+    + "<button class=\"btn ghost\" data-action=\"ac-add\" style=\"margin-bottom:6px;\">+ Add another card</button>"
+    + "<div id=\"addCardsError\"></div>"
+    + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"ac-commit\">Add "+totalCount+" card"+(totalCount===1?"":"s")+" to pack</button><button class=\"btn ghost\" data-action=\"ac-cancel\">Cancel</button></div>";
+}
+function initAddCardsUI(){
+  document.getElementById("addCardsBtn").addEventListener("click", openAddCardsModal);
+  document.getElementById("addCardsCloseBtn").addEventListener("click", closeAddCardsModal);
+  document.getElementById("addCardsOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "addCardsOverlay") closeAddCardsModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("addCardsOverlay").hidden) closeAddCardsModal();
+  });
+  document.getElementById("addCardsBody").addEventListener("click",(e)=>{
+    const action = e.target.closest("[data-action]");
+    if(!action) return;
+    const act = action.dataset.action;
+    if(act === "ac-add"){
+      syncAddCardsDraftFromDOM();
+      addCardsDraft.cards.push({section:"", q:"", e:"", a:"", w:""});
+      renderAddCardsModal();
+    } else if(act === "ac-remove"){
+      syncAddCardsDraftFromDOM();
+      addCardsDraft.cards.splice(Number(action.dataset.idx), 1);
+      renderAddCardsModal();
+    } else if(act === "ac-json-add"){
+      syncAddCardsDraftFromDOM();
+      const text = addCardsDraft.jsonDraftText || "";
+      if(!text.trim()){
+        addCardsDraft.jsonError = "Paste some JSON first.";
+        addCardsDraft.jsonMsg = "";
+        renderAddCardsModal();
+        return;
+      }
+      const result = parseCardRowsFromJSON(text);
+      if(!result.ok){
+        addCardsDraft.jsonError = result.error;
+        addCardsDraft.jsonMsg = "";
+        renderAddCardsModal();
+        return;
+      }
+      addCardsDraft.jsonCards = addCardsDraft.jsonCards.concat(result.rows);
+      addCardsDraft.jsonDraftText = "";
+      addCardsDraft.jsonError = "";
+      addCardsDraft.jsonMsg = "Added "+result.rows.length+" card"+(result.rows.length===1?"":"s")+". Paste another batch, or add more below.";
+      renderAddCardsModal();
+    } else if(act === "ac-json-remove"){
+      syncAddCardsDraftFromDOM();
+      addCardsDraft.jsonCards.splice(Number(action.dataset.idx), 1);
+      renderAddCardsModal();
+    } else if(act === "ac-cancel"){
+      closeAddCardsModal();
+    } else if(act === "ac-commit"){
+      syncAddCardsDraftFromDOM();
+      const combined = addCardsDraft.cards.concat(addCardsDraft.jsonCards);
+      const valid = combined.filter(c=>c.q.trim() && c.a.trim());
+      if(!valid.length){
+        document.getElementById("addCardsError").innerHTML = "<p class=\"wizard-error\">Add at least one card with both a question and an answer.</p>";
+        return;
+      }
+      addCardsToCustomPack(currentPackId, valid);
+      closeAddCardsModal();
+    }
+  });
 }
 
 /* ============================== ON-THE-FLY CARD EDIT ==============================
@@ -2575,6 +2746,35 @@ function saveNewCustomPack(name, tagline, themes, cards){
   return id;
 }
 
+// Appends {section,q,e,a,w} rows to an already-saved custom pack (the
+// Cards-tab "Add cards" flow), rather than building a new pack from
+// scratch. A row's section is matched by name against the pack's existing
+// themes (so re-pasting into the same section keeps adding to it); an
+// unmatched name becomes a new theme, appended with the next unique id —
+// same never-cycled id scheme as pack creation (see themeIdForIndex above).
+function addCardsToCustomPack(packId, rows){
+  const cp = state.customPacks[packId];
+  if(!cp || !rows.length) return;
+  const nameToId = {};
+  cp.themes.forEach(t=>{ nameToId[t.name] = t.id; });
+  let nextId = cp.cards.reduce((m,c)=>Math.max(m,c.id),0) + 1;
+  rows.forEach(r=>{
+    const label = (r.section||"").trim() || "General";
+    let themeId = nameToId[label];
+    if(!themeId){
+      themeId = themeIdForIndex(cp.themes.length);
+      cp.themes.push({id:themeId, name:label});
+      nameToId[label] = themeId;
+    }
+    cp.cards.push({id:nextId++, t:themeId, q:r.q.trim(), e:(r.e||"").trim(), a:r.a.trim(), w:(r.w||"").trim()});
+  });
+  persist();
+  rebuildEngineGlobals(findPackMeta(packId));
+  renderCardsEditor();
+  renderHeader();
+  renderCard();
+}
+
 // Groups a flat list of {section,q,a,w} rows into theme buckets by section
 // label (blank -> "General"), in order of first appearance. Used by manual
 // entry. Returns null if nothing had both a question and an answer.
@@ -2610,18 +2810,17 @@ function robustJsonParse(rawText){
   throw new Error("Could not parse as JSON");
 }
 
-// Parses an AI reply (or any hand-written JSON) into {name, tagline, themes,
-// cards}. Theme ids from the source JSON are trusted only as a way to group
-// cards by name — they're re-assigned to our own t1..t5 cycle so the CSS
-// classes always resolve, regardless of what ids the source used.
-function importPackFromJSON(rawText){
+// Parses an AI reply (or any hand-written JSON) into a flat list of
+// {section, q, e, a, w} rows plus an optional name/tagline — the same shape
+// buildThemesAndCards() expects from manual entry, so JSON-imported cards
+// and hand-typed cards can be merged and grouped into sections together.
+// Accepts the full pack shape ({name, tagline, themes, cards}), a bare
+// cards array, or a single bare card object, so a partial copy-paste from
+// the middle of a larger reply still works.
+function parseCardRowsFromJSON(rawText){
   let data;
   try{ data = robustJsonParse(rawText); }
   catch(e){ return {ok:false, error:"That doesn't look like valid JSON. Make sure you copied the whole reply, including the surrounding { } or [ ]."}; }
-  // Normalize a bare cards array, or even a single bare card object, into
-  // the {cards:[...]} shape the rest of this function expects — someone
-  // pasting just their example's [{...}, {...}] (or one {...}) shouldn't
-  // need to hand-wrap it themselves.
   if(Array.isArray(data)){
     data = {cards: data};
   } else if(data && typeof data === "object" && !Array.isArray(data.cards) && data.q && data.a){
@@ -2632,28 +2831,52 @@ function importPackFromJSON(rawText){
   }
   const rawThemes = Array.isArray(data.themes) ? data.themes : [];
   const nameByOldId = {};
-  const orderedNames = [];
   rawThemes.forEach(t=>{
     const name = (t && t.name ? String(t.name) : "General").trim() || "General";
     if(t && t.id != null) nameByOldId[String(t.id)] = name;
-    if(orderedNames.indexOf(name) === -1) orderedNames.push(name);
   });
+  const defaultSection = rawThemes.length && rawThemes[0] && rawThemes[0].name ? String(rawThemes[0].name).trim() || "General" : "General";
   const rows = [];
   data.cards.forEach(c=>{
     if(!c || !c.q || !c.a) return;
-    let themeName = c.t!=null && nameByOldId[String(c.t)] ? nameByOldId[String(c.t)] : (orderedNames[0] || "General");
-    if(orderedNames.indexOf(themeName) === -1) orderedNames.push(themeName);
-    rows.push({themeName, q:String(c.q).trim(), e:c.e?String(c.e).trim():"", a:String(c.a).trim(), w:c.w?String(c.w).trim():""});
+    const section = c.t!=null && nameByOldId[String(c.t)] ? nameByOldId[String(c.t)] : defaultSection;
+    rows.push({section, q:String(c.q).trim(), e:c.e?String(c.e).trim():"", a:String(c.a).trim(), w:c.w?String(c.w).trim():""});
   });
   if(!rows.length) return {ok:false, error:"None of the cards had both a question and an answer."};
-  const themes = orderedNames.map((name,i)=>({id:themeIdForIndex(i), name}));
-  const nameToId = Object.fromEntries(themes.map(t=>[t.name,t.id]));
-  const cards = rows.map(r=>({t:nameToId[r.themeName], q:r.q, e:r.e, a:r.a, w:r.w}));
   return {
     ok:true,
-    name:(data.name ? String(data.name) : "").trim() || "Untitled pack",
+    name:(data.name ? String(data.name) : "").trim(),
     tagline:(data.tagline ? String(data.tagline) : "").trim(),
-    themes, cards
+    rows
+  };
+}
+
+// The example shown to users under "Show JSON format example" in every
+// paste-JSON box, so the expected shape is always one click away instead of
+// only living in a one-off generated prompt.
+function jsonExampleText(){
+  return JSON.stringify({
+    name: "Pack name (optional)",
+    tagline: "One-line description (optional)",
+    themes: [{id:"t1", name:"Section name"}],
+    cards: [{t:"t1", q:"Question text", e:"Optional short explanation/context", a:"Answer text", w:"Optional why/reasoning"}]
+  }, null, 2);
+}
+
+// Used by the "Ask AI to research a topic" wizard, which creates a pack
+// directly from one pasted JSON reply. Thin wrapper around
+// parseCardRowsFromJSON() + buildThemesAndCards() so both paths share one
+// parser.
+function importPackFromJSON(rawText){
+  const parsed = parseCardRowsFromJSON(rawText);
+  if(!parsed.ok) return parsed;
+  const built = buildThemesAndCards(parsed.rows);
+  return {
+    ok:true,
+    name: parsed.name || "Untitled pack",
+    tagline: parsed.tagline,
+    themes: built.themes,
+    cards: built.cards
   };
 }
 
@@ -2697,14 +2920,21 @@ function addPackChooseHTML(){
 }
 
 /* ---------- manual entry ---------- */
-function freshManualDraft(){ return {name:"", tagline:"", cards:[{section:"", q:"", e:"", a:"", w:""}]}; }
+function freshManualDraft(){
+  return {
+    name:"", tagline:"", cards:[{section:"", q:"", e:"", a:"", w:""}],
+    jsonCards:[], jsonDraftText:"", jsonError:"", jsonMsg:""
+  };
+}
 function syncManualDraftFromDOM(){
   if(!manualDraft) return;
   const body = document.getElementById("addPackBody");
   const nameEl = body.querySelector("#manualPackName");
   const taglineEl = body.querySelector("#manualPackTagline");
+  const jsonEl = body.querySelector("#manualJsonInput");
   if(nameEl) manualDraft.name = nameEl.value;
   if(taglineEl) manualDraft.tagline = taglineEl.value;
+  if(jsonEl) manualDraft.jsonDraftText = jsonEl.value;
   body.querySelectorAll(".manual-card-row").forEach((row,i)=>{
     manualDraft.cards[i] = {
       section: row.querySelector("[data-mf=section]").value,
@@ -2714,6 +2944,20 @@ function syncManualDraftFromDOM(){
       w: row.querySelector("[data-mf=w]").value
     };
   });
+}
+// Shared by the manual-entry wizard and the Cards-tab "Add cards" modal:
+// a compact, scrollable list of cards staged from a JSON paste (as opposed
+// to the fully-editable rows used for hand-typed cards), each removable
+// before the batch is committed.
+function jsonCardsPreviewHTML(cards, removeAction){
+  if(!cards.length) return "";
+  return "<div class=\"imported-cards-list\">" + cards.map((c,i)=>
+    "<div class=\"imported-card-row\">"
+      + "<span class=\"icr-section\">"+escHtml(c.section||"General")+"</span>"
+      + "<span class=\"icr-q\">"+escHtml(c.q)+"</span>"
+      + "<button class=\"icr-remove\" data-action=\""+removeAction+"\" data-idx=\""+i+"\" title=\"Remove\">&times;</button>"
+    + "</div>"
+  ).join("") + "</div>";
 }
 function addPackManualHTML(){
   if(!manualDraft) manualDraft = freshManualDraft();
@@ -2727,15 +2971,25 @@ function addPackManualHTML(){
       + "<div class=\"form-field\"><label>Why (optional)</label><textarea data-mf=\"w\" rows=\"2\">"+escHtml(c.w)+"</textarea></div>"
     + "</div>"
   ).join("");
+  const totalCount = manualDraft.cards.filter(c=>c.q.trim()&&c.a.trim()).length + manualDraft.jsonCards.length;
   return "<button class=\"wizard-back\" data-action=\"back-choose\">&larr; Back</button>"
     + "<h2>Add cards manually</h2>"
-    + "<p class=\"modal-sub\">Give the pack a name, then add as many cards as you like.</p>"
+    + "<p class=\"modal-sub\">Give the pack a name, then add cards by pasting JSON in batches, typing them by hand, or both. Nothing is saved until you click Create pack.</p>"
     + "<div class=\"form-field\"><label>Pack name</label><input type=\"text\" id=\"manualPackName\" value=\""+escHtml(manualDraft.name)+"\" placeholder=\"e.g. Spanish Verbs\"></div>"
     + "<div class=\"form-field\"><label>Tagline (optional)</label><input type=\"text\" id=\"manualPackTagline\" value=\""+escHtml(manualDraft.tagline)+"\" placeholder=\"Short description\"></div>"
+    + "<p class=\"section-title\">Paste JSON</p>"
+    + "<p class=\"form-hint\" style=\"margin:0 0 8px;\">Paste as many batches as you like &mdash; handy when a deck is too big for one AI reply. Each paste adds to the list below without replacing it.</p>"
+    + "<details class=\"json-example\"><summary>Show JSON format example</summary><pre>"+escHtml(jsonExampleText())+"</pre><p class=\"form-hint\">A bare cards array <code>[{...}, {...}]</code> or a single card object also works &mdash; the name/tagline/themes wrapper is optional.</p></details>"
+    + "<div class=\"form-field\"><textarea id=\"manualJsonInput\" rows=\"6\" placeholder=\"Paste JSON here\">"+escHtml(manualDraft.jsonDraftText||"")+"</textarea></div>"
+    + (manualDraft.jsonError ? "<p class=\"wizard-error\">"+escHtml(manualDraft.jsonError)+"</p>" : "")
+    + (manualDraft.jsonMsg ? "<p class=\"wizard-note\">"+escHtml(manualDraft.jsonMsg)+"</p>" : "")
+    + "<div class=\"wizard-actions\" style=\"margin-top:10px; margin-bottom:18px;\"><button class=\"btn ghost\" data-action=\"manual-json-add\">Add cards from JSON</button></div>"
+    + (manualDraft.jsonCards.length ? "<p class=\"form-hint\">"+manualDraft.jsonCards.length+" card"+(manualDraft.jsonCards.length===1?"":"s")+" imported from JSON:</p>" + jsonCardsPreviewHTML(manualDraft.jsonCards, "json-card-remove") : "")
+    + "<p class=\"section-title\" style=\"margin-top:22px;\">Or type cards by hand</p>"
     + rows
     + "<button class=\"btn ghost\" data-action=\"mcr-add\" style=\"margin-bottom:6px;\">+ Add another card</button>"
     + "<div id=\"manualError\"></div>"
-    + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"manual-create\">Create pack</button></div>";
+    + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"manual-create\">Create pack ("+totalCount+" card"+(totalCount===1?"":"s")+")</button></div>";
 }
 
 /* ---------- spreadsheet import ---------- */
@@ -2915,7 +3169,7 @@ function initAddPackUI(){
       renderAddPackModal();
     } else if(act === "manual-create"){
       syncManualDraftFromDOM();
-      const built = buildThemesAndCards(manualDraft.cards);
+      const built = buildThemesAndCards(manualDraft.cards.concat(manualDraft.jsonCards));
       if(!built){
         document.getElementById("manualError").innerHTML = "<p class=\"wizard-error\">Add at least one card with both a question and an answer.</p>";
         return;
@@ -2924,6 +3178,36 @@ function initAddPackUI(){
       manualDraft = null;
       closeAddPackModal();
       enterPack(id);
+    }
+
+    else if(act === "manual-json-add"){
+      syncManualDraftFromDOM();
+      const text = manualDraft.jsonDraftText || "";
+      if(!text.trim()){
+        manualDraft.jsonError = "Paste some JSON first.";
+        manualDraft.jsonMsg = "";
+        renderAddPackModal();
+        return;
+      }
+      const result = parseCardRowsFromJSON(text);
+      if(!result.ok){
+        manualDraft.jsonError = result.error;
+        manualDraft.jsonMsg = "";
+        renderAddPackModal();
+        return;
+      }
+      manualDraft.jsonCards = manualDraft.jsonCards.concat(result.rows);
+      if(!manualDraft.name.trim() && result.name) manualDraft.name = result.name;
+      if(!manualDraft.tagline.trim() && result.tagline) manualDraft.tagline = result.tagline;
+      manualDraft.jsonDraftText = "";
+      manualDraft.jsonError = "";
+      manualDraft.jsonMsg = "Added "+result.rows.length+" card"+(result.rows.length===1?"":"s")+". Paste another batch, or add more below.";
+      renderAddPackModal();
+    } else if(act === "json-card-remove"){
+      syncManualDraftFromDOM();
+      manualDraft.jsonCards.splice(Number(action.dataset.idx), 1);
+      manualDraft.jsonMsg = "";
+      renderAddPackModal();
     }
 
     else if(act === "sheet-create"){
@@ -3108,6 +3392,7 @@ function boot(){
   initHomeUI();
   initCardsEditorUI();
   initAddPackUI();
+  initAddCardsUI();
   initEditCardUI();
   initAiCardUI();
   calState.selected = todayStr();
