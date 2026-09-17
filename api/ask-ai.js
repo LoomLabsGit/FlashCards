@@ -1,14 +1,14 @@
 // Server-side proxy for the "Ask AI about this card" feature.
 //
-// The client never sees the Anthropic API key — it lives only in this
+// The client never sees the Gemini API key — it lives only in this
 // function's environment (Vercel Project Settings -> Environment Variables
-// -> ANTHROPIC_API_KEY). Requests are required to carry a live Supabase
+// -> GEMINI_API_KEY). Requests are required to carry a live Supabase
 // session token so a random visitor to the deployed URL can't call this
 // endpoint and spend the account owner's API credits; only someone signed
 // into the app itself can.
 const SUPABASE_URL = "https://wfjadtemyzwzwpaehfib.supabase.co";
 const SUPABASE_KEY = "sb_publishable_nCGbYoxQyY3Jg5lGkDV9NQ_R8ORvBBP";
-const MODEL = "claude-sonnet-5";
+const MODEL = "gemini-3.5-flash";
 
 async function isAuthed(req) {
   const authHeader = req.headers["authorization"] || "";
@@ -32,9 +32,7 @@ function buildPrompt(q, e, a, w, instruction) {
     "Answer: " + a + "\n" +
     (w ? "Why: " + w + "\n" : "") +
     "\nInstruction: " + instruction + "\n\n" +
-    "Apply the instruction to this single card. Keep it a good flashcard: a clear question, a concise answer, and (optionally) a short explanation for the question and/or a short why for the answer. If the instruction doesn't call for changing a field, leave that field as close to the original as makes sense.\n\n" +
-    "Return ONLY a JSON object in exactly this shape, with no other text before or after it:\n\n" +
-    '{\n  "q": "<question>",\n  "e": "<optional short explanation for the question, empty string if not needed>",\n  "a": "<answer>",\n  "w": "<optional why explanation, empty string if not needed>"\n}'
+    "Apply the instruction to this single card. Keep it a good flashcard: a clear question, a concise answer, and (optionally) a short explanation for the question and/or a short why for the answer. If the instruction doesn't call for changing a field, leave that field as close to the original as makes sense."
   );
 }
 
@@ -75,30 +73,45 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  // Accept a couple of common env var names so a naming mismatch in Vercel
+  // doesn't produce a confusing "not configured" error.
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ ok: false, error: "AI isn't configured on the server yet (missing ANTHROPIC_API_KEY)." });
+    res.status(500).json({ ok: false, error: "AI isn't configured on the server yet (missing GEMINI_API_KEY)." });
     return;
   }
 
   try {
-    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1024,
-        messages: [{ role: "user", content: buildPrompt(q, e, a, w, instruction) }]
-      })
-    });
+    const aiResp = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: buildPrompt(q, e, a, w, instruction) }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                q: { type: "STRING" },
+                e: { type: "STRING" },
+                a: { type: "STRING" },
+                w: { type: "STRING" }
+              },
+              required: ["q", "a"]
+            }
+          }
+        })
+      }
+    );
 
     if (!aiResp.ok) {
       const errBody = await aiResp.text().catch(() => "");
-      console.error("Anthropic API error", aiResp.status, errBody);
+      console.error("Gemini API error", aiResp.status, errBody);
       let detail = "";
       try {
         const errJson = JSON.parse(errBody);
@@ -111,9 +124,10 @@ module.exports = async (req, res) => {
     }
 
     const aiData = await aiResp.json();
+    const candidate = aiData && Array.isArray(aiData.candidates) ? aiData.candidates[0] : null;
     const textOut =
-      aiData && Array.isArray(aiData.content) && aiData.content[0] && aiData.content[0].text
-        ? aiData.content[0].text
+      candidate && candidate.content && Array.isArray(candidate.content.parts) && candidate.content.parts[0]
+        ? candidate.content.parts[0].text || ""
         : "";
 
     let parsed;
@@ -121,6 +135,7 @@ module.exports = async (req, res) => {
       const match = textOut.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(match ? match[0] : textOut);
     } catch (parseErr) {
+      console.error("Gemini returned non-JSON text", textOut);
       res.status(502).json({ ok: false, error: "AI didn't return valid JSON." });
       return;
     }
@@ -140,6 +155,7 @@ module.exports = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error("Unexpected error calling Gemini", err);
     res.status(500).json({ ok: false, error: "Something went wrong calling AI." });
   }
 };
