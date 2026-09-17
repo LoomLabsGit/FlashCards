@@ -286,10 +286,12 @@
   }
   .card-back{transform:rotateY(180deg);}
   .card-meta{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}
+  .card-question-wrap{flex:1; display:flex; flex-direction:column; justify-content:center; gap:14px; min-height:0;}
   .card-question{
     font-family:"Fraunces", Georgia, serif; font-weight:560; font-size:1.5rem; line-height:1.32;
-    flex:1; display:flex; align-items:center; margin:0; text-wrap:balance;
+    margin:0; text-wrap:balance;
   }
+  .card-explain{font-size:0.92rem; color:var(--ink-soft); line-height:1.5; margin:0;}
   .flip-hint{
     text-align:center; font-size:0.74rem; color:var(--ink-faint); letter-spacing:0.03em;
     text-transform:uppercase; margin-top:14px;
@@ -597,8 +599,8 @@
     padding:12px 14px;
   }
   .cer-q{font-weight:600; font-size:0.94rem; margin-bottom:4px; padding-right:60px;}
-  .cer-a, .cer-w{font-size:0.84rem; color:var(--ink-soft); line-height:1.4; margin:0 0 2px;}
-  .cer-a b, .cer-w b{color:var(--ink-faint); font-weight:700;}
+  .cer-e, .cer-a, .cer-w{font-size:0.84rem; color:var(--ink-soft); line-height:1.4; margin:0 0 2px;}
+  .cer-e b, .cer-a b, .cer-w b{color:var(--ink-faint); font-weight:700;}
   .cer-actions{margin-top:9px; display:flex; gap:14px; align-items:center;}
   .cer-input{
     display:block; width:100%; font:inherit; font-size:0.85rem; color:var(--ink); background:var(--surface-2);
@@ -789,7 +791,13 @@
               <div class="card-meta">
                 <span class="chip theme-chip" id="frontTheme"></span>
               </div>
-              <p class="card-question" id="frontQ"></p>
+              <div class="card-question-wrap">
+                <p class="card-question" id="frontQ"></p>
+                <div id="frontExplainWrap">
+                  <p class="card-label">Explanation</p>
+                  <p class="card-explain" id="frontExplain"></p>
+                </div>
+              </div>
               <div class="flip-hint">Click or press Space to reveal</div>
             </div>
             <div class="card-face card-back">
@@ -1065,6 +1073,16 @@ function rebuildEngineGlobals(meta){
   THEME_BY_ID = Object.fromEntries(THEMES.map(t=>[t.id,t]));
   INTRO_ORDER = buildIntroOrder();
   INTRO_INDEX = Object.fromEntries(INTRO_ORDER.map((id,i)=>[id,i]));
+}
+// A theme's id is its unique join key to cards (never reused within a pack),
+// but there are only 5 theme-tN CSS color slots. themeColorVar() picks a
+// color by the theme's POSITION in the active pack's theme list, cycling
+// mod 5 — so a 6+ section pack repeats colors visually without two
+// different sections ever sharing an id (which would silently merge their
+// cards together, since every lookup joins on id).
+function themeColorVar(themeId){
+  const idx = THEMES.findIndex(t=>t.id===themeId);
+  return "t"+(((idx<0?0:idx)%5)+1);
 }
 function introDayFor(cardId){
   const idx = INTRO_INDEX[cardId];
@@ -1493,10 +1511,12 @@ function renderCard(){
 
   const theme = THEME_BY_ID[card.t];
   document.getElementById("frontTheme").textContent = theme.name;
-  document.getElementById("frontTheme").className = "chip theme-chip theme-"+card.t;
+  document.getElementById("frontTheme").className = "chip theme-chip theme-"+themeColorVar(card.t);
   document.getElementById("backTheme").textContent = theme.name;
-  document.getElementById("backTheme").className = "chip theme-chip theme-"+card.t;
+  document.getElementById("backTheme").className = "chip theme-chip theme-"+themeColorVar(card.t);
   document.getElementById("frontQ").textContent = card.q;
+  document.getElementById("frontExplain").textContent = card.e || "";
+  document.getElementById("frontExplainWrap").hidden = !card.e;
   document.getElementById("backA").textContent = card.a;
   document.getElementById("backW").textContent = card.w;
   document.getElementById("backWhyWrap").hidden = !card.w;
@@ -1668,14 +1688,18 @@ function initCalendarNav(){
   });
 }
 
+// Long, colon-prefixed theme names (e.g. "Sounds & Spelling: how Polish is
+// said and written") show just the part before the colon; otherwise a
+// generic character-count truncation keeps the legend compact for any pack.
+function shortThemeLabel(name){
+  const colonIdx = name.indexOf(":");
+  if(colonIdx > 0 && colonIdx < 40) return name.slice(0, colonIdx);
+  return name.length > 28 ? name.slice(0,26)+"…" : name;
+}
 function renderCalLegend(){
   const el = document.getElementById("calLegend");
   el.innerHTML = THEMES.map(t=>
-    "<span class=\"leg-item\"><span class=\"leg-dot\" style=\"background:var(--"+t.id+")\"></span>"+t.name.split(" ")[0]+(t.id==="t1"?" Concepts":t.id==="t2"?" & Frmwrks":t.id==="t3"?"s":t.id==="t4"?"":" Integration")+"</span>"
-  ).join("");
-  // simpler: short names
-  el.innerHTML = THEMES.map((t,i)=>
-    "<span class=\"leg-item\"><span class=\"leg-dot\" style=\"background:var(--"+t.id+")\"></span>"+["Core Concepts","Canvas & Frameworks","MVPs & Experiments","Collaboration & Culture","Agile Integration"][i]+"</span>"
+    "<span class=\"leg-item\"><span class=\"leg-dot\" style=\"background:var(--"+themeColorVar(t.id)+")\"></span>"+escHtml(shortThemeLabel(t.name))+"</span>"
   ).join("");
 }
 
@@ -1744,7 +1768,7 @@ function renderCalendar(){
         seg.className = "cal-segbar";
         Object.keys(hist.byTheme).forEach(t=>{
           const s = document.createElement("span");
-          s.style.background = "var(--"+t+")";
+          s.style.background = "var(--"+themeColorVar(t)+")";
           s.style.flexGrow = hist.byTheme[t];
           seg.appendChild(s);
         });
@@ -1763,7 +1787,7 @@ function renderCalendar(){
         seg.className = "cal-segbar";
         Object.keys(info.byTheme).forEach(t=>{
           const s = document.createElement("span");
-          s.style.background = "var(--"+t+")";
+          s.style.background = "var(--"+themeColorVar(t)+")";
           s.style.flexGrow = info.byTheme[t];
           seg.appendChild(s);
         });
@@ -1797,7 +1821,7 @@ function showCalDetail(dateStr, today, scheduleMap){
   THEMES.forEach(t=>{
     const n = data.byTheme[t.id] || 0;
     if(n>0){
-      rows += "<div class=\"cd-row\"><span class=\"tbr-dot\" style=\"background:var(--"+t.id+"); width:8px;height:8px;border-radius:50%;display:inline-block;\"></span><span class=\"cd-name\">"+t.name+"</span><span class=\"cd-num\">"+n+"</span></div>";
+      rows += "<div class=\"cd-row\"><span class=\"tbr-dot\" style=\"background:var(--"+themeColorVar(t.id)+"); width:8px;height:8px;border-radius:50%;display:inline-block;\"></span><span class=\"cd-name\">"+t.name+"</span><span class=\"cd-num\">"+n+"</span></div>";
     }
   });
 
@@ -1854,7 +1878,7 @@ function renderProgress(){
     const total = themeCards.length;
     const masteredCount = counts.mastered;
     return "<div class=\"theme-bar-row\">"
-      + "<div class=\"tbr-top\"><span class=\"tbr-dot\" style=\"background:var(--"+t.id+")\"></span><span class=\"tbr-name\">"+t.name+"</span><span class=\"tbr-count\">"+masteredCount+" / "+total+" mastered</span></div>"
+      + "<div class=\"tbr-top\"><span class=\"tbr-dot\" style=\"background:var(--"+themeColorVar(t.id)+")\"></span><span class=\"tbr-name\">"+t.name+"</span><span class=\"tbr-count\">"+masteredCount+" / "+total+" mastered</span></div>"
       + "<div class=\"tbr-track\">"
         + "<div class=\"tbr-seg seg-mastered\" style=\"width:"+(counts.mastered/total*100)+"%\"></div>"
         + "<div class=\"tbr-seg seg-review\" style=\"width:"+(counts.review/total*100)+"%\"></div>"
@@ -1874,7 +1898,7 @@ function renderProgress(){
     const rows = trouble.map(c=>{
       const r = getRecord(c.id);
       return "<button class=\"trouble-row\" data-id=\""+c.id+"\">"
-        + "<span class=\"tr-dot\" style=\"background:var(--"+c.t+")\"></span>"
+        + "<span class=\"tr-dot\" style=\"background:var(--"+themeColorVar(c.t)+")\"></span>"
         + "<span class=\"tr-q\">"+escHtml(effCard(c.id).q)+"</span>"
         + "<span class=\"tr-badge\">"+r.lapses+" miss"+(r.lapses===1?"":"es")+"</span>"
         + "</button>";
@@ -1962,6 +1986,7 @@ function cardEditRowHTML(c){
   if(editingCardId === c.id){
     return "<div class=\"card-edit-row editing\" data-id=\""+c.id+"\">"
       + "<span class=\"cer-input-label\">Question</span><textarea class=\"cer-input\" data-field=\"q\" rows=\"2\">"+escHtml(ec.q)+"</textarea>"
+      + "<span class=\"cer-input-label\">Explanation (optional)</span><textarea class=\"cer-input\" data-field=\"e\" rows=\"2\">"+escHtml(ec.e||"")+"</textarea>"
       + "<span class=\"cer-input-label\">Answer</span><textarea class=\"cer-input\" data-field=\"a\" rows=\"2\">"+escHtml(ec.a)+"</textarea>"
       + "<span class=\"cer-input-label\">Why</span><textarea class=\"cer-input\" data-field=\"w\" rows=\"3\">"+escHtml(ec.w)+"</textarea>"
       + "<div class=\"cer-actions\"><button class=\"btn\" data-action=\"save\" data-id=\""+c.id+"\">Save</button><button class=\"btn ghost\" data-action=\"cancel\" data-id=\""+c.id+"\">Cancel</button></div>"
@@ -1970,6 +1995,7 @@ function cardEditRowHTML(c){
   return "<div class=\"card-edit-row\" data-id=\""+c.id+"\">"
     + (edited ? "<span class=\"cer-edited-badge\">Edited</span>" : "")
     + "<p class=\"cer-q\">"+escHtml(ec.q)+"</p>"
+    + (ec.e ? "<p class=\"cer-e\"><b>Explanation&nbsp;</b>"+escHtml(ec.e)+"</p>" : "")
     + "<p class=\"cer-a\"><b>Answer&nbsp;</b>"+escHtml(ec.a)+"</p>"
     + (ec.w ? "<p class=\"cer-w\"><b>Why&nbsp;</b>"+escHtml(ec.w)+"</p>" : "")
     + "<div class=\"cer-actions\"><button class=\"link-btn\" data-action=\"edit\" data-id=\""+c.id+"\">Edit</button>"
@@ -2006,13 +2032,14 @@ function initCardsEditorUI(){
     } else if(action === "save"){
       const row = btn.closest(".card-edit-row");
       const q = row.querySelector("[data-field=\"q\"]").value.trim();
+      const e = row.querySelector("[data-field=\"e\"]").value.trim();
       const a = row.querySelector("[data-field=\"a\"]").value.trim();
       const w = row.querySelector("[data-field=\"w\"]").value.trim();
       if(!q || !a) return;
       const base = CARD_BY_ID[id];
       const p = pack();
-      if(q === base.q && a === base.a && w === base.w) delete p.overrides[id];
-      else p.overrides[id] = {q, a, w};
+      if(q === base.q && a === base.a && w === (base.w||"") && e === (base.e||"")) delete p.overrides[id];
+      else p.overrides[id] = {q, a, w, e};
       editingCardId = null;
       persist();
       renderCardsEditor();
@@ -2137,14 +2164,16 @@ function initHomeUI(){
       run in their own Claude conversation, then imports the pasted-back JSON
       through the same importPackFromJSON() parser used elsewhere.
    3) Manual — a plain repeatable Q/A/Why form.
-   Custom pack themes are assigned ids by cycling t1..t5 so they reuse the
-   existing theme-tN CSS classes/colors without new styling. */
-function themeIdForIndex(i){ return "t"+((i%5)+1); }
+   Custom pack theme ids are always unique per pack (never cycled) — with
+   more than 5 sections, themeColorVar() (see rebuildEngineGlobals above)
+   reuses the 5 theme-tN colors visually without merging two sections'
+   cards under the same id. */
+function themeIdForIndex(i){ return "t"+(i+1); }
 function nextCustomPackId(){ return "custom-"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
 function saveNewCustomPack(name, tagline, themes, cards){
   const id = nextCustomPackId();
-  const numberedCards = cards.map((c,i)=>({id:i+1, t:c.t, q:c.q, a:c.a, w:c.w||""}));
+  const numberedCards = cards.map((c,i)=>({id:i+1, t:c.t, q:c.q, e:c.e||"", a:c.a, w:c.w||""}));
   state.customPacks[id] = {
     id, name:(name||"").trim() || "Untitled pack", tagline:(tagline||"").trim(),
     themes, cards:numberedCards, createdAt:new Date().toISOString()
@@ -2168,7 +2197,7 @@ function buildThemesAndCards(rawCards){
   const themes = order.map((label,i)=>({id:themeIdForIndex(i), name:label}));
   const cards = valid.map(c=>{
     const label = (c.section||"").trim() || "General";
-    return {t:themes[index[label]].id, q:c.q.trim(), a:c.a.trim(), w:(c.w||"").trim()};
+    return {t:themes[index[label]].id, q:c.q.trim(), e:(c.e||"").trim(), a:c.a.trim(), w:(c.w||"").trim()};
   });
   return {themes, cards};
 }
@@ -2197,12 +2226,12 @@ function importPackFromJSON(rawText){
     if(!c || !c.q || !c.a) return;
     let themeName = c.t!=null && nameByOldId[String(c.t)] ? nameByOldId[String(c.t)] : (orderedNames[0] || "General");
     if(orderedNames.indexOf(themeName) === -1) orderedNames.push(themeName);
-    rows.push({themeName, q:String(c.q).trim(), a:String(c.a).trim(), w:c.w?String(c.w).trim():""});
+    rows.push({themeName, q:String(c.q).trim(), e:c.e?String(c.e).trim():"", a:String(c.a).trim(), w:c.w?String(c.w).trim():""});
   });
   if(!rows.length) return {ok:false, error:"None of the cards had both a question and an answer."};
   const themes = orderedNames.map((name,i)=>({id:themeIdForIndex(i), name}));
   const nameToId = Object.fromEntries(themes.map(t=>[t.name,t.id]));
-  const cards = rows.map(r=>({t:nameToId[r.themeName], q:r.q, a:r.a, w:r.w}));
+  const cards = rows.map(r=>({t:nameToId[r.themeName], q:r.q, e:r.e, a:r.a, w:r.w}));
   return {
     ok:true,
     name:(data.name ? String(data.name) : "").trim() || "Untitled pack",
@@ -2251,7 +2280,7 @@ function addPackChooseHTML(){
 }
 
 /* ---------- manual entry ---------- */
-function freshManualDraft(){ return {name:"", tagline:"", cards:[{section:"", q:"", a:"", w:""}]}; }
+function freshManualDraft(){ return {name:"", tagline:"", cards:[{section:"", q:"", e:"", a:"", w:""}]}; }
 function syncManualDraftFromDOM(){
   if(!manualDraft) return;
   const body = document.getElementById("addPackBody");
@@ -2263,6 +2292,7 @@ function syncManualDraftFromDOM(){
     manualDraft.cards[i] = {
       section: row.querySelector("[data-mf=section]").value,
       q: row.querySelector("[data-mf=q]").value,
+      e: row.querySelector("[data-mf=e]").value,
       a: row.querySelector("[data-mf=a]").value,
       w: row.querySelector("[data-mf=w]").value
     };
@@ -2275,6 +2305,7 @@ function addPackManualHTML(){
       + (manualDraft.cards.length>1 ? "<button class=\"mcr-remove\" data-action=\"mcr-remove\" data-idx=\""+i+"\" title=\"Remove card\">&times;</button>" : "")
       + "<div class=\"form-field\"><label>Section (optional)</label><input type=\"text\" data-mf=\"section\" value=\""+escHtml(c.section)+"\" placeholder=\"e.g. Chapter 1\"></div>"
       + "<div class=\"form-field\"><label>Question</label><textarea data-mf=\"q\" rows=\"2\">"+escHtml(c.q)+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Explanation (optional)</label><textarea data-mf=\"e\" rows=\"2\">"+escHtml(c.e)+"</textarea></div>"
       + "<div class=\"form-field\"><label>Answer</label><textarea data-mf=\"a\" rows=\"2\">"+escHtml(c.a)+"</textarea></div>"
       + "<div class=\"form-field\"><label>Why (optional)</label><textarea data-mf=\"w\" rows=\"2\">"+escHtml(c.w)+"</textarea></div>"
     + "</div>"
@@ -2315,7 +2346,7 @@ function loadWorkbookFile(file){
         rows = rows.filter(r=>r.some(cell=>String(cell).trim()!==""));
         const colCount = rows.reduce((m,r)=>Math.max(m,r.length), 2);
         const guess = guessSheetColumns(rows[0]||[]);
-        return {name, sectionName:name, include:true, hasHeader:true, rows, colCount, frontCol:guess.front, backCol:guess.back, whyCol:-1, prefix:""};
+        return {name, sectionName:name, include:true, hasHeader:true, rows, colCount, frontCol:guess.front, backCol:guess.back, explainCol:-1, whyCol:-1, prefix:""};
       });
       sheetDraft = {fileName:file.name, packName:file.name.replace(/\.[^.]+$/,""), tagline:"", sheets, error: sheets.length ? null : "That file doesn't seem to have any data in it."};
     }catch(err){
@@ -2393,7 +2424,10 @@ function addPackSpreadsheetHTML(){
           + "<div><label>Answer column</label><select data-sf=\"backCol\">"+sheetColOptions(sheet, sheet.backCol)+"</select></div>"
         + "</div>"
         + "<div class=\"sheet-map-grid\">"
+          + "<div><label>Explanation column (optional)</label><select data-sf=\"explainCol\"><option value=\"-1\""+(sheet.explainCol===-1?" selected":"")+">None</option>"+sheetColOptions(sheet, sheet.explainCol)+"</select></div>"
           + "<div><label>Why column (optional)</label><select data-sf=\"whyCol\"><option value=\"-1\""+(sheet.whyCol===-1?" selected":"")+">None</option>"+sheetColOptions(sheet, sheet.whyCol)+"</select></div>"
+        + "</div>"
+        + "<div class=\"sheet-map-grid\">"
           + "<div><label>Prefix question with (optional)</label><input type=\"text\" data-sf=\"prefix\" value=\""+escHtml(sheet.prefix)+"\" placeholder=\"e.g. Translate to Polish:\"></div>"
         + "</div>"
         + sheetPreviewHTML(sheet)
@@ -2408,12 +2442,12 @@ function addPackSpreadsheetHTML(){
 
 /* ---------- AI research ---------- */
 function aiPromptText(topic, count, focus){
-  return "Research \""+topic+"\" deeply and create "+count+" high-quality spaced-repetition flashcards from it. Each card needs a clear, specific question, a concise answer, and a short \"why\" explaining the reasoning or context."
+  return "Research \""+topic+"\" deeply and create "+count+" high-quality spaced-repetition flashcards from it. Each card needs a clear, specific question, a concise answer, and a short \"why\" explaining the reasoning or context. If a question benefits from extra context or a hint before it's answered, add a short optional \"e\" (explanation) field on that card — leave it out otherwise."
     + (focus ? " Additional focus: "+focus+"." : "")
     + "\n\nGroup the cards into 3-6 logical sections.\n\nReturn ONLY a JSON object in exactly this shape, with no other text before or after it:\n\n"
     + "{\n  \"name\": \"<short pack title>\",\n  \"tagline\": \"<one-line description>\",\n"
     + "  \"themes\": [{\"id\": \"t1\", \"name\": \"<section name>\"}, ...],\n"
-    + "  \"cards\": [{\"t\": \"t1\", \"q\": \"<question>\", \"a\": \"<answer>\", \"w\": \"<why>\"}, ...]\n}";
+    + "  \"cards\": [{\"t\": \"t1\", \"q\": \"<question>\", \"e\": \"<optional short explanation/context for the question, omit if not needed>\", \"a\": \"<answer>\", \"w\": \"<why>\"}, ...]\n}";
 }
 function addPackAiHTML(){
   if(!aiDraft) aiDraft = {topic:"", count:30, focus:""};
@@ -2490,8 +2524,9 @@ function initAddPackUI(){
           const front = String(r[sheet.frontCol]).trim();
           const back = String(r[sheet.backCol]).trim();
           const why = sheet.whyCol>=0 && r[sheet.whyCol]!==undefined ? String(r[sheet.whyCol]).trim() : "";
+          const explain = sheet.explainCol>=0 && r[sheet.explainCol]!==undefined ? String(r[sheet.explainCol]).trim() : "";
           const q = sheet.prefix && sheet.prefix.trim() ? (sheet.prefix.trim()+" "+front) : front;
-          cards.push({t:themeId, q, a:back, w:why});
+          cards.push({t:themeId, q, e:explain, a:back, w:why});
         });
       });
       if(!cards.length){
@@ -2551,6 +2586,7 @@ function initAddPackUI(){
     else if(sf === "hasHeader") sheet.hasHeader = e.target.checked;
     else if(sf === "frontCol") sheet.frontCol = Number(e.target.value);
     else if(sf === "backCol") sheet.backCol = Number(e.target.value);
+    else if(sf === "explainCol") sheet.explainCol = Number(e.target.value);
     else if(sf === "whyCol") sheet.whyCol = Number(e.target.value);
     renderAddPackModal();
   });
