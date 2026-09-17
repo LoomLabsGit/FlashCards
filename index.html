@@ -2208,16 +2208,24 @@ function renderHome(){
     rebuildEngineGlobals(meta);
     const total = meta.cards.length;
     const mastered = meta.cards.filter(c=>statusOf(c.id)==="mastered").length;
-    const pct = total ? Math.round((mastered/total)*100) : 0;
+    const masteredPct = total ? Math.round((mastered/total)*100) : 0;
     const due = cardsDueOrNewToday().length;
     const streak = computeCurrentStreakDisplay();
+    // The bar itself tracks today's session (reviewed vs. still due) — same
+    // formula as the Today strip on the Study tab — rather than overall
+    // mastery: under SM-2 a card doesn't count as "mastered" until its
+    // interval reaches 21+ days, so that percentage barely moves day to day
+    // even with a full daily session, which reads as a broken/empty bar.
+    const reviewedToday = (pack().history[todayStr()] || {}).total || 0;
+    const todaysTotal = reviewedToday + due;
+    const todayPct = todaysTotal ? Math.round((reviewedToday/todaysTotal)*100) : 100;
     return "<button class=\"pack-tile\" data-pack=\""+meta.id+"\">"
       + (meta.custom ? "<span class=\"pack-tile-delete\" data-delete=\""+meta.id+"\" title=\"Delete pack\">&times;</span>" : "")
       + "<h3>"+escHtml(meta.name)+"</h3>"
       + "<p class=\"pack-tagline\">"+escHtml(meta.tagline||"")+"</p>"
-      + "<div class=\"pack-progress-track\"><div class=\"pack-progress-fill\" style=\"width:"+pct+"%\"></div></div>"
+      + "<div class=\"pack-progress-track\" title=\"Today's progress\"><div class=\"pack-progress-fill\" style=\"width:"+todayPct+"%\"></div></div>"
       + "<div class=\"pack-stats-row\">"
-        + "<span><b class=\"mono\">"+pct+"%</b> mastered</span>"
+        + "<span><b class=\"mono\">"+masteredPct+"%</b> mastered</span>"
         + "<span><b class=\"mono\">"+due+"</b> due today</span>"
         + "<span><b class=\"mono\">"+streak+"</b> day streak</span>"
       + "</div></button>";
