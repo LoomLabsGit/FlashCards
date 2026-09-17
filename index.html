@@ -1266,6 +1266,31 @@ function saveLocal(){
   try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){ /* ignore */ }
 }
 
+/* ============================== LAST-OPEN RESTORE ==============================
+   Purely local/per-device (never synced to Supabase, unlike `state`): which
+   pack and which specific card was on screen. session.queue/session.pos and
+   currentPackId are otherwise in-memory only, so a full reload — most often
+   Chrome discarding a backgrounded tab to save memory — wiped them, silently
+   dropping the user back on the homepage. Written on every real card render
+   and on going home, so a reload (or a redundant re-auth event that isn't a
+   genuine first boot) can put the user back exactly where they were instead
+   of resetting to the homepage or, worse, re-showing the queue with its
+   ties/new-cards shuffle re-rolled — which used to swap in a different card
+   at the same position. */
+const LAST_OPEN_KEY = "leanux-flashcards-last-open-v1";
+function saveLastOpen(packId, cardId){
+  try{
+    if(packId == null){ localStorage.removeItem(LAST_OPEN_KEY); return; }
+    localStorage.setItem(LAST_OPEN_KEY, JSON.stringify({packId, cardId: cardId==null?null:cardId}));
+  }catch(e){ /* ignore */ }
+}
+function loadLastOpen(){
+  try{
+    const raw = localStorage.getItem(LAST_OPEN_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+
 function pruneHistory(){
   const cutoff = addDays(todayStr(), -400);
   Object.keys(state.packs).forEach(id=>{
@@ -1486,7 +1511,20 @@ function shuffle(arr){
   return arr;
 }
 
+// buildQueue() re-shuffles same-due-date ties and new cards on every call
+// (see below), so calling it again mid-session — a filter change, an undo,
+// or resuming after a reload — would otherwise land on a totally different
+// card at the same position. pendingResumeCardId lets a caller name the
+// card to land back on for the very next build; enterPack() always sets it
+// (explicitly, even to null) since session.queue may still hold a stale
+// previous pack's ids otherwise. Any other call site leaves it untouched,
+// so the fallback below — the card already on screen — is used, keeping an
+// in-session rebuild (filter/undo) anchored to what the user is looking at.
+let pendingResumeCardId;
 function buildQueue(){
+  const anchorId = pendingResumeCardId !== undefined ? pendingResumeCardId
+    : (session.pos < session.queue.length ? session.queue[session.pos] : null);
+  pendingResumeCardId = undefined;
   if(overrideQueue){
     session.queue = overrideQueue.slice();
     session.pos = 0;
@@ -1517,6 +1555,10 @@ function buildQueue(){
   const queue = due.concat(fresh);
   session.queue = queue.map(c=>c.id);
   session.pos = 0;
+  if(anchorId != null){
+    const idx = session.queue.indexOf(anchorId);
+    if(idx !== -1) session.pos = idx;
+  }
   session.flipped = false;
 }
 
@@ -1541,6 +1583,10 @@ function renderCard(){
   document.getElementById("sessionBar").style.width = pct + "%";
 
   const card = currentCard();
+  // Single choke point for "what's on screen right now" — every path that
+  // changes it (grading, filtering, undo, editing) calls renderCard()
+  // afterward, so this is the one place that needs to remember it.
+  if(currentPackId) saveLastOpen(currentPackId, card ? session.queue[session.pos] : null);
   if(!card){
     stage.style.display = "none";
     gradeRow.hidden = true;
@@ -2649,7 +2695,13 @@ function renderHome(){
     + "</button>";
 }
 
-function enterPack(id){
+// resumeCardId: pass the card to land the session back on (used when
+// restoring after a reload/reauth — see LAST-OPEN RESTORE above). Omitted
+// for a normal tile click, which should start fresh at the top of the due
+// queue as before. Always set explicitly (even to null) so a stale
+// session.queue left over from whichever pack was open before this one
+// never gets used as buildQueue()'s resume anchor.
+function enterPack(id, resumeCardId){
   const meta = findPackMeta(id);
   if(!meta) return;
   currentPackId = id;
@@ -2661,12 +2713,14 @@ function enterPack(id){
   document.getElementById("homeShell").hidden = true;
   document.getElementById("appShell").hidden = false;
   switchTab("study");
+  pendingResumeCardId = resumeCardId != null ? resumeCardId : null;
   renderAll();
 }
 
 function goHome(){
   document.body.classList.remove("focus-mode");
   currentPackId = null;
+  saveLastOpen(null, null);
   document.getElementById("appShell").hidden = true;
   document.getElementById("homeShell").hidden = false;
   renderHome();
@@ -3311,14 +3365,27 @@ function showAuthGate(){
 }
 function hideAuthGate(){
   document.getElementById("authGate").hidden = true;
-  goHome();
 }
 
+// Supabase re-fires a SIGNED_IN event well beyond genuine sign-ins — e.g.
+// when the browser tab regains focus and the client re-validates/refreshes
+// the session — so handleAuthed() runs far more often than "the user just
+// logged in". appBooted distinguishes the one time that actually needs to
+// pick an initial screen from every later re-check, which should leave
+// whatever the user is currently looking at alone rather than yanking them
+// back to the homepage (or, if they're already mid-study, silently
+// reshuffling the queue under them — see buildQueue()).
+let appBooted = false;
 async function handleAuthed(session){
   currentUser = session.user;
   document.getElementById("authEmailLabel").textContent = currentUser.email;
   await loadFromSupabase();
   hideAuthGate();
+  if(appBooted) return;
+  appBooted = true;
+  const last = loadLastOpen();
+  if(last && last.packId && findPackMeta(last.packId)) enterPack(last.packId, last.cardId);
+  else goHome();
 }
 
 function initAuthUI(){
@@ -3412,6 +3479,7 @@ function boot(){
       handleAuthed(session);
     } else if(event === "SIGNED_OUT"){
       currentUser = null;
+      appBooted = false;
       showAuthGate();
     }
   });
