@@ -276,6 +276,7 @@
   }
   .card-edit-btn:hover{color:var(--ink); border-color:var(--border-strong);}
   .card-edit-btn svg{width:14px; height:14px;}
+  .card-ai-btn{right:54px;}
   .flashcard{
     position:relative; height:100%; perspective:1400px;
   }
@@ -591,6 +592,14 @@
   .checkbox-row{display:flex; align-items:center; gap:7px; font-size:0.82rem; color:var(--ink-soft); font-weight:600; cursor:pointer;}
   .checkbox-row input{margin:0;}
 
+  .ai-card-preview{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:12px 14px; margin-bottom:16px;
+  }
+  .ai-card-preview .cer-q{margin-bottom:4px;}
+  .ai-preset-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
+  .ai-preset-row .btn.ghost{padding:7px 14px; font-size:0.8rem;}
+
   .prompt-box{
     width:100%; font-family:"IBM Plex Mono",monospace; font-size:0.76rem; color:var(--ink); background:var(--surface-2);
     border:1px solid var(--border); border-radius:var(--radius-s); padding:12px; box-sizing:border-box; resize:vertical; line-height:1.5;
@@ -793,6 +802,9 @@
       <div class="card-stage" id="cardStage">
         <div class="card-shadow-2"></div>
         <div class="card-shadow-1"></div>
+        <button class="card-edit-btn card-ai-btn" id="cardAiBtn" title="Ask AI about this card" aria-label="Ask AI about this card">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L14.4 8.5L20.5 9.2L16 13.2L17.3 19.2L12 16.1L6.7 19.2L8 13.2L3.5 9.2L9.6 8.5L12 3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </button>
         <button class="card-edit-btn" id="cardEditBtn" title="Edit this card" aria-label="Edit this card">
           <svg viewBox="0 0 24 24" fill="none"><path d="M4 20l4-1 10-10-3-3L5 16l-1 4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
         </button>
@@ -887,6 +899,13 @@
   <div class="modal-card">
     <button class="modal-close" id="editCardCloseBtn" aria-label="Close">&times;</button>
     <div id="editCardBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="aiCardOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="aiCardCloseBtn" aria-label="Close">&times;</button>
+    <div id="aiCardBody"></div>
   </div>
 </div>
 
@@ -1666,6 +1685,7 @@ function initStudyToolbar(){
     if(document.getElementById("appShell").hidden) return;
     if(!document.getElementById("view-study").classList.contains("active")) return;
     if(!document.getElementById("editCardOverlay").hidden) return;
+    if(!document.getElementById("aiCardOverlay").hidden) return;
     if(e.code === "Space"){ e.preventDefault(); toggleFlip(); }
     if(session.flipped && ["1","2","3","4"].includes(e.key)){
       const map = {"1":"again","2":"hard","3":"good","4":"easy"};
@@ -2188,6 +2208,164 @@ function initEditCardUI(){
       }
       saveCardOverride(id, q, ex, a, w);
       closeEditCardModal();
+      renderCard();
+      renderCardsEditor();
+    }
+  });
+}
+
+/* ============================== ASK AI ABOUT THIS CARD ==============================
+   Calls the /api/ask-ai serverless function (see api/ask-ai.js) rather than an
+   API key baked into this file — a static page's JS is visible to anyone,
+   auth gate or not, so the key lives only in that function's environment on
+   Vercel. The function itself also requires a live Supabase session before
+   it will spend any API credits, so a random visitor to the deployed URL
+   can't invoke it. The result lands in an editable review step (reusing the
+   same fields as the manual editor) rather than being applied blind, and is
+   written through the same saveCardOverride() as every other edit path —
+   only this one card ever changes. */
+const AI_CARD_PRESETS = {
+  factcheck: "Fact-check this flashcard. If anything is inaccurate, outdated, or misleading, correct it. If it's already accurate, return it unchanged.",
+  reword: "Reword this flashcard to be clearer and more concise, without changing its meaning.",
+  improve: "Improve this flashcard's quality as a spaced-repetition study card — sharpen the question, tighten the answer, and make the why (and explanation, if present) more useful — without changing the core meaning."
+};
+let aiCardStep = "ask"; // "ask" | "loading" | "review"
+let aiCardIdActive = null;
+let aiCardInstruction = "";
+let aiCardResult = null;
+let aiCardErrorMsg = "";
+let aiCardRequestSeq = 0;
+
+async function callAiCardAssist(card, instruction){
+  const { data } = await supabase.auth.getSession();
+  const token = data && data.session && data.session.access_token;
+  const resp = await fetch("/api/ask-ai", {
+    method:"POST",
+    headers:{"content-type":"application/json", "Authorization":"Bearer "+(token||"")},
+    body: JSON.stringify({ q:card.q, e:card.e||"", a:card.a, w:card.w||"", instruction })
+  });
+  let data2 = null;
+  try{ data2 = await resp.json(); }catch(e){}
+  if(!resp.ok || !data2 || !data2.ok) throw new Error((data2 && data2.error) || "Something went wrong asking AI.");
+  return data2.card;
+}
+
+function aiCardPreviewHTML(card){
+  return "<div class=\"ai-card-preview\">"
+    + "<p class=\"cer-q\">"+escHtml(card.q)+"</p>"
+    + (card.e ? "<p class=\"cer-e\"><b>Explanation&nbsp;</b>"+escHtml(card.e)+"</p>" : "")
+    + "<p class=\"cer-a\"><b>Answer&nbsp;</b>"+escHtml(card.a)+"</p>"
+    + (card.w ? "<p class=\"cer-w\"><b>Why&nbsp;</b>"+escHtml(card.w)+"</p>" : "")
+    + "</div>";
+}
+function aiCardModalHTML(){
+  const card = effCard(aiCardIdActive);
+  if(aiCardStep === "loading"){
+    return "<h2>Ask AI about this card</h2>"
+      + aiCardPreviewHTML(card)
+      + "<p class=\"wizard-note\">Thinking… this usually takes a few seconds.</p>";
+  }
+  if(aiCardStep === "review" && aiCardResult){
+    return "<h2>Review AI's suggestion</h2>"
+      + "<p class=\"modal-sub\">Edit anything before saving — nothing is applied to the card yet.</p>"
+      + "<div class=\"form-field\"><label>Question</label><textarea id=\"aiRevQ\" rows=\"2\">"+escHtml(aiCardResult.q)+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Explanation (optional)</label><textarea id=\"aiRevE\" rows=\"2\">"+escHtml(aiCardResult.e||"")+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Answer</label><textarea id=\"aiRevA\" rows=\"2\">"+escHtml(aiCardResult.a)+"</textarea></div>"
+      + "<div class=\"form-field\"><label>Why (optional)</label><textarea id=\"aiRevW\" rows=\"3\">"+escHtml(aiCardResult.w||"")+"</textarea></div>"
+      + "<div id=\"aiCardError\"></div>"
+      + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"ai-card-save\">Save to card</button><button class=\"btn ghost\" data-action=\"ai-card-discard\">Discard</button></div>";
+  }
+  return "<h2>Ask AI about this card</h2>"
+    + "<p class=\"modal-sub\">Runs on your own Claude API credits. Only this card changes.</p>"
+    + aiCardPreviewHTML(card)
+    + "<div class=\"form-field\"><label>What do you want AI to do?</label>"
+      + "<div class=\"ai-preset-row\">"
+        + "<button class=\"btn ghost\" data-action=\"ai-preset\" data-preset=\"factcheck\">Fact-check</button>"
+        + "<button class=\"btn ghost\" data-action=\"ai-preset\" data-preset=\"reword\">Reword / simplify</button>"
+        + "<button class=\"btn ghost\" data-action=\"ai-preset\" data-preset=\"improve\">Improve quality</button>"
+      + "</div>"
+      + "<textarea id=\"aiCardInstruction\" rows=\"3\" placeholder=\"e.g. Fact-check this, or reword the answer to be shorter...\">"+escHtml(aiCardInstruction)+"</textarea>"
+    + "</div>"
+    + (aiCardErrorMsg ? "<p class=\"wizard-error\">"+escHtml(aiCardErrorMsg)+"</p>" : "")
+    + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"ai-card-ask\">Ask AI</button></div>";
+}
+function renderAiCardModal(){
+  document.getElementById("aiCardBody").innerHTML = aiCardModalHTML();
+}
+function openAiCardModal(){
+  if(session.pos >= session.queue.length) return;
+  aiCardIdActive = session.queue[session.pos];
+  aiCardStep = "ask";
+  aiCardInstruction = "";
+  aiCardResult = null;
+  aiCardErrorMsg = "";
+  renderAiCardModal();
+  document.getElementById("aiCardOverlay").hidden = false;
+}
+function closeAiCardModal(){
+  document.getElementById("aiCardOverlay").hidden = true;
+  aiCardIdActive = null;
+  aiCardResult = null;
+}
+function initAiCardUI(){
+  document.getElementById("cardAiBtn").addEventListener("click",(e)=>{
+    e.stopPropagation();
+    openAiCardModal();
+  });
+  document.getElementById("aiCardCloseBtn").addEventListener("click", closeAiCardModal);
+  document.getElementById("aiCardOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "aiCardOverlay") closeAiCardModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("aiCardOverlay").hidden) closeAiCardModal();
+  });
+  document.getElementById("aiCardBody").addEventListener("click",(e)=>{
+    const btn = e.target.closest("[data-action]");
+    if(!btn) return;
+    const act = btn.dataset.action;
+    if(act === "ai-preset"){
+      aiCardInstruction = AI_CARD_PRESETS[btn.dataset.preset] || "";
+      renderAiCardModal();
+    } else if(act === "ai-card-ask"){
+      const instruction = document.getElementById("aiCardInstruction").value.trim();
+      if(!instruction){
+        aiCardErrorMsg = "Tell it what to do first — pick a preset above or type your own instruction.";
+        renderAiCardModal();
+        return;
+      }
+      aiCardInstruction = instruction;
+      aiCardErrorMsg = "";
+      aiCardStep = "loading";
+      renderAiCardModal();
+      const card = effCard(aiCardIdActive);
+      const cardId = aiCardIdActive;
+      const requestId = ++aiCardRequestSeq;
+      callAiCardAssist(card, instruction).then(result=>{
+        if(requestId !== aiCardRequestSeq || aiCardIdActive !== cardId) return; // stale / modal moved on
+        aiCardResult = result;
+        aiCardStep = "review";
+        renderAiCardModal();
+      }).catch(err=>{
+        if(requestId !== aiCardRequestSeq || aiCardIdActive !== cardId) return;
+        aiCardStep = "ask";
+        aiCardErrorMsg = err.message || "Something went wrong asking AI.";
+        renderAiCardModal();
+      });
+    } else if(act === "ai-card-discard"){
+      aiCardResult = null;
+      aiCardStep = "ask";
+      renderAiCardModal();
+    } else if(act === "ai-card-save"){
+      const q = document.getElementById("aiRevQ").value.trim();
+      const ex = document.getElementById("aiRevE").value.trim();
+      const a = document.getElementById("aiRevA").value.trim();
+      const w = document.getElementById("aiRevW").value.trim();
+      if(!q || !a){
+        document.getElementById("aiCardError").innerHTML = "<p class=\"wizard-error\">A question and answer are both required.</p>";
+        return;
+      }
+      saveCardOverride(aiCardIdActive, q, ex, a, w);
+      closeAiCardModal();
       renderCard();
       renderCardsEditor();
     }
@@ -2870,6 +3048,7 @@ function boot(){
   initCardsEditorUI();
   initAddPackUI();
   initEditCardUI();
+  initAiCardUI();
   calState.selected = todayStr();
 
   document.addEventListener("visibilitychange", ()=>{
