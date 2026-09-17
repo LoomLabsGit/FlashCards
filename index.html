@@ -352,6 +352,7 @@
     font-weight:700; font-size:0.88rem; padding:11px 22px; cursor:pointer;
   }
   .btn.ghost{background:none; border:1px solid var(--border); color:var(--ink);}
+  .btn.danger{background:var(--again); color:var(--bg);}
   .btn:hover{opacity:0.9;}
 
   /* ---------- calendar ---------- */
@@ -506,12 +507,24 @@
   .pack-progress-fill{height:100%; background:var(--good); border-radius:999px; width:0%;}
   .pack-stats-row{display:grid; grid-template-columns:repeat(2,1fr); gap:6px 14px; font-size:0.76rem; color:var(--ink-soft);}
   .pack-stats-row b{color:var(--ink); font-weight:600;}
-  .pack-tile-delete{
-    position:absolute; top:12px; right:12px; width:22px; height:22px; border-radius:50%;
-    border:1px solid var(--border); background:var(--surface); color:var(--ink-faint); font-size:0.85rem;
+  .pack-tile-menu-wrap{position:absolute; top:10px; right:10px;}
+  .pack-tile-menu-btn{
+    width:26px; height:26px; border-radius:50%; color:var(--ink-faint); font-size:1.15rem; font-weight:700;
     line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
-  .pack-tile-delete:hover, .pack-tile-delete.armed{color:var(--again); border-color:var(--again); background:var(--again-soft);}
+  .pack-tile-menu-btn:hover{color:var(--ink); background:var(--surface-2);}
+  .pack-tile-menu{
+    position:absolute; top:30px; right:0; min-width:150px; background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--radius-s); box-shadow:var(--shadow-soft);
+    padding:6px; display:flex; flex-direction:column; gap:2px; z-index:10; text-align:left;
+  }
+  .pack-tile-menu-item{
+    display:block; padding:8px 10px; font-size:0.84rem; font-weight:500; color:var(--ink);
+    border-radius:var(--radius-s); cursor:pointer;
+  }
+  .pack-tile-menu-item:hover{background:var(--surface-2);}
+  .pack-tile-menu-item.danger{color:var(--again);}
+  .pack-tile-menu-item.danger:hover{background:var(--again-soft);}
   .pack-tile-streak{
     align-self:flex-start; display:inline-flex; align-items:center; gap:4px;
     font-size:0.74rem; font-weight:700; color:var(--t3);
@@ -659,6 +672,7 @@
   }
   .step-list{margin:0 0 16px; padding-left:18px; font-size:0.85rem; color:var(--ink-soft); line-height:1.6;}
   .wizard-error{color:var(--again); background:var(--again-soft); border-radius:var(--radius-s); padding:9px 12px; font-size:0.82rem; margin:10px 0 0;}
+  .delete-pack-warning{color:var(--again); background:var(--again-soft); border-radius:var(--radius-s); padding:10px 12px; font-size:0.85rem; line-height:1.5; margin:0 0 4px;}
   .wizard-note{color:var(--ink-soft); background:var(--surface-2); border-radius:var(--radius-s); padding:9px 12px; font-size:0.82rem; margin:10px 0 0;}
   .wizard-actions{display:flex; gap:10px; margin-top:18px; align-items:center; flex-wrap:wrap;}
 
@@ -955,6 +969,20 @@
   <div class="modal-card">
     <button class="modal-close" id="addCardsCloseBtn" aria-label="Close">&times;</button>
     <div id="addCardsBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editPackOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="editPackCloseBtn" aria-label="Close">&times;</button>
+    <div id="editPackBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deletePackOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="deletePackCloseBtn" aria-label="Close">&times;</button>
+    <div id="deletePackBody"></div>
   </div>
 </div>
 
@@ -2657,7 +2685,9 @@ function initAiCardUI(){
 }
 
 /* ============================== HOMEPAGE / PACK NAV ============================== */
-let deleteArmedPackId = null, deleteArmTimer = null;
+// Which custom pack's "..." menu is currently open, if any — closed by
+// picking an item, clicking elsewhere, or Escape (see initHomeUI below).
+let openPackMenuId = null;
 
 function renderHome(){
   const grid = document.getElementById("packGrid");
@@ -2683,7 +2713,18 @@ function renderHome(){
     const todayPct = todaysTotal ? Math.round((reviewedToday/todaysTotal)*100) : 100;
     return "<button class=\"pack-tile\" data-pack=\""+meta.id+"\">"
       + "<span class=\"pack-tile-streak\" title=\"Day streak\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M12 2C12 2 7 7.5 7 12.5C7 15.5 9.2 18 12 18C14.8 18 17 15.5 17 12.5C17 12.5 15.5 14 14 13C15 10 12 8 12 8C12 8 12.5 10 11 11.5C9.5 13 9 14.5 10 16\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/></svg>"+streak+"</span>"
-      + (meta.custom ? "<span class=\"pack-tile-delete\" data-delete=\""+meta.id+"\" title=\"Delete pack\">&times;</span>" : "")
+      + (meta.custom ? (
+          "<span class=\"pack-tile-menu-wrap\">"
+            + "<span class=\"pack-tile-menu-btn\" data-menu-toggle=\""+meta.id+"\" title=\"Pack options\" aria-label=\"Pack options\">&#8942;</span>"
+            + (openPackMenuId === meta.id ?
+                "<div class=\"pack-tile-menu\">"
+                  + "<span class=\"pack-tile-menu-item\" data-menu-action=\"edit\" data-pack-id=\""+meta.id+"\">Edit</span>"
+                  + "<span class=\"pack-tile-menu-item\" data-menu-action=\"add-cards\" data-pack-id=\""+meta.id+"\">Add cards</span>"
+                  + "<span class=\"pack-tile-menu-item danger\" data-menu-action=\"delete\" data-pack-id=\""+meta.id+"\">Delete</span>"
+                + "</div>"
+              : "")
+          + "</span>"
+        ) : "")
       + "<h3>"+escHtml(meta.name)+"</h3>"
       + "<p class=\"pack-tagline\">"+escHtml(meta.tagline||"")+"</p>"
       + "<div class=\"pack-progress-track\" title=\"Today's progress\"><div class=\"pack-progress-fill\" style=\"width:"+todayPct+"%\"></div></div>"
@@ -2741,6 +2782,100 @@ function deleteCustomPack(id){
   renderHome();
 }
 
+/* ============================== EDIT PACK (rename/tagline) ============================== */
+let editPackDraft = null;
+function openEditPackModal(id){
+  const cp = state.customPacks[id];
+  if(!cp) return;
+  editPackDraft = {id, name:cp.name, tagline:cp.tagline||""};
+  renderEditPackModal();
+  document.getElementById("editPackOverlay").hidden = false;
+}
+function closeEditPackModal(){
+  document.getElementById("editPackOverlay").hidden = true;
+  editPackDraft = null;
+}
+function renderEditPackModal(){
+  document.getElementById("editPackBody").innerHTML =
+    "<h2>Edit pack</h2>"
+    + "<div class=\"form-field\"><label>Pack name</label><input type=\"text\" id=\"editPackName\" value=\""+escHtml(editPackDraft.name)+"\"></div>"
+    + "<div class=\"form-field\"><label>Tagline (optional)</label><input type=\"text\" id=\"editPackTagline\" value=\""+escHtml(editPackDraft.tagline)+"\"></div>"
+    + "<div id=\"editPackError\"></div>"
+    + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"edit-pack-save\">Save</button><button class=\"btn ghost\" data-action=\"edit-pack-cancel\">Cancel</button></div>";
+}
+function initEditPackUI(){
+  document.getElementById("editPackCloseBtn").addEventListener("click", closeEditPackModal);
+  document.getElementById("editPackOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "editPackOverlay") closeEditPackModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("editPackOverlay").hidden) closeEditPackModal();
+  });
+  document.getElementById("editPackBody").addEventListener("click",(e)=>{
+    const action = e.target.closest("[data-action]");
+    if(!action) return;
+    if(action.dataset.action === "edit-pack-cancel"){
+      closeEditPackModal();
+    } else if(action.dataset.action === "edit-pack-save"){
+      const name = document.getElementById("editPackName").value.trim();
+      const tagline = document.getElementById("editPackTagline").value.trim();
+      if(!name){
+        document.getElementById("editPackError").innerHTML = "<p class=\"wizard-error\">Give the pack a name.</p>";
+        return;
+      }
+      const cp = state.customPacks[editPackDraft.id];
+      if(cp){
+        cp.name = name;
+        cp.tagline = tagline;
+        persist();
+      }
+      closeEditPackModal();
+      renderHome();
+    }
+  });
+}
+
+/* ============================== DELETE PACK (confirm) ==============================
+   Replaces the old tap-again-on-the-tile arm/disarm pattern with an actual
+   confirmation modal — a stray second tap could too easily land on "Delete"
+   again by accident, permanently losing a whole pack's cards and history. */
+let deletePackTargetId = null;
+function openDeletePackModal(id){
+  const cp = state.customPacks[id];
+  if(!cp) return;
+  deletePackTargetId = id;
+  const count = cp.cards.length;
+  document.getElementById("deletePackBody").innerHTML =
+    "<h2>Delete \""+escHtml(cp.name)+"\"?</h2>"
+    + "<p class=\"delete-pack-warning\">This permanently deletes all "+count+" card"+(count===1?"":"s")+", plus this pack's schedule and history. This can't be undone.</p>"
+    + "<div class=\"wizard-actions\"><button class=\"btn danger\" data-action=\"confirm-delete-pack\">Delete pack</button><button class=\"btn ghost\" data-action=\"cancel-delete-pack\">Cancel</button></div>";
+  document.getElementById("deletePackOverlay").hidden = false;
+}
+function closeDeletePackModal(){
+  document.getElementById("deletePackOverlay").hidden = true;
+  deletePackTargetId = null;
+}
+function initDeletePackUI(){
+  document.getElementById("deletePackCloseBtn").addEventListener("click", closeDeletePackModal);
+  document.getElementById("deletePackOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "deletePackOverlay") closeDeletePackModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("deletePackOverlay").hidden) closeDeletePackModal();
+  });
+  document.getElementById("deletePackBody").addEventListener("click",(e)=>{
+    const action = e.target.closest("[data-action]");
+    if(!action) return;
+    if(action.dataset.action === "cancel-delete-pack"){
+      closeDeletePackModal();
+    } else if(action.dataset.action === "confirm-delete-pack"){
+      const id = deletePackTargetId;
+      closeDeletePackModal();
+      deleteCustomPack(id);
+    }
+  });
+}
+
 function initHomeUI(){
   document.getElementById("homeSettingsBtn").addEventListener("click", ()=>{
     document.getElementById("home-list-view").hidden = true;
@@ -2751,30 +2886,52 @@ function initHomeUI(){
     document.getElementById("home-list-view").hidden = false;
   });
   document.getElementById("packGrid").addEventListener("click",(e)=>{
-    const delBtn = e.target.closest("[data-delete]");
-    if(delBtn){
+    const menuToggle = e.target.closest("[data-menu-toggle]");
+    if(menuToggle){
       e.stopPropagation();
-      const id = delBtn.dataset.delete;
-      if(deleteArmedPackId !== id){
-        deleteArmedPackId = id;
-        delBtn.title = "Tap again to delete";
-        delBtn.classList.add("armed");
-        clearTimeout(deleteArmTimer);
-        deleteArmTimer = setTimeout(()=>{ deleteArmedPackId = null; }, 6000);
-        return;
-      }
-      clearTimeout(deleteArmTimer);
-      deleteArmedPackId = null;
-      deleteCustomPack(id);
+      const id = menuToggle.dataset.menuToggle;
+      openPackMenuId = openPackMenuId === id ? null : id;
+      renderHome();
+      return;
+    }
+    const menuItem = e.target.closest("[data-menu-action]");
+    if(menuItem){
+      e.stopPropagation();
+      const id = menuItem.dataset.packId;
+      const menuAction = menuItem.dataset.menuAction;
+      openPackMenuId = null;
+      renderHome();
+      if(menuAction === "edit") openEditPackModal(id);
+      else if(menuAction === "add-cards"){ enterPack(id); switchTab("cards"); }
+      else if(menuAction === "delete") openDeletePackModal(id);
       return;
     }
     if(e.target.closest("#addPackTile")){
       openAddPackModal();
       return;
     }
+    if(openPackMenuId){
+      // A stray click elsewhere in the grid while a menu is open just
+      // dismisses it, rather than also entering whichever tile it landed on.
+      openPackMenuId = null;
+      renderHome();
+      return;
+    }
     const tile = e.target.closest(".pack-tile[data-pack]");
     if(!tile) return;
     enterPack(tile.dataset.pack);
+  });
+  document.addEventListener("click",(e)=>{
+    if(openPackMenuId && !e.target.closest(".pack-tile-menu-wrap")){
+      openPackMenuId = null;
+      renderHome();
+    }
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && openPackMenuId){
+      openPackMenuId = null;
+      renderHome();
+    }
   });
   document.getElementById("packBackBtn").addEventListener("click", goHome);
 }
@@ -3465,6 +3622,8 @@ function boot(){
   initAuthUI();
   initSettingsUI();
   initHomeUI();
+  initEditPackUI();
+  initDeletePackUI();
   initCardsEditorUI();
   initAddPackUI();
   initAddCardsUI();
