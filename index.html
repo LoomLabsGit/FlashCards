@@ -501,13 +501,25 @@
     transition:border-color .12s ease, transform .12s ease;
   }
   .pack-tile:hover{border-color:var(--border-strong); transform:translateY(-1px);}
-  .pack-tile h3{font-size:1.12rem; font-weight:600; padding-right:16px;}
-  .pack-tagline{margin:0; font-size:0.82rem; color:var(--ink-soft); line-height:1.4;}
+  /* Fixed-height title (1 line) and description (3 lines) so the progress
+     bar and the metadata line underneath land at the same vertical
+     position on every tile, regardless of how short or long a given
+     pack's name/tagline is. */
+  .pack-tile h3{
+    font-size:1.12rem; font-weight:600;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .pack-tagline{
+    margin:0; font-size:0.82rem; color:var(--ink-soft); line-height:1.4;
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden;
+    min-height:calc(0.82rem * 1.4 * 3);
+  }
   .pack-progress-track{height:5px; border-radius:999px; background:var(--surface-3); overflow:hidden;}
   .pack-progress-fill{height:100%; background:var(--good); border-radius:999px; width:0%;}
-  .pack-stats-row{display:grid; grid-template-columns:repeat(2,1fr); gap:6px 14px; font-size:0.76rem; color:var(--ink-soft);}
+  .pack-stats-row{display:flex; gap:10px; font-size:0.72rem; color:var(--ink-soft); white-space:nowrap;}
   .pack-stats-row b{color:var(--ink); font-weight:600;}
-  .pack-tile-menu-wrap{position:absolute; top:10px; right:10px;}
+  .pack-tile-top{display:flex; align-items:flex-start; justify-content:space-between; gap:8px;}
+  .pack-tile-menu-wrap{position:relative; flex:none;}
   .pack-tile-menu-btn{
     width:26px; height:26px; border-radius:50%; color:var(--ink-faint); font-size:1.15rem; font-weight:700;
     line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
@@ -526,7 +538,7 @@
   .pack-tile-menu-item.danger{color:var(--again);}
   .pack-tile-menu-item.danger:hover{background:var(--again-soft);}
   .pack-tile-streak{
-    align-self:flex-start; display:inline-flex; align-items:center; gap:4px;
+    flex:none; display:inline-flex; align-items:center; gap:4px;
     font-size:0.74rem; font-weight:700; color:var(--t3);
     background:var(--surface-2); border-radius:999px; padding:3px 10px 3px 7px;
   }
@@ -1138,11 +1150,28 @@ const LEAN_UX_CARDS = [
 const BUILTIN_PACKS_META = [
   {id:"lean-ux", name:"Lean UX Drills", tagline:"Spaced-repetition practice from the Lean UX notes", themes:LEAN_UX_THEMES, cards:LEAN_UX_CARDS}
 ];
+// Built-in packs have no persisted record of their own to rename/re-tagline
+// directly (their name/tagline are hardcoded JS constants), so an edit is
+// layered on top via state.packMeta instead — the one thing about a
+// built-in pack this app lets the "Edit" menu item change.
+function packMetaOverride(id){
+  return (state.packMeta && state.packMeta[id]) || null;
+}
+function builtinPackMeta(base){
+  const ov = packMetaOverride(base.id);
+  return {
+    id: base.id,
+    name: (ov && ov.name) || base.name,
+    tagline: (ov && ov.tagline != null) ? ov.tagline : base.tagline,
+    themes: base.themes,
+    cards: base.cards
+  };
+}
 function customPackMeta(cp){
   return {id:cp.id, name:cp.name, tagline:cp.tagline, themes:cp.themes, cards:cp.cards, custom:true};
 }
 function allPacksMeta(){
-  return BUILTIN_PACKS_META.concat(Object.keys(state.customPacks).map(id=>customPackMeta(state.customPacks[id])));
+  return BUILTIN_PACKS_META.map(builtinPackMeta).concat(Object.keys(state.customPacks).map(id=>customPackMeta(state.customPacks[id])));
 }
 function findPackMeta(id){
   return allPacksMeta().find(p=>p.id===id);
@@ -1237,6 +1266,7 @@ function defaultState(){
   return {
     packs:{},
     customPacks:{},      // packId -> {id, name, tagline, themes:[{id,name}], cards:[{id,t,q,a,w}], createdAt}
+    packMeta:{},          // packId -> {name, tagline} — rename/tagline overrides for built-in packs
     updatedAt:new Date().toISOString()
   };
 }
@@ -1252,10 +1282,12 @@ function migrateFlatState(raw){
         startDate: raw.startDate || todayStr(), overrides:{}
       }},
       customPacks:{},
+      packMeta:{},
       updatedAt: raw.updatedAt || new Date().toISOString()
     };
   }
   if(raw && !raw.customPacks) raw.customPacks = {};
+  if(raw && !raw.packMeta) raw.packMeta = {};
   return raw;
 }
 
@@ -2711,20 +2743,24 @@ function renderHome(){
     const reviewedToday = (pack().history[todayStr()] || {}).total || 0;
     const todaysTotal = reviewedToday + due;
     const todayPct = todaysTotal ? Math.round((reviewedToday/todaysTotal)*100) : 100;
+    // Every pack — built-in included — gets the "..." menu now; only the
+    // items that are actually safe/supported for that pack appear in it
+    // (see openEditPackModal / addCardsToCustomPack / deleteCustomPack).
+    const menuHTML = "<span class=\"pack-tile-menu-wrap\">"
+        + "<span class=\"pack-tile-menu-btn\" data-menu-toggle=\""+meta.id+"\" title=\"Pack options\" aria-label=\"Pack options\">&#8942;</span>"
+        + (openPackMenuId === meta.id ?
+            "<div class=\"pack-tile-menu\">"
+              + "<span class=\"pack-tile-menu-item\" data-menu-action=\"edit\" data-pack-id=\""+meta.id+"\">Edit</span>"
+              + (meta.custom ? "<span class=\"pack-tile-menu-item\" data-menu-action=\"add-cards\" data-pack-id=\""+meta.id+"\">Add cards</span>" : "")
+              + (meta.custom ? "<span class=\"pack-tile-menu-item danger\" data-menu-action=\"delete\" data-pack-id=\""+meta.id+"\">Delete</span>" : "")
+            + "</div>"
+          : "")
+      + "</span>";
     return "<button class=\"pack-tile\" data-pack=\""+meta.id+"\">"
-      + "<span class=\"pack-tile-streak\" title=\"Day streak\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M12 2C12 2 7 7.5 7 12.5C7 15.5 9.2 18 12 18C14.8 18 17 15.5 17 12.5C17 12.5 15.5 14 14 13C15 10 12 8 12 8C12 8 12.5 10 11 11.5C9.5 13 9 14.5 10 16\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/></svg>"+streak+"</span>"
-      + (meta.custom ? (
-          "<span class=\"pack-tile-menu-wrap\">"
-            + "<span class=\"pack-tile-menu-btn\" data-menu-toggle=\""+meta.id+"\" title=\"Pack options\" aria-label=\"Pack options\">&#8942;</span>"
-            + (openPackMenuId === meta.id ?
-                "<div class=\"pack-tile-menu\">"
-                  + "<span class=\"pack-tile-menu-item\" data-menu-action=\"edit\" data-pack-id=\""+meta.id+"\">Edit</span>"
-                  + "<span class=\"pack-tile-menu-item\" data-menu-action=\"add-cards\" data-pack-id=\""+meta.id+"\">Add cards</span>"
-                  + "<span class=\"pack-tile-menu-item danger\" data-menu-action=\"delete\" data-pack-id=\""+meta.id+"\">Delete</span>"
-                + "</div>"
-              : "")
-          + "</span>"
-        ) : "")
+      + "<div class=\"pack-tile-top\">"
+        + "<span class=\"pack-tile-streak\" title=\"Day streak\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M12 2C12 2 7 7.5 7 12.5C7 15.5 9.2 18 12 18C14.8 18 17 15.5 17 12.5C17 12.5 15.5 14 14 13C15 10 12 8 12 8C12 8 12.5 10 11 11.5C9.5 13 9 14.5 10 16\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/></svg>"+streak+"</span>"
+        + menuHTML
+      + "</div>"
       + "<h3>"+escHtml(meta.name)+"</h3>"
       + "<p class=\"pack-tagline\">"+escHtml(meta.tagline||"")+"</p>"
       + "<div class=\"pack-progress-track\" title=\"Today's progress\"><div class=\"pack-progress-fill\" style=\"width:"+todayPct+"%\"></div></div>"
@@ -2732,7 +2768,6 @@ function renderHome(){
         + "<span><b class=\"mono\">"+total+"</b> card"+(total===1?"":"s")+"</span>"
         + "<span><b class=\"mono\">"+masteredPct+"%</b> mastered</span>"
         + "<span><b class=\"mono\">"+due+"</b> due today</span>"
-        + "<span><b class=\"mono\">"+streak+"</b> day streak</span>"
       + "</div></button>";
   }).join("");
   currentPackId = null;
@@ -2785,9 +2820,9 @@ function deleteCustomPack(id){
 /* ============================== EDIT PACK (rename/tagline) ============================== */
 let editPackDraft = null;
 function openEditPackModal(id){
-  const cp = state.customPacks[id];
-  if(!cp) return;
-  editPackDraft = {id, name:cp.name, tagline:cp.tagline||""};
+  const meta = findPackMeta(id);
+  if(!meta) return;
+  editPackDraft = {id, name:meta.name, tagline:meta.tagline||""};
   renderEditPackModal();
   document.getElementById("editPackOverlay").hidden = false;
 }
@@ -2827,8 +2862,13 @@ function initEditPackUI(){
       if(cp){
         cp.name = name;
         cp.tagline = tagline;
-        persist();
+      } else {
+        // Built-in pack: no record of its own to rename directly, so the
+        // change is layered on as an override (see builtinPackMeta above).
+        if(!state.packMeta) state.packMeta = {};
+        state.packMeta[editPackDraft.id] = {name, tagline};
       }
+      persist();
       closeEditPackModal();
       renderHome();
     }
