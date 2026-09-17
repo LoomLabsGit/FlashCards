@@ -512,6 +512,12 @@
     line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
   .pack-tile-delete:hover, .pack-tile-delete.armed{color:var(--again); border-color:var(--again); background:var(--again-soft);}
+  .pack-tile-streak{
+    align-self:flex-start; display:inline-flex; align-items:center; gap:4px;
+    font-size:0.74rem; font-weight:700; color:var(--t3);
+    background:var(--surface-2); border-radius:999px; padding:3px 10px 3px 7px;
+  }
+  .pack-tile-streak svg{width:13px; height:13px; flex:none;}
   .pack-tile-add{
     border-style:dashed; align-items:center; text-align:center; color:var(--ink-soft);
   }
@@ -2676,6 +2682,7 @@ function renderHome(){
     const todaysTotal = reviewedToday + due;
     const todayPct = todaysTotal ? Math.round((reviewedToday/todaysTotal)*100) : 100;
     return "<button class=\"pack-tile\" data-pack=\""+meta.id+"\">"
+      + "<span class=\"pack-tile-streak\" title=\"Day streak\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M12 2C12 2 7 7.5 7 12.5C7 15.5 9.2 18 12 18C14.8 18 17 15.5 17 12.5C17 12.5 15.5 14 14 13C15 10 12 8 12 8C12 8 12.5 10 11 11.5C9.5 13 9 14.5 10 16\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/></svg>"+streak+"</span>"
       + (meta.custom ? "<span class=\"pack-tile-delete\" data-delete=\""+meta.id+"\" title=\"Delete pack\">&times;</span>" : "")
       + "<h3>"+escHtml(meta.name)+"</h3>"
       + "<p class=\"pack-tagline\">"+escHtml(meta.tagline||"")+"</p>"
