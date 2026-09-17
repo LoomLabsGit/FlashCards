@@ -268,6 +268,14 @@
   }
   .card-shadow-1{transform:rotate(2.2deg) translateY(4px);}
   .card-shadow-2{transform:rotate(-2.6deg) translateY(6px); background:var(--surface-3);}
+  .card-edit-btn{
+    position:absolute; top:14px; right:14px; z-index:5;
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--border);
+    background:var(--surface); color:var(--ink-soft); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-soft);
+  }
+  .card-edit-btn:hover{color:var(--ink); border-color:var(--border-strong);}
+  .card-edit-btn svg{width:14px; height:14px;}
   .flashcard{
     position:relative; height:100%; perspective:1400px;
   }
@@ -785,6 +793,9 @@
       <div class="card-stage" id="cardStage">
         <div class="card-shadow-2"></div>
         <div class="card-shadow-1"></div>
+        <button class="card-edit-btn" id="cardEditBtn" title="Edit this card" aria-label="Edit this card">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 20l4-1 10-10-3-3L5 16l-1 4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </button>
         <div class="flashcard" id="flashcard">
           <div class="inner">
             <div class="card-face card-front" id="cardFront">
@@ -869,6 +880,13 @@
   <div class="modal-card">
     <button class="modal-close" id="addPackCloseBtn" aria-label="Close">&times;</button>
     <div id="addPackBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editCardOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="editCardCloseBtn" aria-label="Close">&times;</button>
+    <div id="editCardBody"></div>
   </div>
 </div>
 
@@ -1647,6 +1665,7 @@ function initStudyToolbar(){
   document.addEventListener("keydown",(e)=>{
     if(document.getElementById("appShell").hidden) return;
     if(!document.getElementById("view-study").classList.contains("active")) return;
+    if(!document.getElementById("editCardOverlay").hidden) return;
     if(e.code === "Space"){ e.preventDefault(); toggleFlip(); }
     if(session.flipped && ["1","2","3","4"].includes(e.key)){
       const map = {"1":"again","2":"hard","3":"good","4":"easy"};
@@ -2095,14 +2114,82 @@ function initCardsEditorUI(){
       const a = row.querySelector("[data-field=\"a\"]").value.trim();
       const w = row.querySelector("[data-field=\"w\"]").value.trim();
       if(!q || !a) return;
-      const base = CARD_BY_ID[id];
-      const p = pack();
-      if(q === base.q && a === base.a && w === (base.w||"") && e === (base.e||"")) delete p.overrides[id];
-      else p.overrides[id] = {q, a, w, e};
+      saveCardOverride(id, q, e, a, w);
       editingCardId = null;
-      persist();
       renderCardsEditor();
       renderCard();
+    }
+  });
+}
+
+// Shared by the Cards-tab editor and the on-the-fly editor opened from the
+// study card itself: writes (or, if the text now matches the base deck
+// again, clears) this card's content override.
+function saveCardOverride(id, q, e, a, w){
+  const base = CARD_BY_ID[id];
+  const p = pack();
+  if(q === base.q && a === base.a && w === (base.w||"") && e === (base.e||"")) delete p.overrides[id];
+  else p.overrides[id] = {q, a, w, e};
+  persist();
+}
+
+/* ============================== ON-THE-FLY CARD EDIT ==============================
+   A quick-edit button lives on the study card itself (front and back, via a
+   single button positioned outside the flip animation) so a typo doesn't
+   require a trip to the Cards tab. Writes through the same saveCardOverride()
+   as the Cards tab, so both stay consistent. */
+let editingCardIdOnFly = null;
+function editCardModalHTML(cardId){
+  const ec = effCard(cardId);
+  return "<h2>Edit card</h2>"
+    + "<div class=\"form-field\"><label>Question</label><textarea id=\"ecQ\" rows=\"2\">"+escHtml(ec.q)+"</textarea></div>"
+    + "<div class=\"form-field\"><label>Explanation (optional)</label><textarea id=\"ecE\" rows=\"2\">"+escHtml(ec.e||"")+"</textarea></div>"
+    + "<div class=\"form-field\"><label>Answer</label><textarea id=\"ecA\" rows=\"2\">"+escHtml(ec.a)+"</textarea></div>"
+    + "<div class=\"form-field\"><label>Why (optional)</label><textarea id=\"ecW\" rows=\"3\">"+escHtml(ec.w||"")+"</textarea></div>"
+    + "<div id=\"editCardError\"></div>"
+    + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"ec-save\">Save</button><button class=\"btn ghost\" data-action=\"ec-cancel\">Cancel</button></div>";
+}
+function openEditCardModal(){
+  if(session.pos >= session.queue.length) return;
+  editingCardIdOnFly = session.queue[session.pos];
+  document.getElementById("editCardBody").innerHTML = editCardModalHTML(editingCardIdOnFly);
+  document.getElementById("editCardOverlay").hidden = false;
+}
+function closeEditCardModal(){
+  document.getElementById("editCardOverlay").hidden = true;
+  editingCardIdOnFly = null;
+}
+function initEditCardUI(){
+  document.getElementById("cardEditBtn").addEventListener("click",(e)=>{
+    e.stopPropagation();
+    openEditCardModal();
+  });
+  document.getElementById("editCardCloseBtn").addEventListener("click", closeEditCardModal);
+  document.getElementById("editCardOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "editCardOverlay") closeEditCardModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("editCardOverlay").hidden) closeEditCardModal();
+  });
+  document.getElementById("editCardBody").addEventListener("click",(e)=>{
+    const btn = e.target.closest("[data-action]");
+    if(!btn) return;
+    if(btn.dataset.action === "ec-cancel"){
+      closeEditCardModal();
+    } else if(btn.dataset.action === "ec-save"){
+      const id = editingCardIdOnFly;
+      const q = document.getElementById("ecQ").value.trim();
+      const ex = document.getElementById("ecE").value.trim();
+      const a = document.getElementById("ecA").value.trim();
+      const w = document.getElementById("ecW").value.trim();
+      if(!q || !a){
+        document.getElementById("editCardError").innerHTML = "<p class=\"wizard-error\">A question and answer are both required.</p>";
+        return;
+      }
+      saveCardOverride(id, q, ex, a, w);
+      closeEditCardModal();
+      renderCard();
+      renderCardsEditor();
     }
   });
 }
@@ -2750,6 +2837,7 @@ function boot(){
   initHomeUI();
   initCardsEditorUI();
   initAddPackUI();
+  initEditCardUI();
   calState.selected = todayStr();
 
   document.addEventListener("visibilitychange", ()=>{
