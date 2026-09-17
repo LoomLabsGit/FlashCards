@@ -32,7 +32,8 @@ function buildPrompt(q, e, a, w, instruction) {
     "Answer: " + a + "\n" +
     (w ? "Why: " + w + "\n" : "") +
     "\nInstruction: " + instruction + "\n\n" +
-    "Apply the instruction to this single card. Keep it a good flashcard: a clear question, a concise answer, and (optionally) a short explanation for the question and/or a short why for the answer. If the instruction doesn't call for changing a field, leave that field as close to the original as makes sense."
+    "Apply the instruction to this single card. Keep it a good flashcard: a clear question, a concise answer, and (optionally) a short explanation for the question and/or a short why for the answer. If the instruction doesn't call for changing a field, leave that field as close to the original as makes sense.\n\n" +
+    "Also write a short summary (1-3 sentences, talking directly to the user, friendly and specific) of what you changed and why. If a fact-check found nothing wrong, or the card didn't need the requested change, say so plainly instead of inventing a change."
   );
 }
 
@@ -100,9 +101,10 @@ module.exports = async (req, res) => {
                 q: { type: "STRING" },
                 e: { type: "STRING" },
                 a: { type: "STRING" },
-                w: { type: "STRING" }
+                w: { type: "STRING" },
+                summary: { type: "STRING" }
               },
-              required: ["q", "a"]
+              required: ["q", "a", "summary"]
             }
           }
         })
@@ -151,7 +153,8 @@ module.exports = async (req, res) => {
         q: String(parsed.q).trim(),
         e: parsed.e ? String(parsed.e).trim() : "",
         a: String(parsed.a).trim(),
-        w: parsed.w ? String(parsed.w).trim() : ""
+        w: parsed.w ? String(parsed.w).trim() : "",
+        summary: parsed.summary ? String(parsed.summary).trim() : ""
       }
     });
   } catch (err) {

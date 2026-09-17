@@ -599,6 +599,20 @@
   .ai-card-preview .cer-q{margin-bottom:4px;}
   .ai-preset-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
   .ai-preset-row .btn.ghost{padding:7px 14px; font-size:0.8rem;}
+  .ai-card-summary{
+    background:var(--accent-soft); color:var(--ink); border-radius:var(--radius-s);
+    padding:12px 14px; margin-bottom:16px; font-size:0.86rem; line-height:1.5;
+  }
+  .ai-refine-row{margin:6px 0 16px; padding-top:14px; border-top:1px solid var(--border);}
+  .ai-refine-row label{
+    display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em;
+    font-weight:700; color:var(--ink-faint); margin-bottom:6px;
+  }
+  .ai-refine-row textarea{
+    width:100%; font:inherit; font-size:0.88rem; color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:var(--radius-s); padding:9px 11px;
+    box-sizing:border-box; resize:vertical; margin-bottom:8px;
+  }
 
   .prompt-box{
     width:100%; font-family:"IBM Plex Mono",monospace; font-size:0.76rem; color:var(--ink); background:var(--surface-2);
@@ -2235,6 +2249,8 @@ let aiCardInstruction = "";
 let aiCardResult = null;
 let aiCardErrorMsg = "";
 let aiCardRequestSeq = 0;
+let aiCardRefineDraft = "";
+let aiCardRefineError = "";
 
 async function callAiCardAssist(card, instruction){
   const { data } = await supabase.auth.getSession();
@@ -2261,17 +2277,24 @@ function aiCardPreviewHTML(card){
 function aiCardModalHTML(){
   const card = effCard(aiCardIdActive);
   if(aiCardStep === "loading"){
-    return "<h2>Ask AI about this card</h2>"
-      + aiCardPreviewHTML(card)
+    const preview = aiCardResult || card;
+    return "<h2>"+(aiCardResult ? "Asking for another change" : "Ask AI about this card")+"</h2>"
+      + aiCardPreviewHTML(preview)
       + "<p class=\"wizard-note\">Thinking… this usually takes a few seconds.</p>";
   }
   if(aiCardStep === "review" && aiCardResult){
     return "<h2>Review AI's suggestion</h2>"
-      + "<p class=\"modal-sub\">Edit anything before saving — nothing is applied to the card yet.</p>"
+      + (aiCardResult.summary ? "<div class=\"ai-card-summary\">"+escHtml(aiCardResult.summary)+"</div>" : "")
       + "<div class=\"form-field\"><label>Question</label><textarea id=\"aiRevQ\" rows=\"2\">"+escHtml(aiCardResult.q)+"</textarea></div>"
       + "<div class=\"form-field\"><label>Explanation (optional)</label><textarea id=\"aiRevE\" rows=\"2\">"+escHtml(aiCardResult.e||"")+"</textarea></div>"
       + "<div class=\"form-field\"><label>Answer</label><textarea id=\"aiRevA\" rows=\"2\">"+escHtml(aiCardResult.a)+"</textarea></div>"
       + "<div class=\"form-field\"><label>Why (optional)</label><textarea id=\"aiRevW\" rows=\"3\">"+escHtml(aiCardResult.w||"")+"</textarea></div>"
+      + "<div class=\"ai-refine-row\">"
+        + "<label>Want anything else changed?</label>"
+        + "<textarea id=\"aiRefineInstruction\" rows=\"2\" placeholder=\"e.g. Make the answer even shorter...\">"+escHtml(aiCardRefineDraft)+"</textarea>"
+        + (aiCardRefineError ? "<p class=\"wizard-error\">"+escHtml(aiCardRefineError)+"</p>" : "")
+        + "<button class=\"btn ghost\" data-action=\"ai-card-refine\">Ask for another change</button>"
+      + "</div>"
       + "<div id=\"aiCardError\"></div>"
       + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"ai-card-save\">Save to card</button><button class=\"btn ghost\" data-action=\"ai-card-discard\">Discard</button></div>";
   }
@@ -2299,6 +2322,8 @@ function openAiCardModal(){
   aiCardInstruction = "";
   aiCardResult = null;
   aiCardErrorMsg = "";
+  aiCardRefineDraft = "";
+  aiCardRefineError = "";
   renderAiCardModal();
   document.getElementById("aiCardOverlay").hidden = false;
 }
@@ -2353,8 +2378,44 @@ function initAiCardUI(){
       });
     } else if(act === "ai-card-discard"){
       aiCardResult = null;
+      aiCardRefineDraft = "";
+      aiCardRefineError = "";
       aiCardStep = "ask";
       renderAiCardModal();
+    } else if(act === "ai-card-refine"){
+      const instruction = document.getElementById("aiRefineInstruction").value.trim();
+      aiCardRefineDraft = instruction;
+      if(!instruction){
+        aiCardRefineError = "Type what you'd like changed first.";
+        renderAiCardModal();
+        return;
+      }
+      const q = document.getElementById("aiRevQ").value.trim();
+      const ex = document.getElementById("aiRevE").value.trim();
+      const a = document.getElementById("aiRevA").value.trim();
+      const w = document.getElementById("aiRevW").value.trim();
+      if(!q || !a){
+        aiCardRefineError = "The question and answer can't be empty.";
+        renderAiCardModal();
+        return;
+      }
+      aiCardRefineError = "";
+      aiCardStep = "loading";
+      renderAiCardModal();
+      const cardId = aiCardIdActive;
+      const requestId = ++aiCardRequestSeq;
+      callAiCardAssist({q, e:ex, a, w}, instruction).then(result=>{
+        if(requestId !== aiCardRequestSeq || aiCardIdActive !== cardId) return;
+        aiCardResult = result;
+        aiCardRefineDraft = "";
+        aiCardStep = "review";
+        renderAiCardModal();
+      }).catch(err=>{
+        if(requestId !== aiCardRequestSeq || aiCardIdActive !== cardId) return;
+        aiCardStep = "review";
+        aiCardRefineError = err.message || "Something went wrong asking AI.";
+        renderAiCardModal();
+      });
     } else if(act === "ai-card-save"){
       const q = document.getElementById("aiRevQ").value.trim();
       const ex = document.getElementById("aiRevE").value.trim();
