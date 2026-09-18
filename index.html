@@ -1148,7 +1148,8 @@ const LEAN_UX_CARDS = [
    pack — built-in or custom — without threading a pack argument through the
    whole engine. */
 const BUILTIN_PACKS_META = [
-  {id:"lean-ux", name:"Lean UX Drills", tagline:"Spaced-repetition practice from the Lean UX notes", themes:LEAN_UX_THEMES, cards:LEAN_UX_CARDS}
+  {id:"lean-ux", name:"Lean UX Drills", tagline:"Spaced-repetition practice from the Lean UX notes", themes:LEAN_UX_THEMES, cards:LEAN_UX_CARDS,
+   context:"Lean UX: a collaborative, outcome-driven approach to product design that folds UX work into Agile delivery. Covers the core principles (outcomes over outputs, shared understanding, continuous learning), the Lean UX Canvas and hypothesis frameworks, MVPs and experiments, team collaboration and research, and Agile integration (backlogs, sprints, roadmaps, UX debt). Answers should be short and practitioner-focused."}
 ];
 // Built-in packs have no persisted record of their own to rename/re-tagline
 // directly (their name/tagline are hardcoded JS constants), so an edit is
@@ -1163,12 +1164,13 @@ function builtinPackMeta(base){
     id: base.id,
     name: (ov && ov.name) || base.name,
     tagline: (ov && ov.tagline != null) ? ov.tagline : base.tagline,
+    context: (ov && ov.context != null) ? ov.context : (base.context || ""),
     themes: base.themes,
     cards: base.cards
   };
 }
 function customPackMeta(cp){
-  return {id:cp.id, name:cp.name, tagline:cp.tagline, themes:cp.themes, cards:cp.cards, custom:true};
+  return {id:cp.id, name:cp.name, tagline:cp.tagline, context:cp.context||"", themes:cp.themes, cards:cp.cards, custom:true};
 }
 function allPacksMeta(){
   return BUILTIN_PACKS_META.map(builtinPackMeta).concat(Object.keys(state.customPacks).map(id=>customPackMeta(state.customPacks[id])));
@@ -2535,18 +2537,76 @@ let aiCardRequestSeq = 0;
 let aiCardRefineDraft = "";
 let aiCardRefineError = "";
 
-async function callAiCardAssist(card, instruction){
+// Single door to the server-side AI proxy (see api/ask-ai.js) for both
+// per-card assists and pack-context generation: attaches the live session
+// token and unwraps the {ok, ...} envelope.
+async function postAi(payload){
   const { data } = await supabase.auth.getSession();
   const token = data && data.session && data.session.access_token;
   const resp = await fetch("/api/ask-ai", {
     method:"POST",
     headers:{"content-type":"application/json", "Authorization":"Bearer "+(token||"")},
-    body: JSON.stringify({ q:card.q, e:card.e||"", a:card.a, w:card.w||"", instruction })
+    body: JSON.stringify(payload)
   });
-  let data2 = null;
-  try{ data2 = await resp.json(); }catch(e){}
-  if(!resp.ok || !data2 || !data2.ok) throw new Error((data2 && data2.error) || "Something went wrong asking AI.");
-  return data2.card;
+  let body = null;
+  try{ body = await resp.json(); }catch(e){}
+  if(!resp.ok || !body || !body.ok) throw new Error((body && body.error) || "Something went wrong asking AI.");
+  return body;
+}
+
+// The pack's saved context note, its name, and the card's section ride along
+// with every card request so the AI already knows what the pack is about
+// (and, via the server's field guide, what each card field is for).
+async function callAiCardAssist(card, instruction, cardId){
+  const meta = findPackMeta(currentPackId);
+  const base = CARD_BY_ID[cardId];
+  const theme = base && THEME_BY_ID[base.t];
+  const body = await postAi({
+    q:card.q, e:card.e||"", a:card.a, w:card.w||"", instruction,
+    context: meta ? meta.context||"" : "",
+    packName: meta ? meta.name : "",
+    section: theme ? theme.name : ""
+  });
+  return body.card;
+}
+
+/* ============================== PACK CONTEXT ==============================
+   A one-to-three sentence note about what a pack is for, written by the AI
+   when the pack is created (and editable/regenerable from the pack's Edit
+   menu). It's sent with every per-card AI request so the owner never has to
+   re-explain the subject. Cheap by design: one small call per pack, fed the
+   name, sections and an even sample of cards rather than the whole deck. */
+function sampleCardsForContext(cards){
+  const MAX = 15;
+  const step = Math.max(1, Math.floor(cards.length / MAX));
+  const out = [];
+  for(let i = 0; i < cards.length && out.length < MAX; i += step){
+    out.push({q:String(cards[i].q).slice(0,200), a:String(cards[i].a).slice(0,200)});
+  }
+  return out;
+}
+async function requestPackContext(info, hint){
+  const body = await postAi({
+    mode:"context",
+    name:info.name, tagline:info.tagline||"", hint:hint||"",
+    sections:info.themes.map(t=>t.name),
+    samples:sampleCardsForContext(info.cards)
+  });
+  return body.context;
+}
+// Fire-and-forget after a pack is created: never blocks or fails pack
+// creation. If the call fails (offline, credits, not deployed), the pack just
+// has no context yet and can be generated later from its Edit menu.
+function generatePackContextInBackground(id, hint){
+  const meta = findPackMeta(id);
+  if(!meta) return;
+  requestPackContext(meta, hint).then(text=>{
+    const cp = state.customPacks[id];
+    if(cp && !cp.context){
+      cp.context = text;
+      persist();
+    }
+  }).catch(()=>{});
 }
 
 function aiCardPreviewHTML(card){
@@ -2648,7 +2708,7 @@ function initAiCardUI(){
       const card = effCard(aiCardIdActive);
       const cardId = aiCardIdActive;
       const requestId = ++aiCardRequestSeq;
-      callAiCardAssist(card, instruction).then(result=>{
+      callAiCardAssist(card, instruction, cardId).then(result=>{
         if(requestId !== aiCardRequestSeq || aiCardIdActive !== cardId) return; // stale / modal moved on
         aiCardResult = result;
         aiCardStep = "review";
@@ -2687,7 +2747,7 @@ function initAiCardUI(){
       renderAiCardModal();
       const cardId = aiCardIdActive;
       const requestId = ++aiCardRequestSeq;
-      callAiCardAssist({q, e:ex, a, w}, instruction).then(result=>{
+      callAiCardAssist({q, e:ex, a, w}, instruction, cardId).then(result=>{
         if(requestId !== aiCardRequestSeq || aiCardIdActive !== cardId) return;
         aiCardResult = result;
         aiCardRefineDraft = "";
@@ -2822,7 +2882,7 @@ let editPackDraft = null;
 function openEditPackModal(id){
   const meta = findPackMeta(id);
   if(!meta) return;
-  editPackDraft = {id, name:meta.name, tagline:meta.tagline||""};
+  editPackDraft = {id, name:meta.name, tagline:meta.tagline||"", context:meta.context||""};
   renderEditPackModal();
   document.getElementById("editPackOverlay").hidden = false;
 }
@@ -2835,6 +2895,10 @@ function renderEditPackModal(){
     "<h2>Edit pack</h2>"
     + "<div class=\"form-field\"><label>Pack name</label><input type=\"text\" id=\"editPackName\" value=\""+escHtml(editPackDraft.name)+"\"></div>"
     + "<div class=\"form-field\"><label>Tagline (optional)</label><input type=\"text\" id=\"editPackTagline\" value=\""+escHtml(editPackDraft.tagline)+"\"></div>"
+    + "<div class=\"form-field\"><label>AI context</label><textarea id=\"editPackContext\" rows=\"4\" placeholder=\"A sentence or two about what this pack covers...\">"+escHtml(editPackDraft.context)+"</textarea>"
+      + "<p class=\"form-hint\">Sent to the AI with every &ldquo;Ask AI about this card&rdquo; request, so you never have to re-explain what the pack is for. Written for you automatically when a pack is created.</p>"
+      + "<div class=\"wizard-actions\" style=\"margin-top:8px;\"><button class=\"btn ghost\" data-action=\"edit-pack-regen\">"+(editPackDraft.context ? "Regenerate with AI" : "Generate with AI")+"</button><span id=\"editPackContextStatus\" class=\"form-hint\" style=\"margin:0;\"></span></div>"
+    + "</div>"
     + "<div id=\"editPackError\"></div>"
     + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"edit-pack-save\">Save</button><button class=\"btn ghost\" data-action=\"edit-pack-cancel\">Cancel</button></div>";
 }
@@ -2851,9 +2915,26 @@ function initEditPackUI(){
     if(!action) return;
     if(action.dataset.action === "edit-pack-cancel"){
       closeEditPackModal();
+    } else if(action.dataset.action === "edit-pack-regen"){
+      const packId = editPackDraft.id;
+      const meta = findPackMeta(packId);
+      const statusEl = document.getElementById("editPackContextStatus");
+      const name = document.getElementById("editPackName").value.trim() || meta.name;
+      const tagline = document.getElementById("editPackTagline").value.trim();
+      action.disabled = true;
+      statusEl.textContent = "Generating…";
+      requestPackContext({name, tagline, themes:meta.themes, cards:meta.cards}, "").then(text=>{
+        if(!editPackDraft || editPackDraft.id !== packId) return; // modal closed/changed meanwhile
+        document.getElementById("editPackContext").value = text;
+        statusEl.textContent = "Done — review it, then Save.";
+      }).catch(err=>{
+        if(!editPackDraft || editPackDraft.id !== packId) return;
+        statusEl.textContent = err.message || "Couldn't generate.";
+      }).then(()=>{ action.disabled = false; });
     } else if(action.dataset.action === "edit-pack-save"){
       const name = document.getElementById("editPackName").value.trim();
       const tagline = document.getElementById("editPackTagline").value.trim();
+      const context = document.getElementById("editPackContext").value.trim();
       if(!name){
         document.getElementById("editPackError").innerHTML = "<p class=\"wizard-error\">Give the pack a name.</p>";
         return;
@@ -2862,11 +2943,12 @@ function initEditPackUI(){
       if(cp){
         cp.name = name;
         cp.tagline = tagline;
+        cp.context = context;
       } else {
         // Built-in pack: no record of its own to rename directly, so the
         // change is layered on as an override (see builtinPackMeta above).
         if(!state.packMeta) state.packMeta = {};
-        state.packMeta[editPackDraft.id] = {name, tagline};
+        state.packMeta[editPackDraft.id] = {name, tagline, context};
       }
       persist();
       closeEditPackModal();
@@ -2994,14 +3076,17 @@ function initHomeUI(){
 function themeIdForIndex(i){ return "t"+(i+1); }
 function nextCustomPackId(){ return "custom-"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
-function saveNewCustomPack(name, tagline, themes, cards){
+// hint: optional plain-language description of the topic (the AI-research
+// wizard passes the topic/focus the owner typed), fed to the context note.
+function saveNewCustomPack(name, tagline, themes, cards, hint){
   const id = nextCustomPackId();
   const numberedCards = cards.map((c,i)=>({id:i+1, t:c.t, q:c.q, e:c.e||"", a:c.a, w:c.w||""}));
   state.customPacks[id] = {
-    id, name:(name||"").trim() || "Untitled pack", tagline:(tagline||"").trim(),
+    id, name:(name||"").trim() || "Untitled pack", tagline:(tagline||"").trim(), context:"",
     themes, cards:numberedCards, createdAt:new Date().toISOString()
   };
   persist();
+  generatePackContextInBackground(id, hint);
   return id;
 }
 
@@ -3118,7 +3203,7 @@ function jsonExampleText(){
     name: "Pack name (optional)",
     tagline: "One-line description (optional)",
     themes: [{id:"t1", name:"Section name"}],
-    cards: [{t:"t1", q:"Question text", e:"Optional short explanation/context", a:"Answer text", w:"Optional why/reasoning"}]
+    cards: [{t:"t1", q:"Question (front of card)", e:"Optional: context or hint about the QUESTION, shown on the front. Not the reasoning for the answer.", a:"Answer (back of card)", w:"Optional: why the answer is correct, shown on the back."}]
   }, null, 2);
 }
 
@@ -3372,12 +3457,12 @@ function addPackSpreadsheetHTML(){
 
 /* ---------- AI research ---------- */
 function aiPromptText(topic, count, focus){
-  return "Research \""+topic+"\" deeply and create "+count+" high-quality spaced-repetition flashcards from it. Each card needs a clear, specific question, a concise answer, and a short \"why\" explaining the reasoning or context. If a question benefits from extra context or a hint before it's answered, add a short optional \"e\" (explanation) field on that card — leave it out otherwise."
+  return "Research \""+topic+"\" deeply and create "+count+" high-quality spaced-repetition flashcards from it. Each card has these fields: \"q\" (question, shown on the front: clear and specific), \"a\" (answer, shown on the back: concise), and \"w\" (why, shown on the back under the answer: the reasoning that explains why the answer is correct). There is also an optional \"e\" (explanation, shown on the FRONT under the question): extra context or a hint about the question itself, NOT the reasoning for the answer — leave it out unless the question genuinely needs it."
     + (focus ? " Additional focus: "+focus+"." : "")
     + "\n\nGroup the cards into 3-6 logical sections.\n\nReturn ONLY a JSON object in exactly this shape, with no other text before or after it:\n\n"
     + "{\n  \"name\": \"<short pack title>\",\n  \"tagline\": \"<one-line description>\",\n"
     + "  \"themes\": [{\"id\": \"t1\", \"name\": \"<section name>\"}, ...],\n"
-    + "  \"cards\": [{\"t\": \"t1\", \"q\": \"<question>\", \"e\": \"<optional short explanation/context for the question, omit if not needed>\", \"a\": \"<answer>\", \"w\": \"<why>\"}, ...]\n}";
+    + "  \"cards\": [{\"t\": \"t1\", \"q\": \"<question>\", \"e\": \"<optional context/hint about the QUESTION, omit if not needed>\", \"a\": \"<answer>\", \"w\": \"<why the answer is correct>\"}, ...]\n}";
 }
 function addPackAiHTML(){
   if(!aiDraft) aiDraft = {topic:"", count:30, focus:""};
@@ -3523,7 +3608,8 @@ function initAddPackUI(){
         document.getElementById("aiError").innerHTML = "<p class=\"wizard-error\">"+escHtml(result.error)+"</p>";
         return;
       }
-      const id = saveNewCustomPack(result.name, result.tagline, result.themes, result.cards);
+      const topicHint = aiDraft ? (aiDraft.topic.trim() + (aiDraft.focus.trim() ? " — focus: " + aiDraft.focus.trim() : "")) : "";
+      const id = saveNewCustomPack(result.name, result.tagline, result.themes, result.cards, topicHint);
       aiDraft = null;
       closeAddPackModal();
       enterPack(id);
