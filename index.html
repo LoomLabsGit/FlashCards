@@ -148,6 +148,8 @@
     box-shadow:var(--shadow-soft);
   }
   .stat-pill svg{width:18px; height:18px; flex:none;}
+  #streakPill{cursor:pointer;}
+  #streakPill:hover{border-color:var(--border-strong);}
   .stat-pill .val{font-family:"IBM Plex Mono", monospace; font-weight:600; font-size:0.98rem;}
   .stat-pill .unit{font-size:0.72rem; color:var(--ink-soft); white-space:nowrap;}
   .stat-pill.streak svg{color:var(--t3);}
@@ -830,7 +832,7 @@
       </div>
     </div>
     <div class="stats-strip">
-      <div class="stat-pill streak">
+      <div class="stat-pill streak" id="streakPill" role="button" tabindex="0" title="Edit streak" aria-label="Edit day streak">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C12 2 7 7.5 7 12.5C7 15.5 9.2 18 12 18C14.8 18 17 15.5 17 12.5C17 12.5 15.5 14 14 13C15 10 12 8 12 8C12 8 12.5 10 11 11.5C9.5 13 9 14.5 10 16" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" fill="none"/></svg>
         <span class="val" id="streakVal">0</span><span class="unit">day streak</span>
       </div>
@@ -995,6 +997,13 @@
   <div class="modal-card">
     <button class="modal-close" id="addCardsCloseBtn" aria-label="Close">&times;</button>
     <div id="addCardsBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="streakOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="streakCloseBtn" aria-label="Close">&times;</button>
+    <div id="streakBody"></div>
   </div>
 </div>
 
@@ -2788,6 +2797,52 @@ function closeEditCardModal(){
   document.getElementById("editCardOverlay").hidden = true;
   editingCardIdOnFly = null;
 }
+/* ============================== EDIT STREAK (from inside a pack) ==============================
+   Tapping the streak pill opens a small editor, and shows what the app has
+   on record so the right number is easy to pick: the recent days with
+   reviews and the longest streak. Saves through setStreakFor(). */
+function openStreakModal(){
+  const p = pack();
+  const days = Object.keys(p.history).filter(d=>p.history[d].total > 0).sort().slice(-10);
+  const current = computeCurrentStreakDisplay();
+  document.getElementById("streakBody").innerHTML =
+    "<h2>Day streak</h2>"
+    + "<p class=\"modal-sub\">A day only breaks your streak if cards were scheduled and you skipped it &mdash; empty calendar days are rest days.</p>"
+    + "<p class=\"form-hint\" style=\"margin:0 0 4px;\"><b>Study days on record:</b> "+(days.length ? days.map(shortDay).join(", ") : "none")+"</p>"
+    + "<p class=\"form-hint\" style=\"margin:0 0 16px;\"><b>Longest streak on record:</b> "+(p.streak.longest||0)+"</p>"
+    + "<div class=\"form-field\"><label>Current streak (days)</label><input type=\"number\" id=\"streakInput\" min=\"0\" max=\"9999\" value=\""+current+"\">"
+    + "<p class=\"form-hint\">Change it to correct a streak that was reset by mistake. It counts through your latest study day &mdash; today if you've studied, otherwise yesterday.</p></div>"
+    + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"streak-save\">Save</button><button class=\"btn ghost\" data-action=\"streak-cancel\">Cancel</button></div>";
+  document.getElementById("streakOverlay").hidden = false;
+}
+function closeStreakModal(){
+  document.getElementById("streakOverlay").hidden = true;
+}
+function initStreakUI(){
+  const pill = document.getElementById("streakPill");
+  pill.addEventListener("click", openStreakModal);
+  pill.addEventListener("keydown",(e)=>{ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openStreakModal(); } });
+  document.getElementById("streakCloseBtn").addEventListener("click", closeStreakModal);
+  document.getElementById("streakOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "streakOverlay") closeStreakModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("streakOverlay").hidden) closeStreakModal();
+  });
+  document.getElementById("streakBody").addEventListener("click",(e)=>{
+    const action = e.target.closest("[data-action]");
+    if(!action) return;
+    if(action.dataset.action === "streak-cancel"){
+      closeStreakModal();
+    } else if(action.dataset.action === "streak-save"){
+      const n = parseInt(document.getElementById("streakInput").value, 10);
+      if(n >= 0) setStreakFor(currentPackId, Math.min(n, 9999));
+      closeStreakModal();
+      renderHeader();
+    }
+  });
+}
+
 function initEditCardUI(){
   document.getElementById("cardEditBtn").addEventListener("click",(e)=>{
     e.stopPropagation();
@@ -4076,6 +4131,7 @@ function boot(){
   initAddPackUI();
   initAddCardsUI();
   initEditCardUI();
+  initStreakUI();
   initAiCardUI();
   calState.selected = todayStr();
 
