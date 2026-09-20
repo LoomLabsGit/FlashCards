@@ -1429,11 +1429,34 @@ function statusOf(id){
   if(r.interval < 21) return "review";
   return "mastered";
 }
+// A card graded "Again" is scheduled for tomorrow, but the study session
+// puts it back a few cards later to be retested today. Until it's passed
+// (reps back to >= 1) it's still part of today's work, so it must keep
+// counting as "left" rather than vanishing from the day's numbers.
+function isPendingRetest(r, today){
+  return !!r && r.last === today && r.reps === 0;
+}
 function isReadyToday(id){
   const today = todayStr();
   const r = getRecord(id);
-  if(r) return r.due <= today;
+  if(r) return r.due <= today || isPendingRetest(r, today);
   return introDayFor(id) <= today;
+}
+// Today's numbers, counted in distinct cards rather than grades: a card is
+// "done" once it's been passed today, "remaining" until then. Grading Again
+// and retesting it therefore never inflates either number, so
+// done + remaining stays fixed for the day.
+function dayProgress(cards){
+  const today = todayStr();
+  let done = 0, remaining = 0;
+  cards.forEach(c=>{
+    if(isReadyToday(c.id)) remaining++;
+    else {
+      const r = getRecord(c.id);
+      if(r && r.last === today) done++;
+    }
+  });
+  return {done, remaining, total: done + remaining};
 }
 function cardsDueOrNewToday(){
   return CARDS.filter(c=>isReadyToday(c.id));
@@ -1582,7 +1605,9 @@ function shuffle(arr){
 // buildQueue() re-shuffles same-due-date ties and new cards on every call
 // (see below), so calling it again mid-session — a filter change, an undo,
 // or resuming after a reload — would otherwise land on a totally different
-// card at the same position. pendingResumeCardId lets a caller name the
+// card. The anchor card is moved to the front of the fresh queue (not
+// slotted in at its shuffled index, which would make cards before it look
+// "done"). pendingResumeCardId lets a caller name the
 // card to land back on for the very next build; enterPack() always sets it
 // (explicitly, even to null) since session.queue may still hold a stale
 // previous pack's ids otherwise. Any other call site leaves it untouched,
@@ -1603,6 +1628,9 @@ function buildQueue(){
   const today = todayStr();
   const pool = cardsMatchingFilters();
   const due = pool.filter(c=>{ const r = getRecord(c.id); return r && r.due <= today; });
+  // "Again" cards awaiting their retest today (see isPendingRetest) survive a
+  // rebuild too, so a reload can't silently drop a retest.
+  const pending = pool.filter(c=>isPendingRetest(getRecord(c.id), today));
   const fresh = pool.filter(c=>!getRecord(c.id) && introDayFor(c.id) <= today);
   due.sort((a,b)=> (getRecord(a.id).due).localeCompare(getRecord(b.id).due));
   // More-overdue cards still come first, but a stable sort otherwise leaves
@@ -1620,14 +1648,27 @@ function buildQueue(){
     i = j;
   }
   shuffle(fresh);
-  const queue = due.concat(fresh);
+  const queue = pending.concat(due, fresh);
   session.queue = queue.map(c=>c.id);
   session.pos = 0;
   if(anchorId != null){
     const idx = session.queue.indexOf(anchorId);
-    if(idx !== -1) session.pos = idx;
+    if(idx > 0){
+      session.queue.splice(idx, 1);
+      session.queue.unshift(anchorId);
+    }
   }
   session.flipped = false;
+}
+
+// Session progress in distinct cards. A card graded "Again" is re-inserted
+// further along the queue, so the queue array can hold the same id twice —
+// but it's still one card: it stays "not done" (it still has an occurrence
+// ahead of pos) until it's finally passed, and the total never grows.
+function sessionProgress(){
+  const all = new Set(session.queue);
+  const ahead = new Set(session.queue.slice(session.pos));
+  return {done: all.size - ahead.size, total: all.size};
 }
 
 function currentCard(){
@@ -1642,12 +1683,12 @@ function renderCard(){
   const stage = document.getElementById("cardStage");
   const bar = document.getElementById("progress-bar-fill") || document.getElementById("sessionBar");
 
-  const posLabel = Math.min(session.pos, session.queue.length);
-  document.getElementById("queuePos").textContent = posLabel;
-  document.getElementById("queueTotal").textContent = session.queue.length;
-  document.getElementById("focusQueuePos").textContent = posLabel;
-  document.getElementById("focusQueueTotal").textContent = session.queue.length;
-  const pct = session.queue.length ? Math.round((session.pos/session.queue.length)*100) : 0;
+  const sp = sessionProgress();
+  document.getElementById("queuePos").textContent = sp.done;
+  document.getElementById("queueTotal").textContent = sp.total;
+  document.getElementById("focusQueuePos").textContent = sp.done;
+  document.getElementById("focusQueueTotal").textContent = sp.total;
+  const pct = sp.total ? Math.round((sp.done/sp.total)*100) : 0;
   document.getElementById("sessionBar").style.width = pct + "%";
 
   const card = currentCard();
@@ -1661,7 +1702,7 @@ function renderCard(){
     complete.hidden = false;
     const today = todayStr();
     const day = pack().history[today];
-    document.getElementById("scReviewed").textContent = day ? day.total : 0;
+    document.getElementById("scReviewed").textContent = dayProgress(CARDS).done;
     if(day){
       const goodOrBetter = (day.grades.good||0) + (day.grades.easy||0);
       document.getElementById("scAccuracy").textContent = day.total ? Math.round((goodOrBetter/day.total)*100)+"%" : "0%";
@@ -1765,9 +1806,7 @@ function renderHeader(){
 function renderTodayStrip(){
   const today = todayStr();
   const day = pack().history[today];
-  const reviewed = day ? day.total : 0;
-  const remaining = cardsDueOrNewToday().length;
-  const total = reviewed + remaining;
+  const {done:reviewed, remaining, total} = dayProgress(CARDS);
   const pct = total ? Math.round((reviewed/total)*100) : 100;
   document.getElementById("todayFill").style.width = pct + "%";
   document.getElementById("todayReviewed").textContent = reviewed;
@@ -2800,9 +2839,8 @@ function renderHome(){
     // mastery: under SM-2 a card doesn't count as "mastered" until its
     // interval reaches 21+ days, so that percentage barely moves day to day
     // even with a full daily session, which reads as a broken/empty bar.
-    const reviewedToday = (pack().history[todayStr()] || {}).total || 0;
-    const todaysTotal = reviewedToday + due;
-    const todayPct = todaysTotal ? Math.round((reviewedToday/todaysTotal)*100) : 100;
+    const dp = dayProgress(CARDS);
+    const todayPct = dp.total ? Math.round((dp.done/dp.total)*100) : 100;
     // Every pack — built-in included — gets the "..." menu now; only the
     // items that are actually safe/supported for that pack appear in it
     // (see openEditPackModal / addCardsToCustomPack / deleteCustomPack).
