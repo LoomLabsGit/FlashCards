@@ -1202,6 +1202,19 @@ function customPackMeta(cp){
 function allPacksMeta(){
   return BUILTIN_PACKS_META.map(builtinPackMeta).concat(Object.keys(state.customPacks).map(id=>customPackMeta(state.customPacks[id])));
 }
+// Pack-scoped helpers (pack(), CARDS, introDayFor...) read the "current"
+// pack, so anything that needs them from the homepage points them at `id`
+// for the duration of fn and then restores whatever was active.
+function withPackContext(id, fn){
+  const prevId = currentPackId;
+  currentPackId = id;
+  rebuildEngineGlobals(findPackMeta(id));
+  try { return fn(); }
+  finally {
+    currentPackId = prevId;
+    if(prevId) rebuildEngineGlobals(findPackMeta(prevId));
+  }
+}
 function findPackMeta(id){
   return allPacksMeta().find(p=>p.id===id);
 }
@@ -1617,6 +1630,24 @@ function updateStreak(today){
   // Recomputed on every grade, not just the first of the day: each grade
   // changes the schedule, and the value that matters is the final one.
   s.nextWork = nextWorkDate();
+}
+
+// Manual correction, from a pack's Edit menu: "my streak is n days". n counts
+// up to your most recent study day, so if you've already studied today it
+// includes today; otherwise it runs to yesterday, and studying today makes
+// it n + 1. The rest-day horizon is refreshed too, so an empty calendar day
+// straight afterwards doesn't undo it.
+function setStreakFor(packId, n){
+  withPackContext(packId, ()=>{
+    const p = pack();
+    const s = p.streak;
+    const today = todayStr();
+    s.current = n;
+    if(n > s.longest) s.longest = n;
+    s.lastActiveDate = n > 0 ? (p.history[today] ? today : addDays(today, -1)) : null;
+    s.nextWork = nextWorkDate();
+    persist();
+  });
 }
 
 function computeCurrentStreakDisplay(){
@@ -3161,7 +3192,7 @@ let editPackDraft = null;
 function openEditPackModal(id){
   const meta = findPackMeta(id);
   if(!meta) return;
-  editPackDraft = {id, name:meta.name, tagline:meta.tagline||"", context:meta.context||"", newPerDay:newPerDayFor(state.packs[id])};
+  editPackDraft = {id, name:meta.name, tagline:meta.tagline||"", context:meta.context||"", newPerDay:newPerDayFor(state.packs[id]), streak:withPackContext(id, computeCurrentStreakDisplay)};
   renderEditPackModal();
   document.getElementById("editPackOverlay").hidden = false;
 }
@@ -3180,6 +3211,8 @@ function renderEditPackModal(){
     + "</div>"
     + "<div class=\"form-field\"><label>New cards per day</label><input type=\"number\" id=\"editPackNewPerDay\" min=\"1\" max=\"200\" value=\""+editPackDraft.newPerDay+"\">"
       + "<p class=\"form-hint\">How many cards you haven&rsquo;t seen yet are introduced each day (default "+DEFAULT_NEW_PER_DAY+"). Lower spreads your reviews out more evenly, at the cost of taking longer to get through the deck.</p></div>"
+    + "<div class=\"form-field\"><label>Day streak</label><input type=\"number\" id=\"editPackStreak\" min=\"0\" max=\"9999\" value=\""+editPackDraft.streak+"\">"
+      + "<p class=\"form-hint\">Your current streak for this pack. Change it to correct one that was reset by mistake.</p></div>"
     + "<div id=\"editPackError\"></div>"
     + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"edit-pack-save\">Save</button><button class=\"btn ghost\" data-action=\"edit-pack-cancel\">Cancel</button></div>";
 }
@@ -3233,6 +3266,8 @@ function initEditPackUI(){
         if(!state.packMeta) state.packMeta = {};
         state.packMeta[editPackDraft.id] = {name, tagline, context};
       }
+      const streakRaw = parseInt(document.getElementById("editPackStreak").value, 10);
+      if(streakRaw >= 0 && streakRaw !== editPackDraft.streak) setStreakFor(editPackDraft.id, Math.min(streakRaw, 9999));
       if(newPerDay !== editPackDraft.newPerDay){
         const ps = state.packs[editPackDraft.id] || (state.packs[editPackDraft.id] = defaultPackState());
         ps.newPerDay = newPerDay;
@@ -3954,36 +3989,10 @@ function hideAuthGate(){
 // back to the homepage (or, if they're already mid-study, silently
 // reshuffling the queue under them — see buildQueue()).
 let appBooted = false;
-// One-off repair, run once per account: Lean UX's 6-day streak was reset by a
-// day with nothing scheduled, before streaks became rest-day aware (see
-// updateStreak). If that's what the saved data shows — a longest streak of
-// exactly 6 and a fresh, shorter run since — the two runs are joined: the 6
-// plus the days studied since. Safe to delete once it has run.
-function restoreLeanUxStreak(){
-  const p = state.packs["lean-ux"];
-  const s = p && p.streak;
-  if(!s || s.restored) return;
-  s.restored = true;
-  if(s.longest === 6 && s.current >= 1 && s.current < 6){
-    s.current += 6;
-    if(s.current > s.longest) s.longest = s.current;
-    // Give it a rest-day horizon straight away, so it doesn't read as broken
-    // before the next grade refreshes nextWork.
-    const prevId = currentPackId;
-    currentPackId = "lean-ux";
-    rebuildEngineGlobals(findPackMeta("lean-ux"));
-    s.nextWork = nextWorkDate();
-    currentPackId = prevId;
-    if(prevId) rebuildEngineGlobals(findPackMeta(prevId));
-  }
-  persist();
-}
-
 async function handleAuthed(session){
   currentUser = session.user;
   document.getElementById("authEmailLabel").textContent = currentUser.email;
   await loadFromSupabase();
-  restoreLeanUxStreak();
   hideAuthGate();
   if(appBooted) return;
   appBooted = true;
