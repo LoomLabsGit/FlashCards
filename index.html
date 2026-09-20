@@ -202,6 +202,13 @@
   }
   .queue-info{font-size:0.85rem; color:var(--ink-soft);}
   .queue-info b{color:var(--ink); font-family:"IBM Plex Mono", monospace;}
+  .practice-tag{
+    margin-left:8px; font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
+    color:var(--accent); background:var(--accent-soft); border-radius:999px; padding:2px 8px;
+  }
+  .sc-next{margin:6px 0 0; font-size:0.9rem; color:var(--ink-soft); line-height:1.5;}
+  .sc-practice-note{margin:8px 0 0; font-size:0.76rem; color:var(--ink-faint);}
+  #scPracticeBtn{margin-top:10px;}
   .filters{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
   select#themeFilter{
     font-family:inherit; font-size:0.82rem; font-weight:600; color:var(--ink);
@@ -643,6 +650,7 @@
 
   .cards-tab-header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:2px;}
   .cards-tab-header .section-title{margin:0;}
+  .cards-tab-actions{display:flex; align-items:center; gap:14px;}
   .cards-tab-header .btn.ghost{padding:7px 14px; font-size:0.8rem;}
 
   .sheet-map-card{background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-m); padding:14px 16px; margin-bottom:12px;}
@@ -859,7 +867,7 @@
         </div>
       </div>
       <div class="study-toolbar">
-        <div class="queue-info"><b id="queuePos">0</b> / <b id="queueTotal">0</b> cards in this session</div>
+        <div class="queue-info"><b id="queuePos">0</b> / <b id="queueTotal">0</b> cards in this session<span class="practice-tag" id="practiceTag" hidden>Practice</span></div>
         <div class="filters">
           <select id="themeFilter"></select>
           <button class="icon-btn" id="focusModeBtn" title="Focus mode" aria-label="Enter focus mode">
@@ -930,11 +938,14 @@
       <div class="session-complete" id="sessionComplete" hidden>
         <h2 id="scTitle">All caught up</h2>
         <p id="scSub">Nothing left in this queue.</p>
-        <div class="sc-stats">
+        <p class="sc-next" id="scNext" hidden></p>
+        <div class="sc-stats" id="scStats">
           <div class="sc-stat"><b id="scReviewed">0</b><span>Reviewed today</span></div>
           <div class="sc-stat"><b id="scAccuracy">0%</b><span>Good or better</span></div>
         </div>
         <button class="btn" id="scActionBtn" hidden></button>
+        <button class="btn ghost" id="scPracticeBtn" hidden>Practice anyway</button>
+        <p class="sc-practice-note" id="scPracticeNote" hidden>&ldquo;Practice anyway&rdquo; never changes your schedule, streak or stats.</p>
       </div>
     </section>
 
@@ -963,7 +974,10 @@
     <section class="view" id="view-cards">
       <div class="cards-tab-header">
         <p class="section-title">Edit cards</p>
-        <button class="btn ghost" id="addCardsBtn" hidden>+ Add cards</button>
+        <div class="cards-tab-actions">
+          <button class="link-btn" id="restoreCardsBtn" hidden>Restore deleted cards</button>
+          <button class="btn ghost" id="addCardsBtn" hidden>+ Add cards</button>
+        </div>
       </div>
       <div id="cardsEditorList"></div>
     </section>
@@ -981,6 +995,13 @@
   <div class="modal-card">
     <button class="modal-close" id="addCardsCloseBtn" aria-label="Close">&times;</button>
     <div id="addCardsBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteCardOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="deleteCardCloseBtn" aria-label="Close">&times;</button>
+    <div id="deleteCardBody"></div>
   </div>
 </div>
 
@@ -1158,6 +1179,12 @@ const BUILTIN_PACKS_META = [
 function packMetaOverride(id){
   return (state.packMeta && state.packMeta[id]) || null;
 }
+// A built-in pack's cards are hardcoded, so "deleting" one just hides it via
+// a set of ids in that pack's saved state (and can be undone with Restore).
+function deletedCardsFor(id){
+  const p = state.packs[id];
+  return (p && p.deletedCards) || {};
+}
 function builtinPackMeta(base){
   const ov = packMetaOverride(base.id);
   return {
@@ -1166,7 +1193,7 @@ function builtinPackMeta(base){
     tagline: (ov && ov.tagline != null) ? ov.tagline : base.tagline,
     context: (ov && ov.context != null) ? ov.context : (base.context || ""),
     themes: base.themes,
-    cards: base.cards
+    cards: base.cards.filter(c=>!deletedCardsFor(base.id)[c.id])
   };
 }
 function customPackMeta(cp){
@@ -1202,11 +1229,18 @@ const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 /* ============================== INTRO PACING ==============================
-   Every card gets a deterministic "intro day" so the whole 106-card deck is
-   rolled out over the first couple of weeks, interleaved across sections
-   instead of dumped in one day. This lets the calendar project a full study
-   plan before a single card has ever been reviewed. */
-const CARDS_PER_DAY = 20;
+   Every card gets a deterministic "intro day" so a deck is rolled out over
+   several days, interleaved across sections, instead of dumped in one day.
+   This lets the calendar project a full study plan before a single card has
+   ever been reviewed. Introducing fewer new cards a day spreads the
+   reviews they generate more evenly (20 a day made a 106-card deck peak at
+   40 reviews then go quiet for over a week); 10 is the default and each
+   pack can override it from its Edit menu (pack().newPerDay). */
+const DEFAULT_NEW_PER_DAY = 10;
+function newPerDayFor(packState){
+  const n = packState && packState.newPerDay;
+  return n >= 1 ? Math.floor(n) : DEFAULT_NEW_PER_DAY;
+}
 function buildIntroOrder(){
   const byTheme = {};
   THEMES.forEach(t=>{ byTheme[t.id] = CARDS.filter(c=>c.t===t.id).map(c=>c.id); });
@@ -1245,7 +1279,7 @@ function themeColorVar(themeId){
 }
 function introDayFor(cardId){
   const idx = INTRO_INDEX[cardId];
-  return addDays(pack().startDate, Math.floor(idx / CARDS_PER_DAY));
+  return addDays(pack().startDate, Math.floor(idx / newPerDayFor(pack())));
 }
 
 /* ============================== STATE ==============================
@@ -1261,7 +1295,9 @@ function defaultPackState(){
     history:{},          // "YYYY-MM-DD" -> {total, byTheme:{}, grades:{again,hard,good,easy}}
     streak:{current:0, longest:0, lastActiveDate:null, nextWork:null},
     startDate: todayStr(),
-    overrides:{}          // id -> {q,a,w} — user edits to card content, layered over the base deck
+    overrides:{},         // id -> {q,a,w} — user edits to card content, layered over the base deck
+    newPerDay:null,       // new cards introduced per day; null = DEFAULT_NEW_PER_DAY
+    deletedCards:{}       // built-in packs only: id -> true for cards the user removed (see builtinPackMeta)
   };
 }
 function defaultState(){
@@ -1473,6 +1509,42 @@ function troubleCards(){
 }
 function gradeQuality(g){ return {again:0, hard:3, good:4, easy:5}[g]; }
 
+/* Interval fuzz. Cards introduced together and graded alike would otherwise
+   come due on exactly the same days forever, leaving a small deck with a
+   burst of reviews then weeks of nothing. So a due date is nudged a little
+   either side of its nominal interval — and rather than at random, toward
+   whichever candidate day currently has the fewest cards scheduled (like
+   Anki's load balancer), preferring the smallest nudge. Short intervals
+   (under 3 days, including every retest after "Again") are left alone.
+   r.interval keeps the nominal value so ease-based growth stays smooth. */
+function scheduledLoadByDay(excludeId){
+  const load = {};
+  CARDS.forEach(c=>{
+    if(c.id === excludeId) return;
+    const r = getRecord(c.id);
+    const d = r ? r.due : introDayFor(c.id);
+    load[d] = (load[d] || 0) + 1;
+  });
+  return load;
+}
+function fuzzedDue(today, interval, cardId){
+  if(interval < 3) return addDays(today, interval);
+  const frac = interval < 7 ? 0.15 : interval < 20 ? 0.10 : 0.05;
+  const delta = Math.max(1, Math.round(interval * frac));
+  const load = scheduledLoadByDay(cardId);
+  let best = null;
+  for(let o = -delta; o <= delta; o++){
+    if(interval + o < 1) continue;
+    const day = addDays(today, interval + o);
+    const l = load[day] || 0;
+    const a = Math.abs(o);
+    if(!best || l < best.l || (l === best.l && (a < best.a || (a === best.a && Math.random() < 0.5)))){
+      best = {day, l, a};
+    }
+  }
+  return best.day;
+}
+
 function applyGrade(id, grade){
   const today = todayStr();
   const p = pack();
@@ -1492,7 +1564,7 @@ function applyGrade(id, grade){
   r.ef = r.ef + (0.1 - (5-q)*(0.08+(5-q)*0.02));
   if(r.ef < 1.3) r.ef = 1.3;
   r.last = today;
-  r.due = addDays(today, r.interval);
+  r.due = fuzzedDue(today, r.interval, id);
   p.cards[id] = r;
 
   const card = CARD_BY_ID[id];
@@ -1605,7 +1677,7 @@ function cardsScheduledOn(dateStr, horizonDays){
 }
 
 /* ============================== SESSION / QUEUE ============================== */
-let session = { queue: [], pos: 0, flipped:false, reviewedToday0:0, correctToday0:0 };
+let session = { queue: [], pos: 0, flipped:false, practice:false, reviewedToday0:0, correctToday0:0 };
 let filters = { theme:"all" };
 let calState = (function(){ const t = todayStr(); return { year: Number(t.slice(0,4)), month: Number(t.slice(5,7))-1, selected:null }; })();
 let overrideQueue = null; // set when launched from calendar
@@ -1646,6 +1718,7 @@ function buildQueue(){
   const anchorId = pendingResumeCardId !== undefined ? pendingResumeCardId
     : (session.pos < session.queue.length ? session.queue[session.pos] : null);
   pendingResumeCardId = undefined;
+  session.practice = false; // any (re)build is a normal session; startPractice() re-flags it afterwards
   if(overrideQueue){
     session.queue = overrideQueue.slice();
     session.pos = 0;
@@ -1689,6 +1762,57 @@ function buildQueue(){
   session.flipped = false;
 }
 
+/* ============================== NEXT REVIEW & PRACTICE ==============================
+   Spaced repetition leaves days with nothing due on purpose. Rather than a
+   bare "all caught up", say when the next review is, and offer an optional
+   practice run that never touches scheduling, the streak or stats. */
+function daysBetween(a, b){
+  return Math.round((Date.parse(b+"T00:00:00Z") - Date.parse(a+"T00:00:00Z")) / 86400000);
+}
+function shortDay(dateStr){
+  const d = parseYMD(dateStr);
+  return d.getDate() + " " + MONTH_NAMES[d.getMonth()].slice(0,3);
+}
+// Earliest future day with work, and how many cards land on it.
+function nextReviewInfo(){
+  const today = todayStr();
+  let next = null, count = 0;
+  CARDS.forEach(c=>{
+    const r = getRecord(c.id);
+    const d = r ? r.due : introDayFor(c.id);
+    if(d <= today) return;
+    if(next === null || d < next){ next = d; count = 1; }
+    else if(d === next) count++;
+  });
+  return next ? {date:next, count} : null;
+}
+function nextReviewText(info){
+  const d = parseYMD(info.date);
+  const n = daysBetween(todayStr(), info.date);
+  const when = n === 1 ? "tomorrow" : "in " + n + " days";
+  let text = "Next review: " + DOW[d.getDay()] + " " + d.getDate() + " " + MONTH_NAMES[d.getMonth()]
+    + " \u2014 " + info.count + " card" + (info.count===1?"":"s") + ", " + when + ".";
+  if(computeCurrentStreakDisplay() > 0) text += " Your streak is safe until then.";
+  return text;
+}
+const PRACTICE_SIZE = 20;
+// Cards closest to being due first (the ones a refresher helps most), topped
+// up with not-yet-introduced cards if the deck is small.
+function practiceQueueIds(){
+  const pool = cardsMatchingFilters();
+  const learned = pool.filter(c=>getRecord(c.id)).sort((a,b)=>getRecord(a.id).due.localeCompare(getRecord(b.id).due));
+  const unseen = pool.filter(c=>!getRecord(c.id));
+  return shuffle(learned.concat(unseen).slice(0, PRACTICE_SIZE).map(c=>c.id));
+}
+function startPractice(){
+  const ids = practiceQueueIds();
+  if(!ids.length) return;
+  overrideQueue = ids;
+  buildQueue();
+  session.practice = true;
+  renderCard();
+}
+
 // Session progress in distinct cards. A card graded "Again" is re-inserted
 // further along the queue, so the queue array can hold the same id twice —
 // but it's still one card: it stays "not done" (it still has an occurrence
@@ -1719,6 +1843,7 @@ function renderCard(){
   const pct = sp.total ? Math.round((sp.done/sp.total)*100) : 0;
   document.getElementById("sessionBar").style.width = pct + "%";
 
+  document.getElementById("practiceTag").hidden = !session.practice;
   const card = currentCard();
   // Single choke point for "what's on screen right now" — every path that
   // changes it (grading, filtering, undo, editing) calls renderCard()
@@ -1730,6 +1855,10 @@ function renderCard(){
     complete.hidden = false;
     const today = todayStr();
     const day = pack().history[today];
+    document.getElementById("scNext").hidden = true;
+    document.getElementById("scPracticeBtn").hidden = true;
+    document.getElementById("scPracticeNote").hidden = true;
+    document.getElementById("scStats").hidden = false;
     document.getElementById("scReviewed").textContent = dayProgress(CARDS).done;
     if(day){
       const goodOrBetter = (day.grades.good||0) + (day.grades.easy||0);
@@ -1741,9 +1870,26 @@ function renderCard(){
     const globalDueLeft = cardsDueOrNewToday().length;
     const actionBtn = document.getElementById("scActionBtn");
 
-    if(filteredDueLeft === 0 && globalDueLeft === 0){
+    if(session.practice){
+      document.getElementById("scTitle").textContent = "Practice complete";
+      document.getElementById("scSub").textContent = "Nothing here changed your schedule, streak or stats.";
+      document.getElementById("scStats").hidden = true;
+      actionBtn.hidden = false;
+      actionBtn.textContent = "Done";
+      actionBtn.onclick = ()=>{ buildQueue(); renderCard(); };
+    } else if(filteredDueLeft === 0 && globalDueLeft === 0){
       document.getElementById("scTitle").textContent = "All caught up";
       document.getElementById("scSub").textContent = "Nothing left to study today. Nice work.";
+      const nextInfo = nextReviewInfo();
+      if(nextInfo){
+        const nextEl = document.getElementById("scNext");
+        nextEl.textContent = nextReviewText(nextInfo);
+        nextEl.hidden = false;
+      }
+      if(cardsMatchingFilters().length){
+        document.getElementById("scPracticeBtn").hidden = false;
+        document.getElementById("scPracticeNote").hidden = false;
+      }
       const tomorrow = addDays(today, 1);
       let aheadDate = null, aheadIds = [];
       for(let i=1; i<=7; i++){
@@ -1809,7 +1955,7 @@ function toggleFlip(){
 function grade(g){
   const card = currentCard();
   if(!card || !session.flipped) return;
-  applyGrade(card.id, g);
+  if(!session.practice) applyGrade(card.id, g);
   if(g === "again"){
     const insertAt = Math.min(session.queue.length, session.pos + 3 + Math.floor(Math.random()*2));
     session.queue.splice(insertAt, 0, card.id);
@@ -1919,6 +2065,7 @@ function initStudyToolbar(){
     if(!btn) return;
     grade(btn.dataset.g);
   });
+  document.getElementById("scPracticeBtn").addEventListener("click", startPractice);
   document.addEventListener("keydown",(e)=>{
     if(document.getElementById("appShell").hidden) return;
     if(!document.getElementById("view-study").classList.contains("active")) return;
@@ -2258,11 +2405,10 @@ function initSettingsUI(){
    base CARD_BY_ID content by effCard() everywhere a card is displayed. */
 let editingCardId = null;
 
-// Revert and delete both discard data with no way back, so both use the
-// same tap-twice-to-confirm pattern as pack deletion and progress reset
-// instead of acting instantly. cardActionArmed tracks at most one armed
-// button at a time, keyed by "action:cardId" so arming one card's revert
-// doesn't also arm another card's delete.
+// Revert discards data with no way back, so it uses the tap-twice-to-confirm
+// pattern instead of acting instantly (deleting a card gets a proper
+// confirmation dialog — see openDeleteCardModal). cardActionArmed tracks at
+// most one armed button at a time, keyed by "action:cardId".
 let cardActionArmed = null;
 let cardActionArmTimer = null;
 function armCardAction(key){
@@ -2279,21 +2425,30 @@ function activePackIsCustom(){
   return !!(meta && meta.custom);
 }
 
-function deleteCardFromCustomPack(cardId){
+// Custom packs really lose the card; a built-in pack's cards are hardcoded,
+// so it's hidden instead (recoverable via restoreDeletedCards). Either way
+// its review record and any edits are dropped.
+function deleteCardFromPack(cardId){
   const cp = state.customPacks[currentPackId];
-  if(!cp) return;
-  cp.cards = cp.cards.filter(c=>c.id!==cardId);
-  const p = state.packs[currentPackId];
-  if(p){
-    delete p.cards[cardId];
-    if(p.overrides) delete p.overrides[cardId];
+  const p = pack();
+  if(cp){
+    cp.cards = cp.cards.filter(c=>c.id!==cardId);
+  } else {
+    if(!p.deletedCards) p.deletedCards = {};
+    p.deletedCards[cardId] = true;
   }
+  delete p.cards[cardId];
+  if(p.overrides) delete p.overrides[cardId];
+  if(editingCardId === cardId) editingCardId = null;
   // Drop it from the in-progress session queue too, rather than a full
   // buildQueue() — that would reshuffle and reset the user's position in
   // the middle of a study session just because they went and edited a
   // card in a different tab.
+  // Occurrences behind the current position shift everything after them up
+  // by one, so step pos back by the same amount or the next card is skipped.
+  const removedBehind = session.queue.slice(0, session.pos).filter(id=>id===cardId).length;
   session.queue = session.queue.filter(id=>id!==cardId);
-  if(session.pos > session.queue.length) session.pos = session.queue.length;
+  session.pos = Math.min(session.pos - removedBehind, session.queue.length);
   persist();
   rebuildEngineGlobals(findPackMeta(currentPackId));
   renderCardsEditor();
@@ -2301,7 +2456,7 @@ function deleteCardFromCustomPack(cardId){
   renderCard();
 }
 
-function cardEditRowHTML(c, isCustomPack){
+function cardEditRowHTML(c){
   const ec = effCard(c.id);
   const edited = !!pack().overrides[c.id];
   if(editingCardId === c.id){
@@ -2314,9 +2469,7 @@ function cardEditRowHTML(c, isCustomPack){
       + "</div>";
   }
   const revertKey = "revert:"+c.id;
-  const deleteKey = "delete:"+c.id;
   const revertArmed = cardActionArmed === revertKey;
-  const deleteArmed = cardActionArmed === deleteKey;
   return "<div class=\"card-edit-row\" data-id=\""+c.id+"\">"
     + (edited ? "<span class=\"cer-edited-badge\">Edited</span>" : "")
     + "<p class=\"cer-q\">"+escHtml(ec.q)+"</p>"
@@ -2325,7 +2478,7 @@ function cardEditRowHTML(c, isCustomPack){
     + (ec.w ? "<p class=\"cer-w\"><b>Why&nbsp;</b>"+escHtml(ec.w)+"</p>" : "")
     + "<div class=\"cer-actions\"><button class=\"link-btn\" data-action=\"edit\" data-id=\""+c.id+"\">Edit</button>"
     + (edited ? "<button class=\"link-btn"+(revertArmed?" armed":"")+"\" data-action=\"revert\" data-id=\""+c.id+"\">"+(revertArmed?"Tap again to revert":"Revert to original")+"</button>" : "")
-    + (isCustomPack ? "<button class=\"link-btn"+(deleteArmed?" armed":"")+"\" data-action=\"delete-card\" data-id=\""+c.id+"\">"+(deleteArmed?"Tap again to delete":"Delete card")+"</button>" : "")
+    + "<button class=\"link-btn\" data-action=\"delete-card\" data-id=\""+c.id+"\">Delete card</button>"
     + "</div></div>";
 }
 
@@ -2333,13 +2486,74 @@ function renderCardsEditor(){
   const el = document.getElementById("cardsEditorList");
   const isCustomPack = activePackIsCustom();
   document.getElementById("addCardsBtn").hidden = !isCustomPack;
+  const nDeleted = Object.keys(deletedCardsFor(currentPackId)).length;
+  const restoreBtn = document.getElementById("restoreCardsBtn");
+  restoreBtn.hidden = isCustomPack || !nDeleted;
+  restoreBtn.textContent = "Restore " + nDeleted + " deleted card" + (nDeleted===1?"":"s");
+  if(!CARDS.length){
+    el.innerHTML = "<p class=\"form-hint\">This pack has no cards.</p>";
+    return;
+  }
   el.innerHTML = THEMES.map(t=>{
-    const rows = CARDS.filter(c=>c.t===t.id).map(c=>cardEditRowHTML(c, isCustomPack)).join("");
-    return "<p class=\"section-title\">"+escHtml(t.name)+"</p><div class=\"card-edit-group\">"+rows+"</div>";
+    const cards = CARDS.filter(c=>c.t===t.id);
+    if(!cards.length) return ""; // a section emptied by deletions just disappears
+    return "<p class=\"section-title\">"+escHtml(t.name)+"</p><div class=\"card-edit-group\">"+cards.map(c=>cardEditRowHTML(c)).join("")+"</div>";
   }).join("");
 }
 
+/* ---------- delete a card (with confirmation) ---------- */
+let deleteCardTargetId = null;
+function openDeleteCardModal(id){
+  if(!CARD_BY_ID[id]) return;
+  deleteCardTargetId = id;
+  const ec = effCard(id);
+  const custom = activePackIsCustom();
+  document.getElementById("deleteCardBody").innerHTML =
+    "<h2>Delete this card?</h2>"
+    + "<div class=\"ai-card-preview\"><p class=\"cer-q\">"+escHtml(ec.q)+"</p><p class=\"cer-a\"><b>Answer&nbsp;</b>"+escHtml(ec.a)+"</p></div>"
+    + "<p class=\"delete-pack-warning\">"
+      + (custom
+          ? "This permanently deletes the card and its review history. This can't be undone."
+          : "This removes the card from the pack, along with its review history. You can bring deleted cards back with &ldquo;Restore deleted cards&rdquo; on this tab.")
+    + "</p>"
+    + "<div class=\"wizard-actions\"><button class=\"btn danger\" data-action=\"confirm-delete-card\">Delete card</button><button class=\"btn ghost\" data-action=\"cancel-delete-card\">Cancel</button></div>";
+  document.getElementById("deleteCardOverlay").hidden = false;
+}
+function closeDeleteCardModal(){
+  document.getElementById("deleteCardOverlay").hidden = true;
+  deleteCardTargetId = null;
+}
+function restoreDeletedCards(){
+  const p = pack();
+  p.deletedCards = {};
+  persist();
+  rebuildEngineGlobals(findPackMeta(currentPackId));
+  buildQueue();
+  renderCardsEditor();
+  renderHeader();
+  renderCard();
+}
+
 function initCardsEditorUI(){
+  document.getElementById("restoreCardsBtn").addEventListener("click", restoreDeletedCards);
+  document.getElementById("deleteCardCloseBtn").addEventListener("click", closeDeleteCardModal);
+  document.getElementById("deleteCardOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "deleteCardOverlay") closeDeleteCardModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("deleteCardOverlay").hidden) closeDeleteCardModal();
+  });
+  document.getElementById("deleteCardBody").addEventListener("click",(e)=>{
+    const action = e.target.closest("[data-action]");
+    if(!action) return;
+    if(action.dataset.action === "cancel-delete-card"){
+      closeDeleteCardModal();
+    } else if(action.dataset.action === "confirm-delete-card"){
+      const id = deleteCardTargetId;
+      closeDeleteCardModal();
+      if(id != null) deleteCardFromPack(id);
+    }
+  });
   document.getElementById("cardsEditorList").addEventListener("click",(e)=>{
     const btn = e.target.closest("button[data-action]");
     if(!btn) return;
@@ -2362,10 +2576,8 @@ function initCardsEditorUI(){
       renderCardsEditor();
       renderCard();
     } else if(action === "delete-card"){
-      const key = "delete:"+id;
-      if(cardActionArmed !== key){ armCardAction(key); renderCardsEditor(); return; }
       disarmCardAction();
-      deleteCardFromCustomPack(id);
+      openDeleteCardModal(id);
     } else if(action === "save"){
       const row = btn.closest(".card-edit-row");
       const q = row.querySelector("[data-field=\"q\"]").value.trim();
@@ -2867,6 +3079,7 @@ function renderHome(){
     // mastery: under SM-2 a card doesn't count as "mastered" until its
     // interval reaches 21+ days, so that percentage barely moves day to day
     // even with a full daily session, which reads as a broken/empty bar.
+    const nxt = due === 0 ? nextReviewInfo() : null;
     const dp = dayProgress(CARDS);
     const todayPct = dp.total ? Math.round((dp.done/dp.total)*100) : 100;
     // Every pack — built-in included — gets the "..." menu now; only the
@@ -2893,7 +3106,7 @@ function renderHome(){
       + "<div class=\"pack-stats-row\">"
         + "<span><b class=\"mono\">"+total+"</b> card"+(total===1?"":"s")+"</span>"
         + "<span><b class=\"mono\">"+masteredPct+"%</b> mastered</span>"
-        + "<span><b class=\"mono\">"+due+"</b> due today</span>"
+        + (nxt ? "<span><b class=\"mono\">next</b> "+shortDay(nxt.date)+"</span>" : "<span><b class=\"mono\">"+due+"</b> due today</span>")
       + "</div></button>";
   }).join("");
   currentPackId = null;
@@ -2948,7 +3161,7 @@ let editPackDraft = null;
 function openEditPackModal(id){
   const meta = findPackMeta(id);
   if(!meta) return;
-  editPackDraft = {id, name:meta.name, tagline:meta.tagline||"", context:meta.context||""};
+  editPackDraft = {id, name:meta.name, tagline:meta.tagline||"", context:meta.context||"", newPerDay:newPerDayFor(state.packs[id])};
   renderEditPackModal();
   document.getElementById("editPackOverlay").hidden = false;
 }
@@ -2965,6 +3178,8 @@ function renderEditPackModal(){
       + "<p class=\"form-hint\">Sent to the AI with every &ldquo;Ask AI about this card&rdquo; request, so you never have to re-explain what the pack is for. Written for you automatically when a pack is created.</p>"
       + "<div class=\"wizard-actions\" style=\"margin-top:8px;\"><button class=\"btn ghost\" data-action=\"edit-pack-regen\">"+(editPackDraft.context ? "Regenerate with AI" : "Generate with AI")+"</button><span id=\"editPackContextStatus\" class=\"form-hint\" style=\"margin:0;\"></span></div>"
     + "</div>"
+    + "<div class=\"form-field\"><label>New cards per day</label><input type=\"number\" id=\"editPackNewPerDay\" min=\"1\" max=\"200\" value=\""+editPackDraft.newPerDay+"\">"
+      + "<p class=\"form-hint\">How many cards you haven&rsquo;t seen yet are introduced each day (default "+DEFAULT_NEW_PER_DAY+"). Lower spreads your reviews out more evenly, at the cost of taking longer to get through the deck.</p></div>"
     + "<div id=\"editPackError\"></div>"
     + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"edit-pack-save\">Save</button><button class=\"btn ghost\" data-action=\"edit-pack-cancel\">Cancel</button></div>";
 }
@@ -3001,6 +3216,8 @@ function initEditPackUI(){
       const name = document.getElementById("editPackName").value.trim();
       const tagline = document.getElementById("editPackTagline").value.trim();
       const context = document.getElementById("editPackContext").value.trim();
+      const perDayRaw = parseInt(document.getElementById("editPackNewPerDay").value, 10);
+      const newPerDay = perDayRaw >= 1 ? Math.min(perDayRaw, 200) : editPackDraft.newPerDay;
       if(!name){
         document.getElementById("editPackError").innerHTML = "<p class=\"wizard-error\">Give the pack a name.</p>";
         return;
@@ -3015,6 +3232,10 @@ function initEditPackUI(){
         // change is layered on as an override (see builtinPackMeta above).
         if(!state.packMeta) state.packMeta = {};
         state.packMeta[editPackDraft.id] = {name, tagline, context};
+      }
+      if(newPerDay !== editPackDraft.newPerDay){
+        const ps = state.packs[editPackDraft.id] || (state.packs[editPackDraft.id] = defaultPackState());
+        ps.newPerDay = newPerDay;
       }
       persist();
       closeEditPackModal();
@@ -3733,10 +3954,36 @@ function hideAuthGate(){
 // back to the homepage (or, if they're already mid-study, silently
 // reshuffling the queue under them — see buildQueue()).
 let appBooted = false;
+// One-off repair, run once per account: Lean UX's 6-day streak was reset by a
+// day with nothing scheduled, before streaks became rest-day aware (see
+// updateStreak). If that's what the saved data shows — a longest streak of
+// exactly 6 and a fresh, shorter run since — the two runs are joined: the 6
+// plus the days studied since. Safe to delete once it has run.
+function restoreLeanUxStreak(){
+  const p = state.packs["lean-ux"];
+  const s = p && p.streak;
+  if(!s || s.restored) return;
+  s.restored = true;
+  if(s.longest === 6 && s.current >= 1 && s.current < 6){
+    s.current += 6;
+    if(s.current > s.longest) s.longest = s.current;
+    // Give it a rest-day horizon straight away, so it doesn't read as broken
+    // before the next grade refreshes nextWork.
+    const prevId = currentPackId;
+    currentPackId = "lean-ux";
+    rebuildEngineGlobals(findPackMeta("lean-ux"));
+    s.nextWork = nextWorkDate();
+    currentPackId = prevId;
+    if(prevId) rebuildEngineGlobals(findPackMeta(prevId));
+  }
+  persist();
+}
+
 async function handleAuthed(session){
   currentUser = session.user;
   document.getElementById("authEmailLabel").textContent = currentUser.email;
   await loadFromSupabase();
+  restoreLeanUxStreak();
   hideAuthGate();
   if(appBooted) return;
   appBooted = true;
