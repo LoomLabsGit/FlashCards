@@ -1259,7 +1259,7 @@ function defaultPackState(){
   return {
     cards:{},            // id -> {ef, reps, interval, due, last, lapses}
     history:{},          // "YYYY-MM-DD" -> {total, byTheme:{}, grades:{again,hard,good,easy}}
-    streak:{current:0, longest:0, lastActiveDate:null},
+    streak:{current:0, longest:0, lastActiveDate:null, nextWork:null},
     startDate: todayStr(),
     overrides:{}          // id -> {q,a,w} — user edits to card content, layered over the base deck
   };
@@ -1506,16 +1506,45 @@ function applyGrade(id, grade){
   persist();
 }
 
+/* ============================== STREAK ==============================
+   A streak counts days you studied, but it only breaks when you skip a day
+   that actually had work scheduled. Spaced repetition deliberately leaves
+   gaps (a small deck can have weeks with nothing due), and punishing those
+   would make the streak measure the calendar rather than your effort.
+   After every grade we record the first day the pack next has work
+   (s.nextWork); the streak survives any gap that ends on or before it. */
+// First day this pack has work waiting, from today's point of view. Work
+// that's already outstanding (overdue, unfinished intro cards, an Again
+// awaiting its retest) counts as today.
+function nextWorkDate(){
+  const today = todayStr();
+  let next = null;
+  CARDS.forEach(c=>{
+    const r = getRecord(c.id);
+    let d = r ? (isPendingRetest(r, today) ? today : r.due) : introDayFor(c.id);
+    if(d < today) d = today;
+    if(next === null || d < next) next = d;
+  });
+  return next;
+}
+// Was the streak still intact when studying (or viewing) on `day`? Yes if
+// the last study day was yesterday, or if no scheduled day fell in between.
+// Saves from before nextWork existed simply fall back to the yesterday rule.
+function streakAliveOn(s, day){
+  if(!s.lastActiveDate) return false;
+  if(s.lastActiveDate === addDays(day,-1)) return true;
+  return !!s.nextWork && s.nextWork >= day;
+}
 function updateStreak(today){
   const s = pack().streak;
-  if(s.lastActiveDate === today) return;
-  if(s.lastActiveDate === addDays(today,-1)){
-    s.current += 1;
-  } else {
-    s.current = 1;
+  if(s.lastActiveDate !== today){
+    s.current = streakAliveOn(s, today) ? s.current + 1 : 1;
+    s.lastActiveDate = today;
+    if(s.current > s.longest) s.longest = s.current;
   }
-  s.lastActiveDate = today;
-  if(s.current > s.longest) s.longest = s.current;
+  // Recomputed on every grade, not just the first of the day: each grade
+  // changes the schedule, and the value that matters is the final one.
+  s.nextWork = nextWorkDate();
 }
 
 function computeCurrentStreakDisplay(){
@@ -1523,8 +1552,7 @@ function computeCurrentStreakDisplay(){
   const s = pack().streak;
   if(!s.lastActiveDate) return 0;
   if(s.lastActiveDate === today) return s.current;
-  if(s.lastActiveDate === addDays(today,-1)) return s.current;
-  return 0;
+  return streakAliveOn(s, today) ? s.current : 0;
 }
 
 /* ============================== PROJECTED SCHEDULE ==============================
