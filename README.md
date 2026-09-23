@@ -1,6 +1,6 @@
-# Lean UX Flashcards
+# Retainiac
 
-A spaced-repetition (SM-2) flashcard app for studying Lean UX concepts, built as a single self-contained HTML file.
+A spaced-repetition (SM-2) flashcard app for learning anything (ships with Lean UX and World Flags packs), built as a single self-contained HTML file.
 
 - **Source:** [`index.html`](./index.html)
 - **Hosting:** Vercel (deploys automatically from this repo's `main` branch)
