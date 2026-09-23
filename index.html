@@ -310,6 +310,23 @@
     margin:0; text-wrap:balance;
   }
   .card-explain{font-size:0.92rem; color:var(--ink-soft); line-height:1.5; margin:0;}
+  /* Picture cards (flags etc.): shown at their own proportions, with a hairline
+     ring so white-heavy flags don't dissolve into the card. */
+  .card-img{
+    display:block; max-width:100%; max-height:min(190px, 28vh); width:auto; height:auto;
+    margin:0 auto; border-radius:4px;
+    box-shadow:0 0 0 1px var(--border-strong), 0 6px 18px rgba(0,0,0,0.25);
+  }
+  .card-img[hidden]{display:none;}
+  .card-img-small{max-height:84px; margin:0 0 16px;}
+  .card-img-error{margin:0; text-align:center; font-size:0.85rem; color:var(--ink-faint);}
+  .card-question-wrap.has-img{align-items:center; text-align:center;}
+  #sectionToggleBtn .eye-off{display:none;}
+  #sectionToggleBtn.is-hidden .eye-on{display:none;}
+  #sectionToggleBtn.is-hidden .eye-off{display:block;}
+  #sectionToggleBtn.is-hidden{color:var(--accent); border-color:var(--accent);}
+  .cer-thumb{display:block; height:34px; min-width:34px; width:auto; margin:0 0 8px; border-radius:3px; background:var(--surface-3); box-shadow:0 0 0 1px var(--border-strong);}
+  .tr-thumb{flex:none; height:22px; width:auto; border-radius:2px; box-shadow:0 0 0 1px var(--border-strong);}
   .flip-hint{
     text-align:center; font-size:0.74rem; color:var(--ink-faint); letter-spacing:0.03em;
     text-transform:uppercase; margin-top:14px;
@@ -872,6 +889,10 @@
         <div class="queue-info"><b id="queuePos">0</b> / <b id="queueTotal">0</b> cards in this session<span class="practice-tag" id="practiceTag" hidden>Practice</span></div>
         <div class="filters">
           <select id="themeFilter"></select>
+          <button class="icon-btn" id="sectionToggleBtn" title="Hide section names on cards" aria-label="Hide section names on cards" aria-pressed="false">
+            <svg class="eye-on" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+            <svg class="eye-off" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
           <button class="icon-btn" id="focusModeBtn" title="Focus mode" aria-label="Enter focus mode">
             <svg viewBox="0 0 24 24" fill="none"><path d="M9 4H5.5C4.67 4 4 4.67 4 5.5V9M15 4H18.5C19.33 4 20 4.67 20 5.5V9M9 20H5.5C4.67 20 4 19.33 4 18.5V15M15 20H18.5C19.33 20 20 19.33 20 18.5V15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -904,6 +925,8 @@
                 <span class="chip theme-chip" id="frontTheme"></span>
               </div>
               <div class="card-question-wrap">
+                <img class="card-img" id="frontImg" alt="" hidden>
+                <p class="card-img-error" id="frontImgError" hidden>The picture couldn&rsquo;t load. Check your connection.</p>
                 <p class="card-question" id="frontQ"></p>
                 <div id="frontExplainWrap">
                   <p class="card-label">Explanation</p>
@@ -917,6 +940,7 @@
                 <span class="chip theme-chip" id="backTheme"></span>
               </div>
               <div class="card-back-content">
+                <img class="card-img card-img-small" id="backImg" alt="" hidden>
                 <p class="card-label">Answer</p>
                 <p class="card-answer" id="backA"></p>
                 <div id="backWhyWrap">
@@ -1201,12 +1225,13 @@ function builtinPackMeta(base){
     name: (ov && ov.name) || base.name,
     tagline: (ov && ov.tagline != null) ? ov.tagline : base.tagline,
     context: (ov && ov.context != null) ? ov.context : (base.context || ""),
+    imageBase: "",
     themes: base.themes,
     cards: base.cards.filter(c=>!deletedCardsFor(base.id)[c.id])
   };
 }
 function customPackMeta(cp){
-  return {id:cp.id, name:cp.name, tagline:cp.tagline, context:cp.context||"", themes:cp.themes, cards:cp.cards, custom:true};
+  return {id:cp.id, name:cp.name, tagline:cp.tagline, context:cp.context||"", imageBase:cp.imageBase||"", themes:cp.themes, cards:cp.cards, custom:true};
 }
 function allPacksMeta(){
   return BUILTIN_PACKS_META.map(builtinPackMeta).concat(Object.keys(state.customPacks).map(id=>customPackMeta(state.customPacks[id])));
@@ -1802,6 +1827,51 @@ function buildQueue(){
   session.flipped = false;
 }
 
+/* ============================== IMAGE CARDS ==============================
+   A card can carry a picture (the World Flags pack uses this): card.i is an
+   image code, resolved against the pack's imageBase address template
+   ("https://…/{code}.webp"), or a full https:// / site-relative address. Only
+   the reference is stored, never image data — the whole app state syncs on
+   every save, so embedding pictures would bloat it. */
+function resolveImage(ref, base){
+  if(!ref) return "";
+  if(/^https:\/\//i.test(ref) || ref.charAt(0) === "/") return ref;
+  if(!base) return "";
+  return base.replace("{code}", encodeURIComponent(ref));
+}
+function currentImageBase(){
+  const meta = findPackMeta(currentPackId);
+  return meta ? (meta.imageBase || "") : "";
+}
+// Never leaves the previous card's picture on screen while the next one
+// loads — on a flag deck that would show the wrong flag under a new card.
+function setCardImage(img, errEl, url){
+  if(errEl) errEl.hidden = true;
+  if(!url){ img.hidden = true; img.removeAttribute("src"); return; }
+  if(img.getAttribute("src") === url && img.complete && img.naturalWidth){ img.hidden = false; return; }
+  img.hidden = true;
+  img.onload = ()=>{ img.hidden = false; };
+  img.onerror = ()=>{ img.hidden = true; if(errEl) errEl.hidden = false; };
+  img.src = url;
+}
+// Warm the browser cache for the next few cards so they appear instantly.
+function preloadUpcomingImages(){
+  const base = currentImageBase();
+  session.queue.slice(session.pos + 1, session.pos + 4).forEach(id=>{
+    const card = CARD_BY_ID[id];
+    const url = card ? resolveImage(card.i, base) : "";
+    if(url) (new Image()).src = url;
+  });
+}
+function renderSectionToggle(){
+  const btn = document.getElementById("sectionToggleBtn");
+  const hidden = !!pack().hideSections;
+  btn.classList.toggle("is-hidden", hidden);
+  btn.title = hidden ? "Show section names on cards" : "Hide section names on cards";
+  btn.setAttribute("aria-label", btn.title);
+  btn.setAttribute("aria-pressed", hidden ? "true" : "false");
+}
+
 /* ============================== NEXT REVIEW & PRACTICE ==============================
    Spaced repetition leaves days with nothing due on purpose. Rather than a
    bare "all caught up", say when the next review is, and offer an optional
@@ -1884,6 +1954,7 @@ function renderCard(){
   document.getElementById("sessionBar").style.width = pct + "%";
 
   document.getElementById("practiceTag").hidden = !session.practice;
+  renderSectionToggle();
   const card = currentCard();
   // Single choke point for "what's on screen right now" — every path that
   // changes it (grading, filtering, undo, editing) calls renderCard()
@@ -1975,6 +2046,8 @@ function renderCard(){
   const theme = THEME_BY_ID[card.t];
   document.getElementById("frontTheme").textContent = theme.name;
   document.getElementById("frontTheme").className = "chip theme-chip theme-"+themeColorVar(card.t);
+  // Hidden (not removed) so the card layout doesn't shift; the back still shows it.
+  document.getElementById("frontTheme").style.visibility = pack().hideSections ? "hidden" : "";
   document.getElementById("backTheme").textContent = theme.name;
   document.getElementById("backTheme").className = "chip theme-chip theme-"+themeColorVar(card.t);
   document.getElementById("frontQ").textContent = card.q;
@@ -1983,6 +2056,11 @@ function renderCard(){
   document.getElementById("backA").textContent = card.a;
   document.getElementById("backW").textContent = card.w;
   document.getElementById("backWhyWrap").hidden = !card.w;
+  const imgURL = resolveImage(card.i, currentImageBase());
+  setCardImage(document.getElementById("frontImg"), document.getElementById("frontImgError"), imgURL);
+  setCardImage(document.getElementById("backImg"), null, imgURL);
+  document.querySelector(".card-question-wrap").classList.toggle("has-img", !!imgURL);
+  preloadUpcomingImages();
 }
 
 function toggleFlip(){
@@ -2106,6 +2184,12 @@ function initStudyToolbar(){
     grade(btn.dataset.g);
   });
   document.getElementById("scPracticeBtn").addEventListener("click", startPractice);
+  document.getElementById("sectionToggleBtn").addEventListener("click", ()=>{
+    const p = pack();
+    p.hideSections = !p.hideSections;
+    persist();
+    renderCard();
+  });
   document.addEventListener("keydown",(e)=>{
     if(document.getElementById("appShell").hidden) return;
     if(!document.getElementById("view-study").classList.contains("active")) return;
@@ -2360,10 +2444,13 @@ function renderProgress(){
   if(trouble.length === 0){
     troublePanel.innerHTML = "<p class=\"trouble-empty\">No trouble cards yet &mdash; nothing you've missed "+TROUBLE_LAPSE_THRESHOLD+"+ times. Keep going.</p>";
   } else {
+    const troubleImageBase = currentImageBase();
     const rows = trouble.map(c=>{
       const r = getRecord(c.id);
+      const thumb = resolveImage(c.i, troubleImageBase);
       return "<button class=\"trouble-row\" data-id=\""+c.id+"\">"
         + "<span class=\"tr-dot\" style=\"background:var(--"+themeColorVar(c.t)+")\"></span>"
+        + (thumb ? "<img class=\"tr-thumb\" loading=\"lazy\" alt=\"\" src=\""+escHtml(thumb)+"\">" : "")
         + "<span class=\"tr-q\">"+escHtml(effCard(c.id).q)+"</span>"
         + "<span class=\"tr-badge\">"+r.lapses+" miss"+(r.lapses===1?"":"es")+"</span>"
         + "</button>";
@@ -2496,7 +2583,7 @@ function deleteCardFromPack(cardId){
   renderCard();
 }
 
-function cardEditRowHTML(c){
+function cardEditRowHTML(c, imageBase){
   const ec = effCard(c.id);
   const edited = !!pack().overrides[c.id];
   if(editingCardId === c.id){
@@ -2512,6 +2599,7 @@ function cardEditRowHTML(c){
   const revertArmed = cardActionArmed === revertKey;
   return "<div class=\"card-edit-row\" data-id=\""+c.id+"\">"
     + (edited ? "<span class=\"cer-edited-badge\">Edited</span>" : "")
+    + (resolveImage(ec.i, imageBase) ? "<img class=\"cer-thumb\" loading=\"lazy\" alt=\"\" src=\""+escHtml(resolveImage(ec.i, imageBase))+"\">" : "")
     + "<p class=\"cer-q\">"+escHtml(ec.q)+"</p>"
     + (ec.e ? "<p class=\"cer-e\"><b>Explanation&nbsp;</b>"+escHtml(ec.e)+"</p>" : "")
     + "<p class=\"cer-a\"><b>Answer&nbsp;</b>"+escHtml(ec.a)+"</p>"
@@ -2534,10 +2622,11 @@ function renderCardsEditor(){
     el.innerHTML = "<p class=\"form-hint\">This pack has no cards.</p>";
     return;
   }
+  const imageBase = currentImageBase();
   el.innerHTML = THEMES.map(t=>{
     const cards = CARDS.filter(c=>c.t===t.id);
     if(!cards.length) return ""; // a section emptied by deletions just disappears
-    return "<p class=\"section-title\">"+escHtml(t.name)+"</p><div class=\"card-edit-group\">"+cards.map(c=>cardEditRowHTML(c)).join("")+"</div>";
+    return "<p class=\"section-title\">"+escHtml(t.name)+"</p><div class=\"card-edit-group\">"+cards.map(c=>cardEditRowHTML(c, imageBase)).join("")+"</div>";
   }).join("");
 }
 
@@ -2652,7 +2741,7 @@ function saveCardOverride(id, q, e, a, w){
    this way, so the button is hidden for them (see renderCardsEditor). */
 let addCardsDraft = null;
 function freshAddCardsDraft(){
-  return {cards:[{section:"", q:"", e:"", a:"", w:""}], jsonCards:[], jsonDraftText:"", jsonError:"", jsonMsg:""};
+  return {cards:[{section:"", q:"", e:"", a:"", w:""}], jsonCards:[], jsonDraftText:"", jsonError:"", jsonMsg:"", imageBase:""};
 }
 function openAddCardsModal(){
   addCardsDraft = freshAddCardsDraft();
@@ -2697,7 +2786,7 @@ function addCardsModalHTML(){
     + "<p class=\"modal-sub\">Paste JSON in batches, type cards by hand, or both. A section name that matches an existing one is added to it; anything new becomes a new section.</p>"
     + "<p class=\"section-title\">Paste JSON</p>"
     + "<p class=\"form-hint\" style=\"margin:0 0 8px;\">Paste as many batches as you like &mdash; handy when a deck is too big for one AI reply.</p>"
-    + "<details class=\"json-example\"><summary>Show JSON format example</summary><pre>"+escHtml(jsonExampleText())+"</pre><p class=\"form-hint\">A bare cards array <code>[{...}, {...}]</code> or a single card object also works.</p></details>"
+    + "<details class=\"json-example\"><summary>Show JSON format example</summary><pre>"+escHtml(jsonExampleText())+"</pre><p class=\"form-hint\">A bare cards array <code>[{...}, {...}]</code> or a single card object also works. Cards can also show a picture: add <code>\"i\": \"code\"</code> to a card and, once per pack, <code>\"imageBase\": \"https://…/{code}.webp\"</code>.</p></details>"
     + "<div class=\"form-field\"><textarea id=\"addCardsJsonInput\" rows=\"6\" placeholder=\"Paste JSON here\">"+escHtml(addCardsDraft.jsonDraftText||"")+"</textarea></div>"
     + (addCardsDraft.jsonError ? "<p class=\"wizard-error\">"+escHtml(addCardsDraft.jsonError)+"</p>" : "")
     + (addCardsDraft.jsonMsg ? "<p class=\"wizard-note\">"+escHtml(addCardsDraft.jsonMsg)+"</p>" : "")
@@ -2747,6 +2836,7 @@ function initAddCardsUI(){
         return;
       }
       addCardsDraft.jsonCards = addCardsDraft.jsonCards.concat(result.rows);
+      if(result.imageBase && !addCardsDraft.imageBase) addCardsDraft.imageBase = result.imageBase;
       addCardsDraft.jsonDraftText = "";
       addCardsDraft.jsonError = "";
       addCardsDraft.jsonMsg = "Added "+result.rows.length+" card"+(result.rows.length===1?"":"s")+". Paste another batch, or add more below.";
@@ -2765,7 +2855,7 @@ function initAddCardsUI(){
         document.getElementById("addCardsError").innerHTML = "<p class=\"wizard-error\">Add at least one card with both a question and an answer.</p>";
         return;
       }
-      addCardsToCustomPack(currentPackId, valid);
+      addCardsToCustomPack(currentPackId, valid, {imageBase:addCardsDraft.imageBase});
       closeAddCardsModal();
     }
   });
@@ -3455,15 +3545,20 @@ function nextCustomPackId(){ return "custom-"+Date.now().toString(36)+Math.rando
 
 // hint: optional plain-language description of the topic (the AI-research
 // wizard passes the topic/focus the owner typed), fed to the context note.
-function saveNewCustomPack(name, tagline, themes, cards, hint){
+// opts: optional {context, imageBase, hideSections} carried by a pack's JSON.
+// A pack that arrives with its own context note skips the AI-written one.
+function saveNewCustomPack(name, tagline, themes, cards, hint, opts){
+  opts = opts || {};
   const id = nextCustomPackId();
-  const numberedCards = cards.map((c,i)=>({id:i+1, t:c.t, q:c.q, e:c.e||"", a:c.a, w:c.w||""}));
+  const numberedCards = cards.map((c,i)=>({id:i+1, t:c.t, q:c.q, e:c.e||"", a:c.a, w:c.w||"", i:c.i||""}));
   state.customPacks[id] = {
-    id, name:(name||"").trim() || "Untitled pack", tagline:(tagline||"").trim(), context:"",
+    id, name:(name||"").trim() || "Untitled pack", tagline:(tagline||"").trim(), context:opts.context||"",
+    imageBase:opts.imageBase||"",
     themes, cards:numberedCards, createdAt:new Date().toISOString()
   };
+  if(opts.hideSections) state.packs[id] = Object.assign(defaultPackState(), {hideSections:true});
   persist();
-  generatePackContextInBackground(id, hint);
+  if(!opts.context) generatePackContextInBackground(id, hint);
   return id;
 }
 
@@ -3473,9 +3568,10 @@ function saveNewCustomPack(name, tagline, themes, cards, hint){
 // themes (so re-pasting into the same section keeps adding to it); an
 // unmatched name becomes a new theme, appended with the next unique id —
 // same never-cycled id scheme as pack creation (see themeIdForIndex above).
-function addCardsToCustomPack(packId, rows){
+function addCardsToCustomPack(packId, rows, opts){
   const cp = state.customPacks[packId];
   if(!cp || !rows.length) return;
+  if(opts && opts.imageBase && !cp.imageBase) cp.imageBase = opts.imageBase;
   const nameToId = {};
   cp.themes.forEach(t=>{ nameToId[t.name] = t.id; });
   let nextId = cp.cards.reduce((m,c)=>Math.max(m,c.id),0) + 1;
@@ -3487,7 +3583,7 @@ function addCardsToCustomPack(packId, rows){
       cp.themes.push({id:themeId, name:label});
       nameToId[label] = themeId;
     }
-    cp.cards.push({id:nextId++, t:themeId, q:r.q.trim(), e:(r.e||"").trim(), a:r.a.trim(), w:(r.w||"").trim()});
+    cp.cards.push({id:nextId++, t:themeId, q:r.q.trim(), e:(r.e||"").trim(), a:r.a.trim(), w:(r.w||"").trim(), i:(r.i||"").trim()});
   });
   persist();
   rebuildEngineGlobals(findPackMeta(packId));
@@ -3511,7 +3607,7 @@ function buildThemesAndCards(rawCards){
   const themes = order.map((label,i)=>({id:themeIdForIndex(i), name:label}));
   const cards = valid.map(c=>{
     const label = (c.section||"").trim() || "General";
-    return {t:themes[index[label]].id, q:c.q.trim(), e:(c.e||"").trim(), a:c.a.trim(), w:(c.w||"").trim()};
+    return {t:themes[index[label]].id, q:c.q.trim(), e:(c.e||"").trim(), a:c.a.trim(), w:(c.w||"").trim(), i:(c.i||"").trim()};
   });
   return {themes, cards};
 }
@@ -3561,13 +3657,22 @@ function parseCardRowsFromJSON(rawText){
   data.cards.forEach(c=>{
     if(!c || !c.q || !c.a) return;
     const section = c.t!=null && nameByOldId[String(c.t)] ? nameByOldId[String(c.t)] : defaultSection;
-    rows.push({section, q:String(c.q).trim(), e:c.e?String(c.e).trim():"", a:String(c.a).trim(), w:c.w?String(c.w).trim():""});
+    rows.push({section, q:String(c.q).trim(), e:c.e?String(c.e).trim():"", a:String(c.a).trim(), w:c.w?String(c.w).trim():"", i:c.i?String(c.i).trim():""});
   });
   if(!rows.length) return {ok:false, error:"None of the cards had both a question and an answer."};
+  // Optional pack-level settings, used by packs whose cards show a picture
+  // (see the IMAGE CARDS section): the address template for card image
+  // codes, a saved context note, and whether to hide section names while
+  // studying. Anything malformed is simply ignored.
+  const imageBase = typeof data.imageBase === "string" && /^https:\/\//i.test(data.imageBase.trim()) && data.imageBase.indexOf("{code}") !== -1
+    ? data.imageBase.trim() : "";
   return {
     ok:true,
     name:(data.name ? String(data.name) : "").trim(),
     tagline:(data.tagline ? String(data.tagline) : "").trim(),
+    context:(typeof data.context === "string" ? data.context.trim() : "").slice(0, 1500),
+    imageBase,
+    hideSections: data.hideSections === true,
     rows
   };
 }
@@ -3596,6 +3701,9 @@ function importPackFromJSON(rawText){
     ok:true,
     name: parsed.name || "Untitled pack",
     tagline: parsed.tagline,
+    context: parsed.context,
+    imageBase: parsed.imageBase,
+    hideSections: parsed.hideSections,
     themes: built.themes,
     cards: built.cards
   };
@@ -3615,7 +3723,8 @@ function closeAddPackModal(){
 }
 function renderAddPackModal(){
   const body = document.getElementById("addPackBody");
-  if(addPackStep === "manual") body.innerHTML = addPackManualHTML();
+  if(addPackStep === "ready") body.innerHTML = addPackReadyHTML();
+  else if(addPackStep === "manual") body.innerHTML = addPackManualHTML();
   else if(addPackStep === "spreadsheet") body.innerHTML = addPackSpreadsheetHTML();
   else if(addPackStep === "ai") body.innerHTML = addPackAiHTML();
   else body.innerHTML = addPackChooseHTML();
@@ -3625,6 +3734,10 @@ function addPackChooseHTML(){
   return "<h2>Add a new Flashcard Pack</h2>"
     + "<p class=\"modal-sub\">Pick how you want to build this pack.</p>"
     + "<div class=\"method-grid\">"
+      + "<button class=\"method-card\" data-method=\"ready\">"
+        + "<div class=\"method-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><rect x=\"4\" y=\"9\" width=\"16\" height=\"11\" rx=\"1.5\" stroke=\"currentColor\" stroke-width=\"1.6\"/><path d=\"M12 9V20M3.5 6.5C3.5 5.7 4.2 5 5 5H19C19.8 5 20.5 5.7 20.5 6.5V9H3.5V6.5Z\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/></svg></div>"
+        + "<div><h3>Ready-made packs</h3><p>Add a complete deck in one tap &mdash; starting with all 195 world flags.</p></div>"
+      + "</button>"
       + "<button class=\"method-card\" data-method=\"spreadsheet\">"
         + "<div class=\"method-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2\" stroke=\"currentColor\" stroke-width=\"1.6\"/><path d=\"M4 10H20M10 4V20\" stroke=\"currentColor\" stroke-width=\"1.6\"/></svg></div>"
         + "<div><h3>Upload a spreadsheet</h3><p>Import an .xlsx or .csv file &mdash; each tab becomes a section. Confirm the column mapping once, then every row imports automatically.</p></div>"
@@ -3640,11 +3753,35 @@ function addPackChooseHTML(){
     + "</div>";
 }
 
+/* ---------- ready-made packs ---------- */
+// Complete decks shipped with the app as static JSON under /packs. Adding one
+// creates an ordinary custom pack (editable, deletable, extendable).
+const READY_MADE_PACKS = [
+  {id:"world-flags", title:"World Flags", url:"packs/world-flags.json",
+   desc:"All 195 countries (193 UN member states plus Vatican City and Palestine), grouped by continent. Each card shows a flag and asks which country it is. Section names are hidden while studying by default, so they don't give the answer away; toggle them with the eye button."}
+];
+function addPackReadyHTML(){
+  const rows = READY_MADE_PACKS.map(entry=>{
+    const have = Object.keys(state.customPacks).some(id=>state.customPacks[id].name === entry.title);
+    return "<div class=\"sheet-map-card\">"
+      + "<h3 style=\"margin:0 0 6px;font-size:1rem;\">"+escHtml(entry.title)+"</h3>"
+      + "<p class=\"form-hint\" style=\"margin:0 0 12px;\">"+escHtml(entry.desc)+"</p>"
+      + "<button class=\"btn\" data-action=\"ready-add\" data-pack=\""+entry.id+"\""+(have?" disabled":"")+">"+(have?"Already added":"Add this pack")+"</button>"
+    + "</div>";
+  }).join("");
+  return "<button class=\"wizard-back\" data-action=\"back-choose\">&larr; Back</button>"
+    + "<h2>Ready-made packs</h2>"
+    + "<p class=\"modal-sub\">Complete decks you can add in one tap.</p>"
+    + rows
+    + "<div id=\"readyError\"></div>";
+}
+
 /* ---------- manual entry ---------- */
 function freshManualDraft(){
   return {
     name:"", tagline:"", cards:[{section:"", q:"", e:"", a:"", w:""}],
-    jsonCards:[], jsonDraftText:"", jsonError:"", jsonMsg:""
+    jsonCards:[], jsonDraftText:"", jsonError:"", jsonMsg:"",
+    context:"", imageBase:"", hideSections:false
   };
 }
 function syncManualDraftFromDOM(){
@@ -3700,7 +3837,7 @@ function addPackManualHTML(){
     + "<div class=\"form-field\"><label>Tagline (optional)</label><input type=\"text\" id=\"manualPackTagline\" value=\""+escHtml(manualDraft.tagline)+"\" placeholder=\"Short description\"></div>"
     + "<p class=\"section-title\">Paste JSON</p>"
     + "<p class=\"form-hint\" style=\"margin:0 0 8px;\">Paste as many batches as you like &mdash; handy when a deck is too big for one AI reply. Each paste adds to the list below without replacing it.</p>"
-    + "<details class=\"json-example\"><summary>Show JSON format example</summary><pre>"+escHtml(jsonExampleText())+"</pre><p class=\"form-hint\">A bare cards array <code>[{...}, {...}]</code> or a single card object also works &mdash; the name/tagline/themes wrapper is optional.</p></details>"
+    + "<details class=\"json-example\"><summary>Show JSON format example</summary><pre>"+escHtml(jsonExampleText())+"</pre><p class=\"form-hint\">A bare cards array <code>[{...}, {...}]</code> or a single card object also works &mdash; the name/tagline/themes wrapper is optional. Cards can also show a picture: add <code>\"i\": \"code\"</code> to a card and, once per pack, <code>\"imageBase\": \"https://…/{code}.webp\"</code>.</p></details>"
     + "<div class=\"form-field\"><textarea id=\"manualJsonInput\" rows=\"6\" placeholder=\"Paste JSON here\">"+escHtml(manualDraft.jsonDraftText||"")+"</textarea></div>"
     + (manualDraft.jsonError ? "<p class=\"wizard-error\">"+escHtml(manualDraft.jsonError)+"</p>" : "")
     + (manualDraft.jsonMsg ? "<p class=\"wizard-note\">"+escHtml(manualDraft.jsonMsg)+"</p>" : "")
@@ -3895,7 +4032,8 @@ function initAddPackUI(){
         document.getElementById("manualError").innerHTML = "<p class=\"wizard-error\">Add at least one card with both a question and an answer.</p>";
         return;
       }
-      const id = saveNewCustomPack(manualDraft.name, manualDraft.tagline, built.themes, built.cards);
+      const id = saveNewCustomPack(manualDraft.name, manualDraft.tagline, built.themes, built.cards, "",
+        {context:manualDraft.context, imageBase:manualDraft.imageBase, hideSections:manualDraft.hideSections});
       manualDraft = null;
       closeAddPackModal();
       enterPack(id);
@@ -3918,6 +4056,9 @@ function initAddPackUI(){
         return;
       }
       manualDraft.jsonCards = manualDraft.jsonCards.concat(result.rows);
+      if(result.imageBase && !manualDraft.imageBase) manualDraft.imageBase = result.imageBase;
+      if(result.context && !manualDraft.context) manualDraft.context = result.context;
+      if(result.hideSections) manualDraft.hideSections = true;
       if(!manualDraft.name.trim() && result.name) manualDraft.name = result.name;
       if(!manualDraft.tagline.trim() && result.tagline) manualDraft.tagline = result.tagline;
       manualDraft.jsonDraftText = "";
@@ -3961,6 +4102,30 @@ function initAddPackUI(){
       enterPack(id);
     }
 
+    else if(act === "ready-add"){
+      const entry = READY_MADE_PACKS.find(p=>p.id === action.dataset.pack);
+      if(!entry) return;
+      const errEl = document.getElementById("readyError");
+      errEl.innerHTML = "";
+      action.disabled = true;
+      action.textContent = "Adding\u2026";
+      fetch(entry.url).then(r=>{
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      }).then(text=>{
+        const result = importPackFromJSON(text);
+        if(!result.ok) throw new Error(result.error);
+        const id = saveNewCustomPack(result.name, result.tagline, result.themes, result.cards, "",
+          {context:result.context, imageBase:result.imageBase, hideSections:result.hideSections});
+        closeAddPackModal();
+        enterPack(id);
+      }).catch(err=>{
+        action.disabled = false;
+        action.textContent = "Add this pack";
+        errEl.innerHTML = "<p class=\"wizard-error\">Couldn't add that pack ("+escHtml(err.message || "unknown error")+"). Check your connection and try again.</p>";
+      });
+    }
+
     else if(act === "ai-generate"){
       aiDraft = aiDraft || {topic:"", count:30, focus:""};
       aiDraft.topic = document.getElementById("aiTopic").value;
@@ -3986,7 +4151,8 @@ function initAddPackUI(){
         return;
       }
       const topicHint = aiDraft ? (aiDraft.topic.trim() + (aiDraft.focus.trim() ? " — focus: " + aiDraft.focus.trim() : "")) : "";
-      const id = saveNewCustomPack(result.name, result.tagline, result.themes, result.cards, topicHint);
+      const id = saveNewCustomPack(result.name, result.tagline, result.themes, result.cards, topicHint,
+        {context:result.context, imageBase:result.imageBase, hideSections:result.hideSections});
       aiDraft = null;
       closeAddPackModal();
       enterPack(id);

@@ -1,0 +1,1400 @@
+{
+ "name": "World Flags",
+ "tagline": "Recognise the flag of every country in the world",
+ "context": "Flag recognition: each card shows a national flag image and asks which country it belongs to. Covers all 193 UN member states plus Vatican City and Palestine, grouped by continent using the UN geoscheme (Russia in Europe; Turkey, Cyprus and the Caucasus in Asia; Egypt in Africa; Central America and the Caribbean in North America). Answers are common English country names, with well-known alternate names in brackets. The 'why' notes describe the flag and how to tell it apart from look-alikes.",
+ "imageBase": "https://flagcdn.com/w640/{code}.webp",
+ "hideSections": true,
+ "themes": [
+  {
+   "id": "t1",
+   "name": "Africa"
+  },
+  {
+   "id": "t2",
+   "name": "Asia"
+  },
+  {
+   "id": "t3",
+   "name": "Europe"
+  },
+  {
+   "id": "t4",
+   "name": "North America"
+  },
+  {
+   "id": "t5",
+   "name": "South America"
+  },
+  {
+   "id": "t6",
+   "name": "Oceania"
+  }
+ ],
+ "cards": [
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "dz",
+   "a": "Algeria",
+   "w": "Green and white halves with a red crescent and star in the centre."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ao",
+   "a": "Angola",
+   "w": "Red over black, with a yellow half cog-wheel, machete and star in the middle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "bj",
+   "a": "Benin",
+   "w": "A green stripe at the hoist, then yellow over red. The only Pan-African-colour flag with this split layout."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "bw",
+   "a": "Botswana",
+   "w": "Light blue with a black stripe, edged in white, across the middle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "bf",
+   "a": "Burkina Faso",
+   "w": "Red over green with a yellow star in the middle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "bi",
+   "a": "Burundi",
+   "w": "A white saltire splits the flag into red (top, bottom) and green (sides), with a white disc holding three red stars."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "cv",
+   "a": "Cabo Verde (Cape Verde)",
+   "w": "Blue with a white-and-red band and a ring of ten yellow stars toward the hoist."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "cm",
+   "a": "Cameroon",
+   "w": "Vertical green, red, yellow with a yellow star on the red. Senegal's star is green and sits on the yellow."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "cf",
+   "a": "Central African Republic",
+   "w": "Blue, white, green, yellow horizontal bands crossed by a vertical red stripe, with a yellow star in the top-left."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "td",
+   "a": "Chad",
+   "w": "Vertical blue, yellow, red. Almost identical to Romania, whose blue is lighter. Andorra and Moldova add a crest."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "km",
+   "a": "Comoros",
+   "w": "Four stripes (yellow, white, red, blue) with a green triangle at the hoist holding a white crescent and four stars."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "cd",
+   "a": "Democratic Republic of the Congo (DR Congo)",
+   "w": "Sky blue with a red diagonal stripe edged in yellow, and a yellow star in the top-left."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "cg",
+   "a": "Republic of the Congo (Congo-Brazzaville)",
+   "w": "Split diagonally: green triangle at the hoist, a yellow diagonal band, red triangle at the fly."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ci",
+   "a": "Côte d'Ivoire (Ivory Coast)",
+   "w": "Vertical orange, white, green. Ireland is the mirror image (green at the hoist)."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "dj",
+   "a": "Djibouti",
+   "w": "Light blue over green with a white triangle at the hoist holding a red star."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "eg",
+   "a": "Egypt",
+   "w": "Red, white, black bands with a gold eagle in the middle. Yemen has no emblem; Iraq has green script."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "gq",
+   "a": "Equatorial Guinea",
+   "w": "Green, white, red bands with a blue triangle at the hoist and a coat of arms (a tree) in the middle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "er",
+   "a": "Eritrea",
+   "w": "A red triangle at the hoist, with green above and blue below, and a gold olive wreath on the red."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "sz",
+   "a": "Eswatini (Swaziland)",
+   "w": "Blue, yellow, wide red, yellow, blue bands with a large Nguni shield and two spears on the red."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "et",
+   "a": "Ethiopia",
+   "w": "Green, yellow, red bands with a blue disc and a yellow star in the middle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ga",
+   "a": "Gabon",
+   "w": "Horizontal green, yellow, blue. Sierra Leone is green, white, blue."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "gm",
+   "a": "Gambia",
+   "w": "Red, blue, green bands separated by thin white stripes."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "gh",
+   "a": "Ghana",
+   "w": "Red, yellow, green bands with a black star in the middle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "gn",
+   "a": "Guinea",
+   "w": "Vertical red, yellow, green. Mali is the mirror image (green at the hoist)."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "gw",
+   "a": "Guinea-Bissau",
+   "w": "A red vertical stripe with a black star at the hoist, then yellow over green."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ke",
+   "a": "Kenya",
+   "w": "Black, red, green bands edged in white, with a Maasai shield and two spears in the middle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ls",
+   "a": "Lesotho",
+   "w": "Blue, white, green bands with a black Basotho hat in the middle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "lr",
+   "a": "Liberia",
+   "w": "Eleven red and white stripes with a white star on a blue square in the corner. Like the US flag with one star."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ly",
+   "a": "Libya",
+   "w": "Red, a wide black band, green, with a white crescent and star in the black."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "mg",
+   "a": "Madagascar",
+   "w": "A white vertical stripe at the hoist, then red over green."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "mw",
+   "a": "Malawi",
+   "w": "Black, red, green bands with a red rising sun on the black."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ml",
+   "a": "Mali",
+   "w": "Vertical green, yellow, red with no emblem. Guinea is the mirror image; Senegal adds a green star."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "mr",
+   "a": "Mauritania",
+   "w": "Green with a gold crescent and star, and a red stripe at the top and bottom."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "mu",
+   "a": "Mauritius",
+   "w": "Four horizontal stripes: red, blue, yellow, green."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ma",
+   "a": "Morocco",
+   "w": "Red with a green five-pointed star drawn as a linked outline."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "mz",
+   "a": "Mozambique",
+   "w": "Green, black, yellow bands (separated by white) with a red triangle holding a yellow star, a rifle and a hoe."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "na",
+   "a": "Namibia",
+   "w": "A diagonal red band edged in white, with a blue triangle and a yellow sun at the top-left and a green triangle below."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ne",
+   "a": "Niger",
+   "w": "Orange, white, green bands with an orange disc in the white. India is similar but has a blue wheel."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ng",
+   "a": "Nigeria",
+   "w": "Vertical green, white, green."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "rw",
+   "a": "Rwanda",
+   "w": "A wide sky-blue band over yellow and green, with a yellow sun in the top-right."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "st",
+   "a": "São Tomé and Príncipe",
+   "w": "Green, wide yellow, green bands with a red triangle at the hoist and two black stars."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "sn",
+   "a": "Senegal",
+   "w": "Vertical green, yellow, red with a green star on the yellow. Mali has no star."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "sc",
+   "a": "Seychelles",
+   "w": "Five slanted bands fanning out from the bottom-left: blue, yellow, red, white, green."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "sl",
+   "a": "Sierra Leone",
+   "w": "Horizontal green, white, blue. Gabon is green, yellow, blue."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "so",
+   "a": "Somalia",
+   "w": "Light blue with a white five-pointed star in the middle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "za",
+   "a": "South Africa",
+   "w": "A green sideways Y edged in white and yellow, between red above and blue below, with a black triangle at the hoist."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ss",
+   "a": "South Sudan",
+   "w": "Black, red, green bands edged in white, with a blue triangle at the hoist holding a yellow star."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "sd",
+   "a": "Sudan",
+   "w": "Red, white, black bands with a green triangle at the hoist. Palestine swaps the colours: black, white, green with a red triangle."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "tz",
+   "a": "Tanzania",
+   "w": "A green triangle at the top-left and a blue one at the bottom-right, split by a black diagonal band edged in yellow."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "tg",
+   "a": "Togo",
+   "w": "Five green and yellow stripes with a red square in the corner holding a white star."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "tn",
+   "a": "Tunisia",
+   "w": "Red with a white disc holding a red crescent and star. Turkey's has no disc."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "ug",
+   "a": "Uganda",
+   "w": "Six bands (black, yellow, red, repeated) with a white disc holding a grey crowned crane."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "zm",
+   "a": "Zambia",
+   "w": "Green with an orange eagle above three vertical stripes (red, black, orange) at the fly."
+  },
+  {
+   "t": "t1",
+   "q": "Which country's flag is this?",
+   "i": "zw",
+   "a": "Zimbabwe",
+   "w": "Seven stripes (green, yellow, red, black, red, yellow, green) with a white triangle at the hoist holding a red star and a bird."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "af",
+   "a": "Afghanistan",
+   "w": "Black, red, green vertical stripes with a white emblem in the middle. (The Taliban government uses a plain white flag with black script instead.)"
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "am",
+   "a": "Armenia",
+   "w": "Horizontal red, blue, orange."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "az",
+   "a": "Azerbaijan",
+   "w": "Blue, red, green bands with a white crescent and eight-pointed star on the red."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "bh",
+   "a": "Bahrain",
+   "w": "White at the hoist and red at the fly, split by a zigzag edge with five points. Qatar's is maroon with nine points."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "bd",
+   "a": "Bangladesh",
+   "w": "Dark green with a red disc set a little toward the hoist. Japan's disc is centred on white."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "bt",
+   "a": "Bhutan",
+   "w": "Split diagonally into yellow (upper hoist) and orange (lower fly) with a white dragon across the middle."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "bn",
+   "a": "Brunei",
+   "w": "Yellow with two diagonal stripes (white and black) and a red crest with a crescent and two hands."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "kh",
+   "a": "Cambodia",
+   "w": "Blue, wide red, blue bands with a white Angkor Wat temple in the middle."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "cn",
+   "a": "China",
+   "w": "Red with a large yellow star and four small ones in an arc at the top-left. Vietnam has one star."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "cy",
+   "a": "Cyprus",
+   "w": "White with a copper-coloured map of the island above two green olive branches."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "ge",
+   "a": "Georgia",
+   "w": "White with a big red cross and a small red cross in each quarter."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "in",
+   "a": "India",
+   "w": "Saffron, white, green bands with a navy 24-spoke wheel in the middle. Niger has an orange disc instead."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "id",
+   "a": "Indonesia",
+   "w": "Red over white. Monaco's is almost identical but squarer; Poland is white over red."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "ir",
+   "a": "Iran",
+   "w": "Green, white, red bands with a red emblem in the middle and script along the band edges."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "iq",
+   "a": "Iraq",
+   "w": "Red, white, black bands with green Arabic script in the middle. Yemen has nothing; Egypt has a gold eagle."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "il",
+   "a": "Israel",
+   "w": "White with a blue six-pointed star between two blue stripes."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "jp",
+   "a": "Japan",
+   "w": "White with a red disc in the centre."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "jo",
+   "a": "Jordan",
+   "w": "Black, white, green bands with a red triangle at the hoist holding a white seven-pointed star."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "kz",
+   "a": "Kazakhstan",
+   "w": "Sky blue with a golden sun over a soaring eagle, and a gold pattern along the hoist."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "kw",
+   "a": "Kuwait",
+   "w": "Green, white, red bands with a black trapezoid at the hoist."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "kg",
+   "a": "Kyrgyzstan",
+   "w": "Red with a yellow sun in the middle, holding a red crossed-lines design."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "la",
+   "a": "Laos",
+   "w": "Red, wide blue, red bands with a white disc in the middle."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "lb",
+   "a": "Lebanon",
+   "w": "Red, wide white, red bands with a green cedar tree in the middle."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "my",
+   "a": "Malaysia",
+   "w": "Fourteen red and white stripes with a blue corner holding a yellow crescent and star. Like the US flag with a crescent."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "mv",
+   "a": "Maldives",
+   "w": "Red with a green rectangle holding a white crescent."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "mn",
+   "a": "Mongolia",
+   "w": "Vertical red, blue, red with a yellow symbol on the left red band."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "mm",
+   "a": "Myanmar (Burma)",
+   "w": "Yellow, green, red bands with a large white star in the middle."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "np",
+   "a": "Nepal",
+   "w": "The only non-rectangular national flag: two stacked crimson pennants with a blue border, holding a white moon and sun."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "kp",
+   "a": "North Korea",
+   "w": "Blue, wide red, blue bands edged in white, with a red star in a white disc toward the hoist."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "om",
+   "a": "Oman",
+   "w": "White, red, green bands with a red vertical stripe at the hoist holding a white emblem of swords."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "pk",
+   "a": "Pakistan",
+   "w": "Dark green with a white stripe at the hoist and a white crescent and star on the green."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "ph",
+   "a": "Philippines",
+   "w": "Blue over red with a white triangle at the hoist holding a yellow sun and three stars. Czechia's triangle is blue."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "qa",
+   "a": "Qatar",
+   "w": "Maroon with a white zigzag edge of nine points, and much longer than most flags. Bahrain is red with five points."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "sa",
+   "a": "Saudi Arabia",
+   "w": "Green with white Arabic script and a sword underneath."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "sg",
+   "a": "Singapore",
+   "w": "Red over white with a white crescent and five stars in the top-left."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "kr",
+   "a": "South Korea",
+   "w": "White with a red-and-blue circle in the middle and a black bar pattern in each corner."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "lk",
+   "a": "Sri Lanka",
+   "w": "A gold lion holding a sword on maroon, with green and orange vertical stripes at the hoist."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "sy",
+   "a": "Syria",
+   "w": "Green, white, black bands with three red stars on the white. The old flag was red, white, black with two green stars."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "tj",
+   "a": "Tajikistan",
+   "w": "Red, wide white, green bands with a gold crown and seven stars over the white."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "th",
+   "a": "Thailand",
+   "w": "Five stripes: red, white, wide blue, white, red. Costa Rica has the colours reversed."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "tl",
+   "a": "Timor-Leste (East Timor)",
+   "w": "Red with a black triangle over a yellow triangle at the hoist, holding a white star."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "tr",
+   "a": "Türkiye (Turkey)",
+   "w": "Red with a white crescent and star. Tunisia's has a white disc behind them."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "tm",
+   "a": "Turkmenistan",
+   "w": "Green with a vertical red carpet-pattern stripe at the hoist, and a white crescent with five stars."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "ae",
+   "a": "United Arab Emirates (UAE)",
+   "w": "A red vertical stripe at the hoist, with green, white, black horizontal bands."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "uz",
+   "a": "Uzbekistan",
+   "w": "Blue, white, green bands split by thin red lines, with a white crescent and stars at the top-left."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "vn",
+   "a": "Vietnam",
+   "w": "Red with one large yellow star. China's has five stars."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "ye",
+   "a": "Yemen",
+   "w": "Red, white, black bands with no emblem. Egypt has an eagle; Iraq has green script."
+  },
+  {
+   "t": "t2",
+   "q": "Which country's flag is this?",
+   "i": "ps",
+   "a": "Palestine",
+   "w": "Black, white, green bands with a red triangle at the hoist. Sudan swaps the colours; Jordan's is the same plus a white star."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "al",
+   "a": "Albania",
+   "w": "Red with a black double-headed eagle."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "ad",
+   "a": "Andorra",
+   "w": "Vertical blue, yellow, red with a coat of arms on the yellow. Romania and Chad have no crest."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "at",
+   "a": "Austria",
+   "w": "Red, white, red bands. Latvia's is a darker red with a thinner white band."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "by",
+   "a": "Belarus",
+   "w": "Red over green with a white-and-red ornamental pattern along the hoist."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "be",
+   "a": "Belgium",
+   "w": "Vertical black, yellow, red. Germany has the same colours horizontally."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "ba",
+   "a": "Bosnia and Herzegovina",
+   "w": "Blue with a yellow right-angled triangle and a diagonal line of white stars."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "bg",
+   "a": "Bulgaria",
+   "w": "Horizontal white, green, red. Hungary is red, white, green."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "hr",
+   "a": "Croatia",
+   "w": "Red, white, blue bands with a red-and-white chequered shield in the middle."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "cz",
+   "a": "Czechia (Czech Republic)",
+   "w": "White over red with a blue triangle at the hoist. The Philippines' triangle is white."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "dk",
+   "a": "Denmark",
+   "w": "Red with a white Nordic cross."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "ee",
+   "a": "Estonia",
+   "w": "Horizontal blue, black, white."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "fi",
+   "a": "Finland",
+   "w": "White with a blue Nordic cross."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "fr",
+   "a": "France",
+   "w": "Vertical blue, white, red. The Netherlands has the same colours horizontally, in the reverse order."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "de",
+   "a": "Germany",
+   "w": "Horizontal black, red, gold."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "gr",
+   "a": "Greece",
+   "w": "Nine blue and white stripes with a white cross on a blue square in the corner."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "hu",
+   "a": "Hungary",
+   "w": "Horizontal red, white, green. Italy is vertical green, white, red."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "is",
+   "a": "Iceland",
+   "w": "Blue with a red Nordic cross outlined in white."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "ie",
+   "a": "Ireland",
+   "w": "Vertical green, white, orange. Côte d'Ivoire is the mirror image."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "it",
+   "a": "Italy",
+   "w": "Vertical green, white, red. Mexico is similar but has an eagle in the middle."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "lv",
+   "a": "Latvia",
+   "w": "A dark crimson flag with a thin white stripe. Austria is a brighter red with a wider white band."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "li",
+   "a": "Liechtenstein",
+   "w": "Blue over red with a small gold crown at the top-left."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "lt",
+   "a": "Lithuania",
+   "w": "Horizontal yellow, green, red."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "lu",
+   "a": "Luxembourg",
+   "w": "Red, white, light blue bands. The Netherlands has a darker blue and a squarer shape."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "mt",
+   "a": "Malta",
+   "w": "White and red vertical halves with a small George Cross in the top-left."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "md",
+   "a": "Moldova",
+   "w": "Vertical blue, yellow, red with an eagle crest on the yellow. Romania and Chad have no crest."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "mc",
+   "a": "Monaco",
+   "w": "Red over white. Indonesia's is almost identical but wider; Poland is white over red."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "me",
+   "a": "Montenegro",
+   "w": "Red with a gold border and a gold double-headed eagle."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "nl",
+   "a": "Netherlands",
+   "w": "Horizontal red, white, blue. France has the same colours vertically."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "mk",
+   "a": "North Macedonia",
+   "w": "Red with a yellow sun whose eight rays spread out to the edges."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "no",
+   "a": "Norway",
+   "w": "Red with a blue Nordic cross outlined in white."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "pl",
+   "a": "Poland",
+   "w": "White over red. Indonesia and Monaco are red over white."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "pt",
+   "a": "Portugal",
+   "w": "Green and red vertical bands (red is bigger) with a coat of arms and a golden sphere where they meet."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "ro",
+   "a": "Romania",
+   "w": "Vertical blue, yellow, red with no crest. Chad's blue is darker; Andorra and Moldova have crests."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "ru",
+   "a": "Russia",
+   "w": "Horizontal white, blue, red. Slovakia and Slovenia add a crest at the hoist."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "sm",
+   "a": "San Marino",
+   "w": "White over light blue with a coat of arms in the middle."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "rs",
+   "a": "Serbia",
+   "w": "Red, blue, white bands with a coat of arms shifted toward the hoist."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "sk",
+   "a": "Slovakia",
+   "w": "White, blue, red bands with a crest (a double cross on hills) at the hoist. Russia has no crest."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "si",
+   "a": "Slovenia",
+   "w": "White, blue, red bands with a small shield (a mountain and three stars) at the hoist."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "es",
+   "a": "Spain",
+   "w": "Red, wide yellow, red bands with a coat of arms toward the hoist."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "se",
+   "a": "Sweden",
+   "w": "Blue with a yellow Nordic cross."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "ch",
+   "a": "Switzerland",
+   "w": "A square red flag with a white cross. Only Vatican City's is also square."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "ua",
+   "a": "Ukraine",
+   "w": "Horizontal blue over yellow."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "gb",
+   "a": "United Kingdom (UK)",
+   "w": "The Union Jack: red and white crosses layered over blue."
+  },
+  {
+   "t": "t3",
+   "q": "Which country's flag is this?",
+   "i": "va",
+   "a": "Vatican City",
+   "w": "A square flag, yellow and white halves, with the crossed keys and papal crown on the white. Only Switzerland's is also square."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "ag",
+   "a": "Antigua and Barbuda",
+   "w": "Red with a V-shaped centre of black (holding a rising yellow sun), blue and white."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "bs",
+   "a": "Bahamas",
+   "w": "Aquamarine, gold, aquamarine bands with a black triangle at the hoist."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "bb",
+   "a": "Barbados",
+   "w": "Blue, gold, blue vertical bands with a black trident head on the gold."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "bz",
+   "a": "Belize",
+   "w": "Blue with a red stripe top and bottom and a white disc holding a coat of arms with two woodcutters."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "ca",
+   "a": "Canada",
+   "w": "A white square between red bars, with a red eleven-point maple leaf."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "cr",
+   "a": "Costa Rica",
+   "w": "Five stripes: blue, white, wide red, white, blue, with a small coat of arms on the red. Thailand has the colours reversed."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "cu",
+   "a": "Cuba",
+   "w": "Five blue and white stripes with a red triangle at the hoist holding a white star."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "dm",
+   "a": "Dominica",
+   "w": "Green with a cross of yellow, black and white stripes, and a red disc holding a green parrot."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "do",
+   "a": "Dominican Republic",
+   "w": "Blue and red quarters divided by a white cross, with a coat of arms in the middle."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "sv",
+   "a": "El Salvador",
+   "w": "Blue, white, blue bands with a coat of arms in the middle. Honduras has five stars; Nicaragua's emblem is a triangle."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "gd",
+   "a": "Grenada",
+   "w": "A red border with six stars, yellow and green triangles, a red centre disc with a star, and a nutmeg at the hoist."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "gt",
+   "a": "Guatemala",
+   "w": "Vertical light blue, white, light blue with a coat of arms (a quetzal bird and rifles) in the middle."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "ht",
+   "a": "Haiti",
+   "w": "Blue over red with a white panel holding a coat of arms (a palm tree and cannons)."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "hn",
+   "a": "Honduras",
+   "w": "Blue, white, blue bands with five blue stars in the white."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "jm",
+   "a": "Jamaica",
+   "w": "A gold saltire dividing green (top, bottom) and black (sides)."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "mx",
+   "a": "Mexico",
+   "w": "Vertical green, white, red with an eagle on a cactus in the middle. Italy has no emblem."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "ni",
+   "a": "Nicaragua",
+   "w": "Blue, white, blue bands with a triangular emblem showing a rainbow and volcanoes."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "pa",
+   "a": "Panama",
+   "w": "Four quarters: white with a blue star, red, blue, and white with a red star."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "kn",
+   "a": "Saint Kitts and Nevis",
+   "w": "A black diagonal band edged in yellow with two white stars, between a green triangle above and a red one below."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "lc",
+   "a": "Saint Lucia",
+   "w": "Light blue with a black-and-white triangle over a yellow triangle in the middle."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "vc",
+   "a": "Saint Vincent and the Grenadines",
+   "w": "Blue, wide yellow, green vertical bands with three green diamonds in a V on the yellow."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "tt",
+   "a": "Trinidad and Tobago",
+   "w": "Red with a white-edged black diagonal band from the top-left to the bottom-right."
+  },
+  {
+   "t": "t4",
+   "q": "Which country's flag is this?",
+   "i": "us",
+   "a": "United States (USA)",
+   "w": "Thirteen red and white stripes with fifty white stars on a blue corner. Liberia and Malaysia are look-alikes."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "ar",
+   "a": "Argentina",
+   "w": "Light blue, white, light blue bands with a yellow sun in the middle."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "bo",
+   "a": "Bolivia",
+   "w": "Horizontal red, yellow, green with a small coat of arms on the yellow. Ghana has a black star; Lithuania is yellow, green, red."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "br",
+   "a": "Brazil",
+   "w": "Green with a yellow diamond holding a blue globe with white stars and a banner."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "cl",
+   "a": "Chile",
+   "w": "White over red with a white star on a blue square at the top-left."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "co",
+   "a": "Colombia",
+   "w": "A wide yellow band over blue and red. Ecuador has a crest; Venezuela has equal bands and stars."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "ec",
+   "a": "Ecuador",
+   "w": "A wide yellow band over blue and red, with a coat of arms (a condor and a mountain) in the middle."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "gy",
+   "a": "Guyana",
+   "w": "Green with a yellow arrowhead pointing to the fly, holding a red triangle, edged in black and white."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "py",
+   "a": "Paraguay",
+   "w": "Red, white, blue bands with an emblem on the white."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "pe",
+   "a": "Peru",
+   "w": "Vertical red, white, red. Canada's white centre holds a maple leaf."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "sr",
+   "a": "Suriname",
+   "w": "Green, white, red, white, green bands with a large yellow star in the red."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "uy",
+   "a": "Uruguay",
+   "w": "Nine white and blue stripes with a golden sun on a white square at the top-left."
+  },
+  {
+   "t": "t5",
+   "q": "Which country's flag is this?",
+   "i": "ve",
+   "a": "Venezuela",
+   "w": "Yellow, blue, red bands with an arc of eight white stars on the blue."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "au",
+   "a": "Australia",
+   "w": "Blue with the Union Jack in the corner, a big seven-pointed star below it and five white stars on the fly. New Zealand's are red."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "fj",
+   "a": "Fiji",
+   "w": "Light blue with the Union Jack in the corner and a shield on the fly."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "ki",
+   "a": "Kiribati",
+   "w": "Red over blue waves, with a yellow frigatebird flying above a rising sun."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "mh",
+   "a": "Marshall Islands",
+   "w": "Blue with a white star at the top-left and two diagonal stripes (orange and white) widening to the fly."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "fm",
+   "a": "Micronesia (Federated States of Micronesia)",
+   "w": "Light blue with four white stars in a diamond."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "nr",
+   "a": "Nauru",
+   "w": "Blue with a thin yellow horizontal stripe and a white twelve-pointed star below it at the hoist."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "nz",
+   "a": "New Zealand",
+   "w": "Blue with the Union Jack in the corner and four red, white-edged stars on the fly. Australia's are white and it adds a big star."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "pw",
+   "a": "Palau",
+   "w": "Light blue with a golden-yellow disc set slightly toward the hoist."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "pg",
+   "a": "Papua New Guinea",
+   "w": "Split diagonally: red (upper fly) with a yellow bird of paradise, black (lower hoist) with white stars."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "ws",
+   "a": "Samoa",
+   "w": "Red with a blue corner holding five white stars."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "sb",
+   "a": "Solomon Islands",
+   "w": "A yellow diagonal band between blue (with five white stars) and green."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "to",
+   "a": "Tonga",
+   "w": "Red with a white corner holding a red cross."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "tv",
+   "a": "Tuvalu",
+   "w": "Light blue with the Union Jack in the corner and nine yellow stars on the fly."
+  },
+  {
+   "t": "t6",
+   "q": "Which country's flag is this?",
+   "i": "vu",
+   "a": "Vanuatu",
+   "w": "Red over green with a black triangle edged in yellow (a sideways Y) holding a boar's tusk."
+  }
+ ]
+}
