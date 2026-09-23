@@ -771,6 +771,12 @@
   }
   .auth-card .btn{width:100%; margin-top:4px;}
   .auth-error{color:var(--again); font-size:0.82rem; margin:12px 0 0;}
+  .offline-banner{position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:900; max-width:calc(100% - 24px);
+    background:var(--surface-3); color:var(--ink); border:1px solid var(--border); border-radius:999px; padding:8px 16px;
+    font-size:0.78rem; font-weight:600; text-align:center; box-shadow:var(--shadow-card);}
+  .offline-banner[hidden]{display:none;}
+  .offline-status{display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.9rem; margin:0 0 6px;}
+  .offline-status.ready{color:var(--good);}
   .auth-note{color:var(--good); font-size:0.82rem; margin:12px 0 0; line-height:1.45;}
   .auth-switch{margin:18px 0 0; font-size:0.85rem; color:var(--ink-soft);}
   .auth-switch button{font:inherit; font-weight:700; color:var(--accent); background:none; border:0; padding:0; cursor:pointer; text-decoration:underline;}
@@ -1046,6 +1052,15 @@
     <div id="streakBody"></div>
   </div>
 </div>
+
+<div class="modal-overlay" id="offlineOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="offlineCloseBtn" aria-label="Close">&times;</button>
+    <div id="offlineBody"></div>
+  </div>
+</div>
+
+<div class="offline-banner" id="offlineBanner" hidden>Offline &mdash; your progress is saved on this device and syncs when you're back online.</div>
 
 <div class="modal-overlay" id="deleteCardOverlay" hidden>
   <div class="modal-card">
@@ -1478,12 +1493,33 @@ async function persist(){
   saveLocal();
   if(currentUser){
     try{
-      await supabase.from("progress").upsert({
+      const { error } = await supabase.from("progress").upsert({
         user_id: currentUser.id,
         data: state,
         updated_at: state.updatedAt
       });
-    }catch(e){ /* offline is fine — localStorage has it, next persist() retries */ }
+      if(error) throw error;
+      setSyncDirty(false);
+    }catch(e){
+      // Offline is fine — localStorage has it. Remember that the cloud copy is
+      // behind so it's pushed as soon as we're back online (see flushIfDirty).
+      setSyncDirty(true);
+    }
+  }
+}
+const DIRTY_KEY = "retainiac-sync-dirty-v1";
+function setSyncDirty(on){
+  try{ if(on) localStorage.setItem(DIRTY_KEY, "1"); else localStorage.removeItem(DIRTY_KEY); }catch(e){ /* ignore */ }
+}
+function isSyncDirty(){
+  try{ return localStorage.getItem(DIRTY_KEY) === "1"; }catch(e){ return false; }
+}
+async function flushIfDirty(){
+  if(currentUser && isSyncDirty() && navigator.onLine !== false){
+    // Touching getSession first lets the client refresh an expired token
+    // before we try to write.
+    try{ await supabase.auth.getSession(); }catch(e){ /* ignore */ }
+    persist();
   }
 }
 
@@ -3300,6 +3336,7 @@ function renderHome(){
             "<div class=\"pack-tile-menu\">"
               + "<span class=\"pack-tile-menu-item\" data-menu-action=\"edit\" data-pack-id=\""+meta.id+"\">Edit</span>"
               + (meta.custom ? "<span class=\"pack-tile-menu-item\" data-menu-action=\"add-cards\" data-pack-id=\""+meta.id+"\">Add cards</span>" : "")
+              + "<span class=\"pack-tile-menu-item\" data-menu-action=\"offline\" data-pack-id=\""+meta.id+"\">Download for offline</span>"
               + (meta.custom ? "<span class=\"pack-tile-menu-item danger\" data-menu-action=\"delete\" data-pack-id=\""+meta.id+"\">Delete</span>" : "")
             + "</div>"
           : "")
@@ -3526,6 +3563,7 @@ function initHomeUI(){
       if(menuAction === "edit") openEditPackModal(id);
       else if(menuAction === "add-cards"){ enterPack(id); switchTab("cards"); }
       else if(menuAction === "delete") openDeletePackModal(id);
+      else if(menuAction === "offline") openOfflineModal(id);
       return;
     }
     if(e.target.closest("#addPackTile")){
@@ -4275,6 +4313,7 @@ async function handleAuthed(session){
   document.getElementById("authEmailLabel").textContent = currentUser.email;
   claimLocalState(currentUser.id);
   await loadFromSupabase();
+  flushIfDirty();
   hideAuthGate();
   if(appBooted) return;
   appBooted = true;
@@ -4396,6 +4435,180 @@ function initAuthUI(){
   };
 }
 
+/* ============================== OFFLINE ==============================
+   sw.js keeps the app itself available with no connection. This section is
+   the "Download for offline" side: it saves a pack's pictures into the same
+   cache the service worker reads from. Progress and streaks need nothing
+   extra — every answer is already written to this device first and synced
+   afterwards (see persist()). */
+const OFFLINE_ASSETS = "retainiac-assets-v1";
+const OFFLINE_SUPPORTED = ("serviceWorker" in navigator) && ("caches" in window);
+let offlinePackId = null;
+let offlineJob = null;   // {packId, done, failed, total, running}
+
+function packImageUrls(meta){
+  const seen = {};
+  meta.cards.forEach(c=>{
+    const u = resolveImage(c.i, meta.imageBase);
+    if(u) seen[u] = true;
+  });
+  return Object.keys(seen);
+}
+async function offlineAppReady(){
+  if(!OFFLINE_SUPPORTED || !navigator.serviceWorker.controller) return false;
+  try{ return !!(await caches.match("./", {ignoreSearch:true, ignoreVary:true})); }catch(e){ return false; }
+}
+async function offlineCachedCount(urls){
+  const cache = await caches.open(OFFLINE_ASSETS);
+  let n = 0;
+  for(const u of urls){
+    if(await cache.match(u, {ignoreVary:true})) n++;
+  }
+  return n;
+}
+async function renderOfflineModal(){
+  const overlay = document.getElementById("offlineOverlay");
+  const meta = findPackMeta(offlinePackId);
+  if(!meta || overlay.hidden) return;
+  const body = document.getElementById("offlineBody");
+  const head = "<h2>Offline: "+escHtml(meta.name)+"</h2>";
+  if(!OFFLINE_SUPPORTED){
+    body.innerHTML = head + "<p class=\"modal-sub\">This browser can't save the app for offline use. Try Chrome or Safari over https.</p>"
+      + "<div class=\"wizard-actions\"><button class=\"btn ghost\" data-action=\"offline-close\">Close</button></div>";
+    return;
+  }
+  const urls = packImageUrls(meta);
+  const [appReady, cached] = await Promise.all([offlineAppReady(), offlineCachedCount(urls)]);
+  if(overlay.hidden) return;
+  const running = offlineJob && offlineJob.running && offlineJob.packId === meta.id;
+  const total = urls.length;
+  const picsReady = cached >= total;
+  const ready = appReady && picsReady;
+  let html = head;
+  if(!appReady){
+    html += "<p class=\"offline-status\">Saving the app&hellip;</p>"
+      + "<p class=\"modal-sub\">Retainiac is still saving itself to this device. Stay online for a moment, then check again.</p>"
+      + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"offline-refresh\">Check again</button><button class=\"btn ghost\" data-action=\"offline-close\">Close</button></div>";
+  } else if(running){
+    const pct = offlineJob.total ? Math.round(offlineJob.done/offlineJob.total*100) : 0;
+    html += "<p class=\"offline-status\" id=\"offlineProgressText\">Saving pictures: "+offlineJob.done+" of "+offlineJob.total+"</p>"
+      + "<div class=\"progress-bar-track\"><div class=\"progress-bar-fill\" id=\"offlineProgressFill\" style=\"width:"+pct+"%\"></div></div>"
+      + "<p class=\"form-hint\">Keep this page open until it finishes.</p>";
+  } else if(!total){
+    html += "<p class=\"offline-status ready\">Ready offline</p>"
+      + "<p class=\"modal-sub\">Every card in this pack is text, so there's nothing extra to download. You can study it with no connection, and your progress and streak are kept on this device and synced when you're back online.</p>"
+      + "<div class=\"wizard-actions\"><button class=\"btn ghost\" data-action=\"offline-close\">Close</button></div>";
+  } else if(picsReady){
+    html += "<p class=\"offline-status ready\">Ready offline</p>"
+      + "<p class=\"modal-sub\">All "+total+" pictures are saved on this device. Your progress and streak are kept here and synced when you're back online.</p>"
+      + "<div class=\"wizard-actions\"><button class=\"btn ghost\" data-action=\"offline-close\">Close</button><button class=\"btn ghost\" data-action=\"offline-remove\">Remove downloaded pictures</button></div>";
+  } else {
+    const failed = offlineJob && !offlineJob.running && offlineJob.packId === meta.id && offlineJob.failed;
+    html += "<p class=\"offline-status\">"+cached+" of "+total+" pictures saved</p>"
+      + "<p class=\"modal-sub\">Download this pack's pictures so it works with no connection. Your progress and streak are kept on this device and synced when you're back online.</p>"
+      + (failed ? "<p class=\"wizard-error\">"+failed+" couldn't be saved &mdash; check your connection and try again.</p>" : "")
+      + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"offline-download\">"+(cached ? "Download the rest" : "Download "+total+" pictures")+"</button><button class=\"btn ghost\" data-action=\"offline-close\">Close</button></div>";
+  }
+  body.innerHTML = html;
+}
+function updateOfflineProgress(){
+  const t = document.getElementById("offlineProgressText");
+  const f = document.getElementById("offlineProgressFill");
+  if(!t || !f || !offlineJob) return;
+  t.textContent = "Saving pictures: "+offlineJob.done+" of "+offlineJob.total;
+  f.style.width = (offlineJob.total ? Math.round(offlineJob.done/offlineJob.total*100) : 0)+"%";
+}
+async function downloadPackPictures(){
+  const meta = findPackMeta(offlinePackId);
+  if(!meta || (offlineJob && offlineJob.running)) return;
+  const urls = packImageUrls(meta);
+  const cache = await caches.open(OFFLINE_ASSETS);
+  offlineJob = {packId:meta.id, done:0, failed:0, total:urls.length, running:true};
+  // Ask the browser not to evict what we're saving when storage runs low.
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){ /* ignore */ }
+  renderOfflineModal();
+  let next = 0;
+  const worker = async ()=>{
+    while(next < urls.length){
+      const u = urls[next++];
+      try{
+        if(!(await cache.match(u, {ignoreVary:true}))){
+          const resp = await fetch(u, {mode:"cors", credentials:"omit"});
+          if(!resp.ok) throw new Error("HTTP "+resp.status);
+          await cache.put(u, resp);
+        }
+      }catch(e){ offlineJob.failed++; }
+      offlineJob.done++;
+      updateOfflineProgress();
+    }
+  };
+  await Promise.all([1,2,3,4,5,6].map(worker));
+  offlineJob.running = false;
+  renderOfflineModal();
+}
+async function removePackPictures(){
+  const meta = findPackMeta(offlinePackId);
+  if(!meta) return;
+  const cache = await caches.open(OFFLINE_ASSETS);
+  await Promise.all(packImageUrls(meta).map(u=>cache.delete(u, {ignoreVary:true})));
+  offlineJob = null;
+  renderOfflineModal();
+}
+function openOfflineModal(id){
+  offlinePackId = id;
+  document.getElementById("offlineOverlay").hidden = false;
+  document.getElementById("offlineBody").innerHTML = "<p class=\"modal-sub\">Checking&hellip;</p>";
+  renderOfflineModal();
+}
+function closeOfflineModal(){
+  document.getElementById("offlineOverlay").hidden = true;
+}
+function updateOfflineBanner(){
+  document.getElementById("offlineBanner").hidden = navigator.onLine !== false;
+}
+function initOfflineUI(){
+  document.getElementById("offlineCloseBtn").addEventListener("click", closeOfflineModal);
+  document.getElementById("offlineOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "offlineOverlay") closeOfflineModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("offlineOverlay").hidden) closeOfflineModal();
+  });
+  document.getElementById("offlineBody").addEventListener("click",(e)=>{
+    const action = e.target.closest("[data-action]");
+    if(!action) return;
+    const a = action.dataset.action;
+    if(a === "offline-close") closeOfflineModal();
+    else if(a === "offline-refresh") renderOfflineModal();
+    else if(a === "offline-download") downloadPackPictures();
+    else if(a === "offline-remove") removePackPictures();
+  });
+  window.addEventListener("online", ()=>{ updateOfflineBanner(); flushIfDirty(); });
+  window.addEventListener("offline", updateOfflineBanner);
+  updateOfflineBanner();
+  if(OFFLINE_SUPPORTED && (location.protocol === "https:" || location.hostname === "localhost")){
+    window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+  }
+}
+
+// If the session can't be refreshed only because there's no connection (its
+// access token lasts about an hour), Supabase reports "no session" — which
+// would bounce you to the sign-in screen while offline. The stored login is
+// still valid, so fall back to it; syncing resumes once we're back online.
+function storedOfflineSession(){
+  try{
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(/^sb-.*-auth-token$/.test(k)){
+        const v = JSON.parse(localStorage.getItem(k));
+        const user = v && (v.user || (v.currentSession && v.currentSession.user));
+        if(user && user.id) return {user};
+      }
+    }
+  }catch(e){ /* ignore */ }
+  return null;
+}
+
 /* ============================== BOOT ============================== */
 function boot(){
   loadLocal();
@@ -4413,6 +4626,7 @@ function boot(){
   initEditCardUI();
   initStreakUI();
   initAiCardUI();
+  initOfflineUI();
   calState.selected = todayStr();
 
   document.addEventListener("visibilitychange", ()=>{
@@ -4420,8 +4634,12 @@ function boot(){
   });
   setInterval(checkDateRollover, 5*60*1000);
 
-  supabase.auth.getSession().then(({data:{session}})=>{
-    if(session) handleAuthed(session);
+  supabase.auth.getSession().then(({data, error})=>{
+    const session = data && data.session;
+    if(session){ handleAuthed(session); return; }
+    const noNetwork = navigator.onLine === false || (error && (error.name === "AuthRetryableFetchError" || /fetch|network/i.test(error.message || "")));
+    const saved = noNetwork ? storedOfflineSession() : null;
+    if(saved) handleAuthed(saved);
     else showAuthGate();
   });
 

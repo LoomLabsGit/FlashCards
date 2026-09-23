@@ -18,3 +18,8 @@ This repo is the single source of truth for the app's code. Every change is comm
 ## Sign-ups
 
 The sign-in screen has a **Create an account** option. Whether it works is controlled in Supabase (Authentication → Sign In / Providers → *Allow new users to sign up*): when off, the app shows "Sign-ups are closed right now." If *Confirm email* is on, new users are told to confirm by email before signing in. A different account signing in on a browser resets that browser's local copy, so accounts never inherit each other's progress.
+
+## Offline use
+
+`sw.js` (a service worker) saves the app and its libraries on the first online visit, so it opens with no connection; the page is always fetched fresh when online, so a new deploy appears on the next load. A pack's ⋮ menu has **Download for offline**, which saves its pictures (flags come to about 0.5 MB) into the `retainiac-assets-v1` cache. Answers are written to the device first and synced afterwards; if a sync fails the app remembers and pushes it when the connection returns (`retainiac-sync-dirty-v1`). The first sign-in on a device must be online; after that a stored login is used when the network is down. Syncing is still last-write-wins: studying the same account on two devices while one is offline can overwrite the other's progress.
+
