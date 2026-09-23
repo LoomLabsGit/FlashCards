@@ -764,6 +764,9 @@
   }
   .auth-card .btn{width:100%; margin-top:4px;}
   .auth-error{color:var(--again); font-size:0.82rem; margin:12px 0 0;}
+  .auth-note{color:var(--good); font-size:0.82rem; margin:12px 0 0; line-height:1.45;}
+  .auth-switch{margin:18px 0 0; font-size:0.85rem; color:var(--ink-soft);}
+  .auth-switch button{font:inherit; font-weight:700; color:var(--accent); background:none; border:0; padding:0; cursor:pointer; text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -774,7 +777,7 @@
       <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H14V16H5.5C4.67 16 4 16.67 4 17.5V5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 17.5C4 18.33 4.67 19 5.5 19H18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 4H18.5C19.33 4 20 4.67 20 5.5V17.5C20 18.33 19.33 19 18.5 19H14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
     </div>
     <h1>Lean UX Drills</h1>
-    <p class="tagline">Sign in to keep your progress in sync on every device.</p>
+    <p class="tagline" id="authTagline">Sign in to keep your progress in sync on every device.</p>
     <div id="authFormStep">
       <div class="auth-field">
         <label for="authEmail">Email</label>
@@ -784,8 +787,14 @@
         <label for="authPassword">Password</label>
         <input type="password" id="authPassword" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
       </div>
+      <div class="auth-field" id="authConfirmField" hidden>
+        <label for="authPasswordConfirm">Confirm password</label>
+        <input type="password" id="authPasswordConfirm" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password">
+      </div>
       <button class="btn" id="authSendBtn">Sign in</button>
       <p class="auth-error" id="authError" hidden></p>
+      <p class="auth-note" id="authNote" hidden></p>
+      <p class="auth-switch"><span id="authSwitchText">New here?</span> <button type="button" id="authSwitchBtn">Create an account</button></p>
     </div>
   </div>
 </div>
@@ -1233,8 +1242,11 @@ function builtinPackMeta(base){
 function customPackMeta(cp){
   return {id:cp.id, name:cp.name, tagline:cp.tagline, context:cp.context||"", imageBase:cp.imageBase||"", themes:cp.themes, cards:cp.cards, custom:true};
 }
+function builtinHidden(id){
+  return !!(state.hiddenBuiltins && state.hiddenBuiltins[id]);
+}
 function allPacksMeta(){
-  return BUILTIN_PACKS_META.map(builtinPackMeta).concat(Object.keys(state.customPacks).map(id=>customPackMeta(state.customPacks[id])));
+  return BUILTIN_PACKS_META.filter(b=>!builtinHidden(b.id)).map(builtinPackMeta).concat(Object.keys(state.customPacks).map(id=>customPackMeta(state.customPacks[id])));
 }
 // Pack-scoped helpers (pack(), CARDS, introDayFor...) read the "current"
 // pack, so anything that needs them from the homepage points them at `id`
@@ -1352,6 +1364,7 @@ function defaultState(){
     packs:{},
     customPacks:{},      // packId -> {id, name, tagline, themes:[{id,name}], cards:[{id,t,q,a,w}], createdAt}
     packMeta:{},          // packId -> {name, tagline} — rename/tagline overrides for built-in packs
+    hiddenBuiltins:{},    // built-in packId -> true while not yet added (new accounts start without Lean UX; see Ready-made packs)
     updatedAt:new Date().toISOString()
   };
 }
@@ -1368,11 +1381,13 @@ function migrateFlatState(raw){
       }},
       customPacks:{},
       packMeta:{},
+      hiddenBuiltins:{},
       updatedAt: raw.updatedAt || new Date().toISOString()
     };
   }
   if(raw && !raw.customPacks) raw.customPacks = {};
   if(raw && !raw.packMeta) raw.packMeta = {};
+  if(raw && !raw.hiddenBuiltins) raw.hiddenBuiltins = {};
   return raw;
 }
 
@@ -1492,6 +1507,17 @@ async function loadFromSupabase(){
         saveLocal();
       }
     } else {
+      // Brand-new account (no cloud row yet): start with an empty home and
+      // let Lean UX be added from Ready-made packs. Only when there's no
+      // local progress to protect, so an existing user is never affected.
+      const hasProgress = Object.keys(state.packs).some(id=>{
+        const p = state.packs[id];
+        return Object.keys(p.cards).length > 0 || Object.keys(p.history).length > 0;
+      });
+      if(!hasProgress && !state.hiddenBuiltins["lean-ux"] && !Object.keys(state.customPacks).length){
+        state.hiddenBuiltins["lean-ux"] = true;
+        saveLocal();
+      }
       await supabase.from("progress").upsert({
         user_id: currentUser.id,
         data: state,
@@ -3736,7 +3762,7 @@ function addPackChooseHTML(){
     + "<div class=\"method-grid\">"
       + "<button class=\"method-card\" data-method=\"ready\">"
         + "<div class=\"method-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><rect x=\"4\" y=\"9\" width=\"16\" height=\"11\" rx=\"1.5\" stroke=\"currentColor\" stroke-width=\"1.6\"/><path d=\"M12 9V20M3.5 6.5C3.5 5.7 4.2 5 5 5H19C19.8 5 20.5 5.7 20.5 6.5V9H3.5V6.5Z\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/></svg></div>"
-        + "<div><h3>Ready-made packs</h3><p>Add a complete deck in one tap &mdash; starting with all 195 world flags.</p></div>"
+        + "<div><h3>Ready-made packs</h3><p>Add a complete deck in one tap &mdash; Lean UX Drills or all 195 world flags.</p></div>"
       + "</button>"
       + "<button class=\"method-card\" data-method=\"spreadsheet\">"
         + "<div class=\"method-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\"><rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2\" stroke=\"currentColor\" stroke-width=\"1.6\"/><path d=\"M4 10H20M10 4V20\" stroke=\"currentColor\" stroke-width=\"1.6\"/></svg></div>"
@@ -3757,12 +3783,15 @@ function addPackChooseHTML(){
 // Complete decks shipped with the app as static JSON under /packs. Adding one
 // creates an ordinary custom pack (editable, deletable, extendable).
 const READY_MADE_PACKS = [
+  {id:"lean-ux", builtin:true, title:"Lean UX Drills",
+   desc:"Spaced-repetition practice from the Lean UX notes: principles, the Lean UX Canvas and hypotheses, MVPs and experiments, collaboration and research, and Agile integration."},
   {id:"world-flags", title:"World Flags", url:"packs/world-flags.json",
    desc:"All 195 countries (193 UN member states plus Vatican City and Palestine), grouped by continent. Each card shows a flag and asks which country it is. Section names are hidden while studying by default, so they don't give the answer away; toggle them with the eye button."}
 ];
 function addPackReadyHTML(){
   const rows = READY_MADE_PACKS.map(entry=>{
-    const have = Object.keys(state.customPacks).some(id=>state.customPacks[id].name === entry.title);
+    const have = entry.builtin ? !builtinHidden(entry.id)
+      : Object.keys(state.customPacks).some(id=>state.customPacks[id].name === entry.title);
     return "<div class=\"sheet-map-card\">"
       + "<h3 style=\"margin:0 0 6px;font-size:1rem;\">"+escHtml(entry.title)+"</h3>"
       + "<p class=\"form-hint\" style=\"margin:0 0 12px;\">"+escHtml(entry.desc)+"</p>"
@@ -4105,6 +4134,14 @@ function initAddPackUI(){
     else if(act === "ready-add"){
       const entry = READY_MADE_PACKS.find(p=>p.id === action.dataset.pack);
       if(!entry) return;
+      if(entry.builtin){
+        // Already bundled in the app; adding it just un-hides it (any saved progress is untouched).
+        delete state.hiddenBuiltins[entry.id];
+        persist();
+        closeAddPackModal();
+        enterPack(entry.id);
+        return;
+      }
       const errEl = document.getElementById("readyError");
       errEl.innerHTML = "";
       action.disabled = true;
@@ -4210,9 +4247,26 @@ function hideAuthGate(){
 // back to the homepage (or, if they're already mid-study, silently
 // reshuffling the queue under them — see buildQueue()).
 let appBooted = false;
+// Local state belongs to whichever account last used this browser. If a
+// different account signs in here (e.g. a partner on a shared device), start
+// from a blank slate rather than uploading the previous person's progress
+// into the new account.
+const LS_OWNER_KEY = "leanux-flashcards-owner-v1";
+function claimLocalState(userId){
+  try{
+    const owner = localStorage.getItem(LS_OWNER_KEY);
+    if(owner && owner !== userId){
+      state = defaultState();
+      saveLocal();
+      saveLastOpen(null);
+    }
+    localStorage.setItem(LS_OWNER_KEY, userId);
+  }catch(e){ /* ignore */ }
+}
 async function handleAuthed(session){
   currentUser = session.user;
   document.getElementById("authEmailLabel").textContent = currentUser.email;
+  claimLocalState(currentUser.id);
   await loadFromSupabase();
   hideAuthGate();
   if(appBooted) return;
@@ -4225,37 +4279,90 @@ async function handleAuthed(session){
 function initAuthUI(){
   const emailInput = document.getElementById("authEmail");
   const passwordInput = document.getElementById("authPassword");
+  const confirmInput = document.getElementById("authPasswordConfirm");
+  const confirmField = document.getElementById("authConfirmField");
   const sendBtn = document.getElementById("authSendBtn");
   const errorEl = document.getElementById("authError");
+  const noteEl = document.getElementById("authNote");
+  const taglineEl = document.getElementById("authTagline");
+  const switchText = document.getElementById("authSwitchText");
+  const switchBtn = document.getElementById("authSwitchBtn");
+  let signUpMode = false;
+
+  const showError = (msg)=>{ noteEl.hidden = true; errorEl.textContent = msg; errorEl.hidden = false; };
+  const setMode = (mode)=>{
+    signUpMode = mode;
+    errorEl.hidden = true;
+    noteEl.hidden = true;
+    confirmField.hidden = !mode;
+    passwordInput.autocomplete = mode ? "new-password" : "current-password";
+    sendBtn.textContent = mode ? "Create account" : "Sign in";
+    taglineEl.textContent = mode
+      ? "Create an account to keep your progress in sync on every device."
+      : "Sign in to keep your progress in sync on every device.";
+    switchText.textContent = mode ? "Already have an account?" : "New here?";
+    switchBtn.textContent = mode ? "Sign in" : "Create an account";
+  };
+  switchBtn.onclick = ()=>setMode(!signUpMode);
 
   const doSignIn = async ()=>{
     const email = emailInput.value.trim();
     const password = passwordInput.value;
     errorEl.hidden = true;
-    if(!email || !email.includes("@")){
-      errorEl.textContent = "Enter a valid email address.";
-      errorEl.hidden = false;
-      return;
-    }
-    if(!password){
-      errorEl.textContent = "Enter your password.";
-      errorEl.hidden = false;
-      return;
-    }
+    noteEl.hidden = true;
+    if(!email || !email.includes("@")) return showError("Enter a valid email address.");
+    if(!password) return showError("Enter your password.");
     sendBtn.disabled = true;
     sendBtn.textContent = "Signing in...";
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     sendBtn.disabled = false;
     sendBtn.textContent = "Sign in";
-    if(error){
-      errorEl.textContent = error.message;
-      errorEl.hidden = false;
-    }
+    if(error) showError(error.message);
   };
 
-  sendBtn.onclick = doSignIn;
+  const doSignUp = async ()=>{
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    errorEl.hidden = true;
+    noteEl.hidden = true;
+    if(!email || !email.includes("@")) return showError("Enter a valid email address.");
+    if(password.length < 8) return showError("Choose a password of at least 8 characters.");
+    if(password !== confirmInput.value) return showError("The two passwords don't match.");
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Creating account...";
+    const { data, error } = await supabase.auth.signUp({
+      email, password,
+      options:{ emailRedirectTo: location.origin + location.pathname }
+    });
+    sendBtn.disabled = false;
+    sendBtn.textContent = "Create account";
+    if(error){
+      showError(/signups?.*(not allowed|disabled)|not allowed.*signups?/i.test(error.message)
+        ? "Sign-ups are closed right now."
+        : error.message);
+      return;
+    }
+    // With email confirmation off Supabase returns a live session and the
+    // SIGNED_IN listener in boot() takes over. Otherwise the user has to
+    // confirm by email first. An already-registered address comes back as a
+    // user with no identities (Supabase hides that it exists).
+    if(data && data.session) return;
+    if(data && data.user && Array.isArray(data.user.identities) && !data.user.identities.length){
+      showError("There's already an account with that email. Try signing in instead.");
+      return;
+    }
+    setMode(false);
+    noteEl.textContent = "Account created. Check your email for a confirmation link, then come back here and sign in.";
+    noteEl.hidden = false;
+  };
+
+  sendBtn.onclick = ()=>{ signUpMode ? doSignUp() : doSignIn(); };
   emailInput.addEventListener("keydown", (e)=>{ if(e.key === "Enter") passwordInput.focus(); });
-  passwordInput.addEventListener("keydown", (e)=>{ if(e.key === "Enter") doSignIn(); });
+  passwordInput.addEventListener("keydown", (e)=>{
+    if(e.key !== "Enter") return;
+    if(signUpMode) confirmInput.focus(); else doSignIn();
+  });
+  confirmInput.addEventListener("keydown", (e)=>{ if(e.key === "Enter") doSignUp(); });
 
   document.getElementById("signOutBtn").onclick = async ()=>{
     await supabase.auth.signOut();
