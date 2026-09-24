@@ -2195,8 +2195,8 @@ function toggleFlip(){
    next one. Undo plays the same motion in reverse (the old card comes back to
    the front). The copy is a throwaway clone, so nothing here touches the
    schedule, the queue or what gets saved. */
-const CARD_ANIM_MS = 300;
-const CARD_ANIM_EASE = "cubic-bezier(.3,.7,.25,1)"; // for the next card settling into place
+const CARD_ANIM_MS = 680;
+const CARD_ANIM_EASE = "cubic-bezier(.2,.7,.3,1)"; // for the next card growing into place
 function cardAnimOK(){
   return typeof Element.prototype.animate === "function" && !document.hidden
     && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -2215,43 +2215,66 @@ function cloneCardFace(showImages){
   g.setAttribute("aria-hidden", "true");
   return g;
 }
-// Frames run front -> back. Easing is set per stretch (fast lift-out, then a
-// smooth slide in behind the pack) so the timing feels physical rather than
-// one long ease. `tuck` false is the version used when there's no next card to
-// slip behind (it just slides away and fades).
-const EASE_LIFT = "cubic-bezier(.2,.7,.3,1)";
-const EASE_TUCK = "cubic-bezier(.45,0,.25,1)";
+/* The card's journey to the back of the pack, front -> back:
+     1 lift toward you, 2 swing out to the right on a moving pivot so it clears
+     the pack, 3 shrink so it seems to move away, 4 swing round and slip behind
+     the pack (z-index drops below the next card), 5 settle into the pack's
+     tilt and fade. Each stretch has its own easing. `tuck` false is the
+     version used when there's no next card to slip behind: it just recedes
+     and fades. */
+const EASE_LIFT = "cubic-bezier(.2,.75,.3,1)";
+const EASE_SWING = "cubic-bezier(.35,.1,.25,1)";
+const EASE_MOVE = "cubic-bezier(.45,0,.3,1)";
+const SHADOW_NONE = "drop-shadow(0 0 0 rgba(0,0,0,0)) brightness(1)";
 function cardMoveFrames(tuck){
-  const out = "translate(34%, -3%) rotate(7deg) skewX(-4deg) scale(1.03)";
+  const at = (offset, transform, origin, shadow, extra)=>Object.assign(
+    {offset, transform, transformOrigin:origin, filter:shadow, opacity:1}, extra || {});
   if(!tuck){
     return [
-      {transform:"translate(0,0) rotate(0deg) skewX(0deg) scale(1)", opacity:1, offset:0, easing:EASE_LIFT},
-      {transform:out, opacity:0, offset:1}
+      at(0,    "translate(0,0) rotate(0deg) skewX(0deg) scale(1)", "50% 50%", SHADOW_NONE, {easing:EASE_LIFT}),
+      at(0.20, "translate(0,-16px) rotate(-1.5deg) skewX(0deg) scale(1.05)", "50% 60%", "drop-shadow(0 18px 20px rgba(0,0,0,.35)) brightness(1)", {easing:EASE_SWING}),
+      at(0.55, "translate(54%,-8%) rotate(11deg) skewX(-6deg) scale(1.02)", "20% 92%", "drop-shadow(0 14px 16px rgba(0,0,0,.3)) brightness(1)", {easing:EASE_MOVE}),
+      at(1,    "translate(44%, 2%) rotate(8deg) skewX(-4deg) scale(0.8)", "50% 50%", SHADOW_NONE, {opacity:0})
     ];
   }
   return [
-    {transform:"translate(0,0) rotate(0deg) skewX(0deg) scale(1)", opacity:1, zIndex:10, offset:0, easing:EASE_LIFT},
-    {transform:out, opacity:1, zIndex:10, offset:0.42, easing:"linear"},
-    {transform:"translate(22%, 4%) rotate(4deg) skewX(-2deg) scale(0.99)", opacity:1, zIndex:-1, offset:0.62, easing:EASE_TUCK},
-    {transform:"translate(0, 6px) rotate(-2.6deg) skewX(0deg) scale(0.97)", opacity:0, zIndex:-1, offset:1}
+    at(0,    "translate(0,0) rotate(0deg) skewX(0deg) scale(1)", "50% 50%", SHADOW_NONE, {zIndex:10, easing:EASE_LIFT}),
+    at(0.14, "translate(0,-14px) rotate(-1deg) skewX(0deg) scale(1.05)", "50% 60%", "drop-shadow(0 18px 20px rgba(0,0,0,.35)) brightness(1)", {zIndex:10, easing:EASE_SWING}),
+    at(0.40, "translate(30%,-8%) rotate(13deg) skewX(-5deg) scale(1.02)", "15% 95%", "drop-shadow(0 14px 16px rgba(0,0,0,.3)) brightness(1)", {zIndex:10, easing:EASE_MOVE}),
+    at(0.60, "translate(16%,-13%) rotate(7deg) skewX(-3deg) scale(0.82)", "50% 50%", "drop-shadow(0 6px 8px rgba(0,0,0,.22)) brightness(.95)", {zIndex:10, easing:EASE_MOVE}),
+    at(0.72, "translate(10%,-11%) rotate(3deg) skewX(-2deg) scale(0.86)", "50% 50%", "drop-shadow(0 3px 4px rgba(0,0,0,.18)) brightness(.9)", {zIndex:-1, opacity:0.9, easing:EASE_MOVE}),
+    at(0.88, "translate(2%, 4px) rotate(-2deg) skewX(-1deg) scale(0.93)", "50% 50%", "drop-shadow(0 1px 2px rgba(0,0,0,.12)) brightness(.88)", {zIndex:-1, opacity:0.9, easing:"linear"}),
+    at(1,    "translate(0, 8px) rotate(-2.6deg) skewX(0deg) scale(0.955)", "50% 50%", "drop-shadow(0 0 0 rgba(0,0,0,0)) brightness(.86)", {zIndex:-1, opacity:0})
   ];
 }
-// The same motion backwards (behind the pack -> out -> onto the top), landing
-// with a soft deceleration.
+// The same journey backwards (from behind the pack out and onto the top),
+// landing with a soft deceleration.
 function reverseFrames(frames){
+  const easings = frames.length === 7
+    ? ["linear", EASE_MOVE, EASE_MOVE, EASE_MOVE, EASE_MOVE, EASE_LIFT]
+    : [EASE_MOVE, EASE_MOVE, EASE_LIFT];
   const rev = frames.slice().reverse().map(f=>{
     const g = Object.assign({}, f, {offset:1 - f.offset});
     delete g.easing;
     return g;
   });
-  const easings = frames.length === 4 ? [EASE_TUCK, "linear", EASE_LIFT] : [EASE_LIFT];
   easings.forEach((e,i)=>{ rev[i].easing = e; });
   return rev;
 }
+let liveGhosts = [];
 function runGhost(ghost, frames, onDone){
   const anim = ghost.animate(frames, {duration:CARD_ANIM_MS, easing:"linear"});
   let done = false;
-  const finish = ()=>{ if(done) return; done = true; onDone(); };
+  const finish = ()=>{
+    if(done) return;
+    done = true;
+    liveGhosts = liveGhosts.filter(g=>g !== ghost);
+    onDone();
+  };
+  liveGhosts.push(ghost);
+  // Rapid-fire answers: never let more than a few copies pile up.
+  while(liveGhosts.length > 3) liveGhosts[0].dispatchEvent(new Event("ghost-abort"));
+  ghost.addEventListener("ghost-abort", ()=>{ anim.cancel(); ghost.remove(); }, {once:true});
   anim.onfinish = finish;
   anim.oncancel = finish;
   setTimeout(finish, CARD_ANIM_MS + 250); // safety net if the browser never reports the end
@@ -2263,11 +2286,12 @@ function playCardOut(ghost, rect){
   const hasNext = cardStageVisible();
   if(hasNext){
     stage.appendChild(ghost);
-    const next = document.getElementById("flashcard");
-    next.animate([
-      {transform:"translateY(6px) scale(0.97)"},
+    // The next card is already in place under the one leaving (like a real
+    // deck). It starts slightly back and small, then is brought closer.
+    document.getElementById("flashcard").animate([
+      {transform:"translateY(10px) scale(0.94)"},
       {transform:"none"}
-    ], {duration:CARD_ANIM_MS, easing:CARD_ANIM_EASE});
+    ], {duration:520, delay:Math.round(CARD_ANIM_MS*0.22), easing:CARD_ANIM_EASE, fill:"backwards"});
   } else {
     // Nothing follows this card and the stage is about to disappear, so the
     // copy floats at the card's old position instead.
@@ -2277,12 +2301,19 @@ function playCardOut(ghost, rect){
   runGhost(ghost, cardMoveFrames(hasNext), ()=>ghost.remove());
 }
 // Undo: `under` is a copy of the card that was on top (or null); the card
-// being restored travels back from behind the pack onto the top.
+// being restored travels back from behind the pack onto the top while the
+// one it covers is pushed back.
 function playCardIn(under, incoming){
   const stage = document.getElementById("cardStage");
   const real = document.getElementById("flashcard");
   real.style.visibility = "hidden";
-  if(under) stage.appendChild(under);
+  if(under){
+    stage.appendChild(under);
+    under.animate([
+      {transform:"none"},
+      {transform:"translateY(10px) scale(0.94)"}
+    ], {duration:520, delay:CARD_ANIM_MS - 520, easing:"ease-in", fill:"forwards"});
+  }
   stage.appendChild(incoming);
   runGhost(incoming, reverseFrames(cardMoveFrames(true)), ()=>{
     incoming.remove();
