@@ -220,6 +220,9 @@
   #scPracticeBtn{margin-top:10px;}
   .progress-bar-track{height:5px; border-radius:999px; background:var(--surface-3); overflow:hidden; margin-bottom:18px;}
   .progress-bar-fill{height:100%; background:var(--accent); border-radius:999px; transition:width .3s ease; width:0%;}
+  .toolbar-left, .focus-left{display:flex; align-items:center; gap:10px; min-width:0;}
+  .icon-btn:disabled{opacity:0.4; cursor:default;}
+  .icon-btn:disabled:hover{color:var(--ink-soft); border-color:var(--border);}
   .toolbar-actions{display:flex; gap:8px; align-items:center; margin-left:auto;}
   .study-menu-wrap{position:relative; flex:none;}
   .study-menu{
@@ -918,7 +921,10 @@
         </div>
       </div>
       <div class="study-toolbar">
-        <div class="queue-info"><b id="queuePos">0</b> / <b id="queueTotal">0</b> cards in this session<span class="practice-tag" id="practiceTag" hidden>Practice</span></div>
+        <div class="toolbar-left">
+          <button class="icon-btn" data-undo title="Undo last answer" aria-label="Undo last answer" disabled><svg viewBox="0 0 24 24" fill="none"><path d="M9 14L4 9L9 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9H14.5C17.5 9 20 11.5 20 14.5C20 17.5 17.5 20 14.5 20H10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <div class="queue-info"><b id="queuePos">0</b> / <b id="queueTotal">0</b> cards in this session<span class="practice-tag" id="practiceTag" hidden>Practice</span></div>
+        </div>
         <div class="toolbar-actions">
           <div class="study-menu-wrap">
             <button class="icon-btn" data-study-menu-toggle="toolbar" title="More options" aria-label="More options" aria-haspopup="menu" aria-expanded="false"><span class="dots-glyph">&#8942;</span></button>
@@ -931,10 +937,13 @@
       </div>
 
       <div class="focus-bar" id="focusBar">
-        <button class="focus-exit" id="focusExitBtn">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          Exit focus
-        </button>
+        <div class="focus-left">
+          <button class="icon-btn" data-undo title="Undo last answer" aria-label="Undo last answer" disabled><svg viewBox="0 0 24 24" fill="none"><path d="M9 14L4 9L9 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9H14.5C17.5 9 20 11.5 20 14.5C20 17.5 17.5 20 14.5 20H10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="focus-exit" id="focusExitBtn">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Exit focus
+          </button>
+        </div>
         <div class="focus-right">
           <div class="focus-count"><b id="focusQueuePos">0</b> / <b id="focusQueueTotal">0</b></div>
           <div class="study-menu-wrap">
@@ -2054,6 +2063,8 @@ function renderCard(){
 
   document.getElementById("practiceTag").hidden = !session.practice;
   renderStudyMenus();
+  const undoable = canUndo();
+  document.querySelectorAll("[data-undo]").forEach(b=>{ b.disabled = !undoable; });
   const card = currentCard();
   // Single choke point for "what's on screen right now" — every path that
   // changes it (grading, filtering, undo, editing) calls renderCard()
@@ -2169,14 +2180,56 @@ function toggleFlip(){
   document.getElementById("gradeRow").hidden = !session.flipped;
 }
 
+/* ---------- undo ----------
+   Before each answer we keep what it's about to change: the card's schedule,
+   today's counts and the streak. Undo puts those back, drops the retest that
+   "Again" queued, and returns to that card so it can be answered again.
+   Saving overwrites the single saved copy of your progress (see persist()),
+   so re-answering replaces the undone answer instead of adding a second one. */
+const UNDO_LIMIT = 20;
+let undoStack = [];
+const cloneJSON = (v)=> v == null ? null : JSON.parse(JSON.stringify(v));
+function undoEntryValid(e){
+  return !!e && e.packId === currentPackId && e.day === todayStr() && e.practice === session.practice
+    && session.pos === e.pos + 1 && session.queue[e.pos] === e.cardId;
+}
+function canUndo(){
+  return !!currentPackId && undoEntryValid(undoStack[undoStack.length - 1]);
+}
+function undoLastGrade(){
+  if(!canUndo()) return;
+  const e = undoStack.pop();
+  if(!e.practice){
+    const p = pack();
+    if(e.prevRecord) p.cards[e.cardId] = e.prevRecord; else delete p.cards[e.cardId];
+    if(e.prevDay) p.history[e.day] = e.prevDay; else delete p.history[e.day];
+    p.streak = e.prevStreak;
+    persist();
+  }
+  if(e.insertedAt >= 0) session.queue.splice(e.insertedAt, 1);
+  session.pos = e.pos;
+  renderCard();
+  renderHeader();
+  toggleFlip(); // back on the answer side with the rating buttons ready
+}
 function grade(g){
   const card = currentCard();
   if(!card || !session.flipped) return;
-  if(!session.practice) applyGrade(card.id, g);
+  const entry = {packId:currentPackId, day:todayStr(), cardId:card.id, pos:session.pos, practice:session.practice, insertedAt:-1};
+  if(!session.practice){
+    const p = pack();
+    entry.prevRecord = cloneJSON(p.cards[card.id]);
+    entry.prevDay = cloneJSON(p.history[entry.day]);
+    entry.prevStreak = cloneJSON(p.streak);
+    applyGrade(card.id, g);
+  }
   if(g === "again"){
     const insertAt = Math.min(session.queue.length, session.pos + 3 + Math.floor(Math.random()*2));
     session.queue.splice(insertAt, 0, card.id);
+    entry.insertedAt = insertAt;
   }
+  undoStack.push(entry);
+  if(undoStack.length > UNDO_LIMIT) undoStack.shift();
   session.pos += 1;
   renderCard();
   renderHeader();
@@ -2272,6 +2325,9 @@ function initStudyToolbar(){
     grade(btn.dataset.g);
   });
   document.getElementById("scPracticeBtn").addEventListener("click", startPractice);
+  document.querySelectorAll("[data-undo]").forEach(btn=>{
+    btn.addEventListener("click",(e)=>{ e.stopPropagation(); undoLastGrade(); });
+  });
   document.querySelectorAll("[data-study-menu-toggle]").forEach(btn=>{
     btn.addEventListener("click",(e)=>{
       e.stopPropagation();
@@ -2304,6 +2360,7 @@ function initStudyToolbar(){
     if(!document.getElementById("editCardOverlay").hidden) return;
     if(!document.getElementById("aiCardOverlay").hidden) return;
     if(e.code === "Space"){ e.preventDefault(); toggleFlip(); }
+    if((e.key === "z" || e.key === "Z") && !e.shiftKey && !e.altKey){ e.preventDefault(); undoLastGrade(); }
     if(session.flipped && ["1","2","3","4"].includes(e.key)){
       const map = {"1":"again","2":"hard","3":"good","4":"easy"};
       grade(map[e.key]);
@@ -3414,6 +3471,7 @@ function renderHome(){
 function enterPack(id, resumeCardId){
   const meta = findPackMeta(id);
   if(!meta) return;
+  undoStack = [];
   currentPackId = id;
   rebuildEngineGlobals(meta);
   filters.theme = "all";
