@@ -135,7 +135,7 @@
     display:flex; flex-wrap:wrap; gap:18px 24px; align-items:flex-start; justify-content:space-between;
     margin-bottom:22px;
   }
-  .brand{display:flex; gap:14px; align-items:center;}
+  .brand{display:flex; gap:14px; align-items:flex-start;}
   .brand-mark{
     width:46px; height:46px; flex:none; border-radius:var(--radius-s);
     background:#2a55d6;
@@ -218,12 +218,24 @@
   .sc-next{margin:6px 0 0; font-size:0.9rem; color:var(--ink-soft); line-height:1.5;}
   .sc-practice-note{margin:8px 0 0; font-size:0.76rem; color:var(--ink-faint);}
   #scPracticeBtn{margin-top:10px;}
-  .filters{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
-  select#themeFilter{
-    font-family:inherit; font-size:0.82rem; font-weight:600; color:var(--ink);
-    background:var(--surface); border:1px solid var(--border); border-radius:999px;
-    padding:7px 12px; cursor:pointer;
+  .progress-bar-track{height:5px; border-radius:999px; background:var(--surface-3); overflow:hidden; margin-bottom:18px;}
+  .progress-bar-fill{height:100%; background:var(--accent); border-radius:999px; transition:width .3s ease; width:0%;}
+  .toolbar-actions{display:flex; gap:8px; align-items:center; margin-left:auto;}
+  .study-menu-wrap{position:relative; flex:none;}
+  .study-menu{
+    position:absolute; top:calc(100% + 6px); right:0; min-width:200px; background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--radius-s); box-shadow:var(--shadow-card);
+    padding:6px; display:flex; flex-direction:column; gap:2px; z-index:20; text-align:left;
   }
+  .study-menu-item{
+    display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:0; background:none;
+    font:inherit; font-size:0.86rem; font-weight:500; color:var(--ink); border-radius:var(--radius-s);
+    cursor:pointer; text-align:left;
+  }
+  .study-menu-item:hover{background:var(--surface-2);}
+  .study-menu-item:disabled{opacity:0.45; cursor:default; background:none;}
+  .study-menu-item svg{width:16px; height:16px; flex:none; color:var(--ink-soft);}
+  .dots-glyph{font-size:1.2rem; font-weight:700; line-height:1;}
 
   .icon-btn{
     width:34px; height:34px; flex:none; display:flex; align-items:center; justify-content:center;
@@ -243,17 +255,15 @@
   }
   .focus-exit:hover{color:var(--ink);}
   .focus-exit svg{width:13px; height:13px;}
+  .focus-right{display:flex; align-items:center; gap:12px;}
   .focus-count{font-family:"IBM Plex Mono", monospace; font-size:0.85rem; color:var(--ink-soft);}
   .focus-count b{color:var(--ink);}
 
-  .progress-bar-track{height:5px; border-radius:999px; background:var(--surface-3); overflow:hidden; margin-bottom:26px;}
-  .progress-bar-fill{height:100%; background:var(--accent); border-radius:999px; transition:width .3s ease; width:0%;}
 
   /* ---------- focus mode ---------- */
   body.focus-mode{overflow:hidden;}
   body.focus-mode .topbar,
   body.focus-mode .tabs,
-  body.focus-mode .today-strip,
   body.focus-mode .study-toolbar{display:none;}
   body.focus-mode .focus-bar{display:flex;}
   body.focus-mode #view-study{
@@ -263,7 +273,7 @@
     animation:none;
   }
   body.focus-mode .focus-bar{flex:none; margin-bottom:14px;}
-  body.focus-mode .progress-bar-track{flex:none;}
+  body.focus-mode .today-strip{flex:none;}
   body.focus-mode .card-stage{
     flex:1; min-height:0; max-height:640px; height:auto;
     width:100%; max-width:560px; margin:16px auto;
@@ -292,7 +302,6 @@
   }
   .card-edit-btn:hover{color:var(--ink); border-color:var(--border-strong);}
   .card-edit-btn svg{width:14px; height:14px;}
-  .card-ai-btn{right:54px;}
   .flashcard{
     position:relative; height:100%; perspective:1400px;
   }
@@ -328,10 +337,6 @@
   .card-img-small{max-height:84px; margin:0 0 16px;}
   .card-img-error{margin:0; text-align:center; font-size:0.85rem; color:var(--ink-faint);}
   .card-question-wrap.has-img{align-items:center; text-align:center;}
-  #sectionToggleBtn .eye-off{display:none;}
-  #sectionToggleBtn.is-hidden .eye-on{display:none;}
-  #sectionToggleBtn.is-hidden .eye-off{display:block;}
-  #sectionToggleBtn.is-hidden{color:var(--accent); border-color:var(--accent);}
   .cer-thumb{display:block; height:34px; min-width:34px; width:auto; margin:0 0 8px; border-radius:3px; background:var(--surface-3); box-shadow:0 0 0 1px var(--border-strong);}
   .tr-thumb{flex:none; height:22px; width:auto; border-radius:2px; box-shadow:0 0 0 1px var(--border-strong);}
   .flip-hint{
@@ -520,7 +525,7 @@
   .btn.ghost.armed{background:var(--again-soft); border-color:var(--again); color:var(--again);}
 
   /* ---------- homepage / pack grid ---------- */
-  .topbar-left{display:flex; gap:14px; align-items:center;}
+  .topbar-left{display:flex; gap:14px; align-items:flex-start;}
   .back-link{
     background:none; border:none; color:var(--ink-soft); font-size:0.85rem; font-weight:600;
     cursor:pointer; padding:0; display:inline-flex; align-items:center; gap:6px;
@@ -909,12 +914,11 @@
       </div>
       <div class="study-toolbar">
         <div class="queue-info"><b id="queuePos">0</b> / <b id="queueTotal">0</b> cards in this session<span class="practice-tag" id="practiceTag" hidden>Practice</span></div>
-        <div class="filters">
-          <select id="themeFilter"></select>
-          <button class="icon-btn" id="sectionToggleBtn" title="Hide section names on cards" aria-label="Hide section names on cards" aria-pressed="false">
-            <svg class="eye-on" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
-            <svg class="eye-off" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          </button>
+        <div class="toolbar-actions">
+          <div class="study-menu-wrap">
+            <button class="icon-btn" data-study-menu-toggle="toolbar" title="More options" aria-label="More options" aria-haspopup="menu" aria-expanded="false"><span class="dots-glyph">&#8942;</span></button>
+            <div class="study-menu" id="studyMenuToolbar" role="menu" hidden></div>
+          </div>
           <button class="icon-btn" id="focusModeBtn" title="Focus mode" aria-label="Enter focus mode">
             <svg viewBox="0 0 24 24" fill="none"><path d="M9 4H5.5C4.67 4 4 4.67 4 5.5V9M15 4H18.5C19.33 4 20 4.67 20 5.5V9M9 20H5.5C4.67 20 4 19.33 4 18.5V15M15 20H18.5C19.33 20 20 19.33 20 18.5V15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -926,17 +930,18 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           Exit focus
         </button>
-        <div class="focus-count"><b id="focusQueuePos">0</b> / <b id="focusQueueTotal">0</b></div>
+        <div class="focus-right">
+          <div class="focus-count"><b id="focusQueuePos">0</b> / <b id="focusQueueTotal">0</b></div>
+          <div class="study-menu-wrap">
+            <button class="icon-btn" data-study-menu-toggle="focus" title="More options" aria-label="More options" aria-haspopup="menu" aria-expanded="false"><span class="dots-glyph">&#8942;</span></button>
+            <div class="study-menu" id="studyMenuFocus" role="menu" hidden></div>
+          </div>
+        </div>
       </div>
-
-      <div class="progress-bar-track"><div class="progress-bar-fill" id="sessionBar"></div></div>
 
       <div class="card-stage" id="cardStage">
         <div class="card-shadow-2"></div>
         <div class="card-shadow-1"></div>
-        <button class="card-edit-btn card-ai-btn" id="cardAiBtn" title="Ask AI about this card" aria-label="Ask AI about this card">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L14.4 8.5L20.5 9.2L16 13.2L17.3 19.2L12 16.1L6.7 19.2L8 13.2L3.5 9.2L9.6 8.5L12 3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-        </button>
         <button class="card-edit-btn" id="cardEditBtn" title="Edit this card" aria-label="Edit this card">
           <svg viewBox="0 0 24 24" fill="none"><path d="M4 20l4-1 10-10-3-3L5 16l-1 4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
         </button>
@@ -1932,13 +1937,36 @@ function preloadUpcomingImages(){
     if(url) (new Image()).src = url;
   });
 }
-function renderSectionToggle(){
-  const btn = document.getElementById("sectionToggleBtn");
+/* ---------- study "more options" menu (toolbar and focus mode) ---------- */
+const MENU_ICON_EYE = "<svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/><circle cx=\"12\" cy=\"12\" r=\"3\" stroke=\"currentColor\" stroke-width=\"1.6\"/></svg>";
+const MENU_ICON_EYE_OFF = "<svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/><circle cx=\"12\" cy=\"12\" r=\"3\" stroke=\"currentColor\" stroke-width=\"1.6\"/><path d=\"M4 4l16 16\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"/></svg>";
+const MENU_ICON_SPARKLE = "<svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M12 3L14.4 8.5L20.5 9.2L16 13.2L17.3 19.2L12 16.1L6.7 19.2L8 13.2L3.5 9.2L9.6 8.5L12 3Z\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/></svg>";
+function studyMenuHTML(){
   const hidden = !!pack().hideSections;
-  btn.classList.toggle("is-hidden", hidden);
-  btn.title = hidden ? "Show section names on cards" : "Hide section names on cards";
-  btn.setAttribute("aria-label", btn.title);
-  btn.setAttribute("aria-pressed", hidden ? "true" : "false");
+  const hasCard = session.pos < session.queue.length;
+  return "<button class=\"study-menu-item\" role=\"menuitem\" data-study-menu-action=\"sections\">"
+      + (hidden ? MENU_ICON_EYE : MENU_ICON_EYE_OFF) + (hidden ? "Show section names" : "Hide section names") + "</button>"
+    + "<button class=\"study-menu-item\" role=\"menuitem\" data-study-menu-action=\"ai\""+(hasCard ? "" : " disabled")+">"
+      + MENU_ICON_SPARKLE + "Make AI Change</button>";
+}
+function renderStudyMenus(){
+  const html = studyMenuHTML();
+  document.getElementById("studyMenuToolbar").innerHTML = html;
+  document.getElementById("studyMenuFocus").innerHTML = html;
+}
+function closeStudyMenus(){
+  document.querySelectorAll(".study-menu").forEach(m=>{ m.hidden = true; });
+  document.querySelectorAll("[data-study-menu-toggle]").forEach(b=>b.setAttribute("aria-expanded","false"));
+}
+function toggleStudyMenu(which){
+  const menu = document.getElementById(which === "focus" ? "studyMenuFocus" : "studyMenuToolbar");
+  const willOpen = menu.hidden;
+  closeStudyMenus();
+  if(willOpen){
+    renderStudyMenus();
+    menu.hidden = false;
+    document.querySelector("[data-study-menu-toggle=\""+which+"\"]").setAttribute("aria-expanded","true");
+  }
 }
 
 /* ============================== NEXT REVIEW & PRACTICE ==============================
@@ -2012,18 +2040,15 @@ function renderCard(){
   const gradeRow = document.getElementById("gradeRow");
   const complete = document.getElementById("sessionComplete");
   const stage = document.getElementById("cardStage");
-  const bar = document.getElementById("progress-bar-fill") || document.getElementById("sessionBar");
 
   const sp = sessionProgress();
   document.getElementById("queuePos").textContent = sp.done;
   document.getElementById("queueTotal").textContent = sp.total;
   document.getElementById("focusQueuePos").textContent = sp.done;
   document.getElementById("focusQueueTotal").textContent = sp.total;
-  const pct = sp.total ? Math.round((sp.done/sp.total)*100) : 0;
-  document.getElementById("sessionBar").style.width = pct + "%";
 
   document.getElementById("practiceTag").hidden = !session.practice;
-  renderSectionToggle();
+  renderStudyMenus();
   const card = currentCard();
   // Single choke point for "what's on screen right now" — every path that
   // changes it (grading, filtering, undo, editing) calls renderCard()
@@ -2095,7 +2120,6 @@ function renderCard(){
       actionBtn.textContent = "Show everything due today";
       actionBtn.onclick = ()=>{
         filters.theme = "all";
-        document.getElementById("themeFilter").value = "all";
         buildQueue();
         renderCard();
       };
@@ -2232,18 +2256,7 @@ function checkDateRollover(){
 }
 
 /* ============================== STUDY TOOLBAR ============================== */
-function populateThemeFilter(){
-  const sel = document.getElementById("themeFilter");
-  sel.innerHTML = "<option value=\"all\">All sections</option>" + THEMES.map(t=>"<option value=\""+t.id+"\">"+t.name+"</option>").join("");
-  sel.value = "all";
-}
 function initStudyToolbar(){
-  const sel = document.getElementById("themeFilter");
-  sel.addEventListener("change", ()=>{
-    filters.theme = sel.value;
-    buildQueue();
-    renderCard();
-  });
   document.getElementById("cardStage").addEventListener("click", ()=>{
     toggleFlip();
   });
@@ -2253,11 +2266,31 @@ function initStudyToolbar(){
     grade(btn.dataset.g);
   });
   document.getElementById("scPracticeBtn").addEventListener("click", startPractice);
-  document.getElementById("sectionToggleBtn").addEventListener("click", ()=>{
-    const p = pack();
-    p.hideSections = !p.hideSections;
-    persist();
-    renderCard();
+  document.querySelectorAll("[data-study-menu-toggle]").forEach(btn=>{
+    btn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      toggleStudyMenu(btn.dataset.studyMenuToggle);
+    });
+  });
+  document.querySelectorAll(".study-menu").forEach(menu=>{
+    menu.addEventListener("click",(e)=>{
+      const item = e.target.closest("[data-study-menu-action]");
+      if(!item || item.disabled) return;
+      e.stopPropagation();
+      const act = item.dataset.studyMenuAction;
+      closeStudyMenus();
+      if(act === "sections"){
+        const p = pack();
+        p.hideSections = !p.hideSections;
+        persist();
+        renderCard();
+      } else if(act === "ai"){
+        openAiCardModal();
+      }
+    });
+  });
+  document.addEventListener("click",(e)=>{
+    if(!e.target.closest(".study-menu-wrap")) closeStudyMenus();
   });
   document.addEventListener("keydown",(e)=>{
     if(document.getElementById("appShell").hidden) return;
@@ -2269,7 +2302,11 @@ function initStudyToolbar(){
       const map = {"1":"again","2":"hard","3":"good","4":"easy"};
       grade(map[e.key]);
     }
-    if(e.key === "Escape" && document.body.classList.contains("focus-mode")) exitFocusMode();
+    if(e.key === "Escape"){
+      // First Escape closes an open menu; only then does it leave focus mode.
+      if(document.querySelector(".study-menu:not([hidden])")) closeStudyMenus();
+      else if(document.body.classList.contains("focus-mode")) exitFocusMode();
+    }
   });
 
   document.getElementById("focusModeBtn").addEventListener("click", enterFocusMode);
@@ -2277,10 +2314,12 @@ function initStudyToolbar(){
 }
 
 function enterFocusMode(){
+  closeStudyMenus();
   switchTab("study");
   document.body.classList.add("focus-mode");
 }
 function exitFocusMode(){
+  closeStudyMenus();
   document.body.classList.remove("focus-mode");
 }
 
@@ -3145,7 +3184,7 @@ function aiCardModalHTML(){
   const card = effCard(aiCardIdActive);
   if(aiCardStep === "loading"){
     const preview = aiCardResult || card;
-    return "<h2>"+(aiCardResult ? "Asking for another change" : "Ask AI about this card")+"</h2>"
+    return "<h2>"+(aiCardResult ? "Asking for another change" : "Make AI Change")+"</h2>"
       + aiCardPreviewHTML(preview)
       + "<p class=\"wizard-note\">Thinking… this usually takes a few seconds.</p>";
   }
@@ -3165,7 +3204,7 @@ function aiCardModalHTML(){
       + "<div id=\"aiCardError\"></div>"
       + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"ai-card-save\">Save to card</button><button class=\"btn ghost\" data-action=\"ai-card-discard\">Discard</button></div>";
   }
-  return "<h2>Ask AI about this card</h2>"
+  return "<h2>Make AI Change</h2>"
     + "<p class=\"modal-sub\">Runs on your own Gemini API credits. Only this card changes.</p>"
     + aiCardPreviewHTML(card)
     + "<div class=\"form-field\"><label>What do you want AI to do?</label>"
@@ -3200,10 +3239,6 @@ function closeAiCardModal(){
   aiCardResult = null;
 }
 function initAiCardUI(){
-  document.getElementById("cardAiBtn").addEventListener("click",(e)=>{
-    e.stopPropagation();
-    openAiCardModal();
-  });
   document.getElementById("aiCardCloseBtn").addEventListener("click", closeAiCardModal);
   document.getElementById("aiCardOverlay").addEventListener("click",(e)=>{
     if(e.target.id === "aiCardOverlay") closeAiCardModal();
@@ -3376,7 +3411,6 @@ function enterPack(id, resumeCardId){
   currentPackId = id;
   rebuildEngineGlobals(meta);
   filters.theme = "all";
-  populateThemeFilter();
   document.getElementById("packBrandTitle").textContent = meta.name;
   document.getElementById("packBrandTagline").textContent = meta.tagline || "";
   document.getElementById("homeShell").hidden = true;
@@ -3421,7 +3455,7 @@ function renderEditPackModal(){
     + "<div class=\"form-field\"><label>Pack name</label><input type=\"text\" id=\"editPackName\" value=\""+escHtml(editPackDraft.name)+"\"></div>"
     + "<div class=\"form-field\"><label>Tagline (optional)</label><input type=\"text\" id=\"editPackTagline\" value=\""+escHtml(editPackDraft.tagline)+"\"></div>"
     + "<div class=\"form-field\"><label>AI context</label><textarea id=\"editPackContext\" rows=\"4\" placeholder=\"A sentence or two about what this pack covers...\">"+escHtml(editPackDraft.context)+"</textarea>"
-      + "<p class=\"form-hint\">Sent to the AI with every &ldquo;Ask AI about this card&rdquo; request, so you never have to re-explain what the pack is for. Written for you automatically when a pack is created.</p>"
+      + "<p class=\"form-hint\">Sent to the AI with every &ldquo;Make AI Change&rdquo; request, so you never have to re-explain what the pack is for. Written for you automatically when a pack is created.</p>"
       + "<div class=\"wizard-actions\" style=\"margin-top:8px;\"><button class=\"btn ghost\" data-action=\"edit-pack-regen\">"+(editPackDraft.context ? "Regenerate with AI" : "Generate with AI")+"</button><span id=\"editPackContextStatus\" class=\"form-hint\" style=\"margin:0;\"></span></div>"
     + "</div>"
     + "<div class=\"form-field\"><label>New cards per day</label><input type=\"number\" id=\"editPackNewPerDay\" min=\"1\" max=\"200\" value=\""+editPackDraft.newPerDay+"\">"
