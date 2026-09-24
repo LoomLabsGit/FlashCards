@@ -295,7 +295,11 @@
      this chain, a card with a long answer/why would stretch the whole
      stage to fit it — pushing the grade buttons far down the page. Long
      content scrolls inside .card-back-content instead. */
-  .card-stage{position:relative; max-width:560px; margin:0 auto 22px; height:min(430px, 58vh);}
+  .card-stage{position:relative; isolation:isolate; max-width:560px; margin:0 auto 22px; height:min(430px, 58vh);}
+  #view-study{overflow-x:clip;}
+  /* Copies of the card used only for the answer/undo animation (see playCardOut). */
+  .flashcard.card-ghost{position:absolute; inset:0; height:auto; margin:0; pointer-events:none; will-change:transform, opacity;}
+  .flashcard.instant .inner{transition:none;}
   .card-shadow-1, .card-shadow-2{
     position:absolute; inset:0; background:var(--surface-2); border:1px solid var(--border);
     border-radius:var(--radius-m);
@@ -2149,7 +2153,11 @@ function renderCard(){
   }
   stage.style.display = "";
   complete.hidden = true;
+  // Reset to the front instantly: animating the flip back would show the new
+  // card's answer side turning away.
+  flashcard.classList.add("instant");
   flashcard.classList.remove("flipped");
+  requestAnimationFrame(()=>requestAnimationFrame(()=>flashcard.classList.remove("instant")));
   session.flipped = false;
   gradeRow.hidden = true;
 
@@ -2180,6 +2188,110 @@ function toggleFlip(){
   document.getElementById("gradeRow").hidden = !session.flipped;
 }
 
+/* ---------- card animation ----------
+   Purely visual. Answering "puts the card at the back of the pack": a copy of
+   the card you just rated lifts out to the side with a slight twist and skew,
+   then slips behind the stack while the real card underneath is already the
+   next one. Undo plays the same motion in reverse (the old card comes back to
+   the front). The copy is a throwaway clone, so nothing here touches the
+   schedule, the queue or what gets saved. */
+const CARD_ANIM_MS = 300;
+const CARD_ANIM_EASE = "cubic-bezier(.3,.7,.25,1)"; // for the next card settling into place
+function cardAnimOK(){
+  return typeof Element.prototype.animate === "function" && !document.hidden
+    && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+function cardStageVisible(){
+  return document.getElementById("cardStage").style.display !== "none";
+}
+// showImages: the card was only just rendered, so its picture may not have
+// finished loading yet (and is still marked hidden); the copy should show it.
+function cloneCardFace(showImages){
+  const g = document.getElementById("flashcard").cloneNode(true);
+  if(showImages) g.querySelectorAll("img[src]").forEach(i=>{ i.hidden = false; });
+  g.removeAttribute("id");
+  g.querySelectorAll("[id]").forEach(n=>n.removeAttribute("id"));
+  g.classList.add("card-ghost");
+  g.setAttribute("aria-hidden", "true");
+  return g;
+}
+// Frames run front -> back. Easing is set per stretch (fast lift-out, then a
+// smooth slide in behind the pack) so the timing feels physical rather than
+// one long ease. `tuck` false is the version used when there's no next card to
+// slip behind (it just slides away and fades).
+const EASE_LIFT = "cubic-bezier(.2,.7,.3,1)";
+const EASE_TUCK = "cubic-bezier(.45,0,.25,1)";
+function cardMoveFrames(tuck){
+  const out = "translate(34%, -3%) rotate(7deg) skewX(-4deg) scale(1.03)";
+  if(!tuck){
+    return [
+      {transform:"translate(0,0) rotate(0deg) skewX(0deg) scale(1)", opacity:1, offset:0, easing:EASE_LIFT},
+      {transform:out, opacity:0, offset:1}
+    ];
+  }
+  return [
+    {transform:"translate(0,0) rotate(0deg) skewX(0deg) scale(1)", opacity:1, zIndex:10, offset:0, easing:EASE_LIFT},
+    {transform:out, opacity:1, zIndex:10, offset:0.42, easing:"linear"},
+    {transform:"translate(22%, 4%) rotate(4deg) skewX(-2deg) scale(0.99)", opacity:1, zIndex:-1, offset:0.62, easing:EASE_TUCK},
+    {transform:"translate(0, 6px) rotate(-2.6deg) skewX(0deg) scale(0.97)", opacity:0, zIndex:-1, offset:1}
+  ];
+}
+// The same motion backwards (behind the pack -> out -> onto the top), landing
+// with a soft deceleration.
+function reverseFrames(frames){
+  const rev = frames.slice().reverse().map(f=>{
+    const g = Object.assign({}, f, {offset:1 - f.offset});
+    delete g.easing;
+    return g;
+  });
+  const easings = frames.length === 4 ? [EASE_TUCK, "linear", EASE_LIFT] : [EASE_LIFT];
+  easings.forEach((e,i)=>{ rev[i].easing = e; });
+  return rev;
+}
+function runGhost(ghost, frames, onDone){
+  const anim = ghost.animate(frames, {duration:CARD_ANIM_MS, easing:"linear"});
+  let done = false;
+  const finish = ()=>{ if(done) return; done = true; onDone(); };
+  anim.onfinish = finish;
+  anim.oncancel = finish;
+  setTimeout(finish, CARD_ANIM_MS + 250); // safety net if the browser never reports the end
+}
+// `ghost` and `rect` were captured before the queue moved on. Call after the
+// next card has been rendered.
+function playCardOut(ghost, rect){
+  const stage = document.getElementById("cardStage");
+  const hasNext = cardStageVisible();
+  if(hasNext){
+    stage.appendChild(ghost);
+    const next = document.getElementById("flashcard");
+    next.animate([
+      {transform:"translateY(6px) scale(0.97)"},
+      {transform:"none"}
+    ], {duration:CARD_ANIM_MS, easing:CARD_ANIM_EASE});
+  } else {
+    // Nothing follows this card and the stage is about to disappear, so the
+    // copy floats at the card's old position instead.
+    ghost.style.cssText = "position:fixed;inset:auto;left:"+rect.left+"px;top:"+rect.top+"px;width:"+rect.width+"px;height:"+rect.height+"px;z-index:1500;";
+    document.body.appendChild(ghost);
+  }
+  runGhost(ghost, cardMoveFrames(hasNext), ()=>ghost.remove());
+}
+// Undo: `under` is a copy of the card that was on top (or null); the card
+// being restored travels back from behind the pack onto the top.
+function playCardIn(under, incoming){
+  const stage = document.getElementById("cardStage");
+  const real = document.getElementById("flashcard");
+  real.style.visibility = "hidden";
+  if(under) stage.appendChild(under);
+  stage.appendChild(incoming);
+  runGhost(incoming, reverseFrames(cardMoveFrames(true)), ()=>{
+    incoming.remove();
+    if(under) under.remove();
+    real.style.visibility = "";
+    real.classList.remove("instant");
+  });
+}
+
 /* ---------- undo ----------
    Before each answer we keep what it's about to change: the card's schedule,
    today's counts and the streak. Undo puts those back, drops the retest that
@@ -2198,6 +2310,8 @@ function canUndo(){
 }
 function undoLastGrade(){
   if(!canUndo()) return;
+  const animate = cardAnimOK();
+  const under = animate && cardStageVisible() ? cloneCardFace() : null;
   const e = undoStack.pop();
   if(!e.practice){
     const p = pack();
@@ -2210,11 +2324,19 @@ function undoLastGrade(){
   session.pos = e.pos;
   renderCard();
   renderHeader();
+  const realCard = document.getElementById("flashcard");
+  if(animate) realCard.classList.add("instant"); // no flip animation under the returning copy
   toggleFlip(); // back on the answer side with the rating buttons ready
+  if(animate){
+    playCardIn(under, cloneCardFace(true));
+  }
 }
 function grade(g){
   const card = currentCard();
   if(!card || !session.flipped) return;
+  const animate = cardAnimOK();
+  const ghost = animate ? cloneCardFace() : null;
+  const ghostRect = animate ? document.getElementById("cardStage").getBoundingClientRect() : null;
   const entry = {packId:currentPackId, day:todayStr(), cardId:card.id, pos:session.pos, practice:session.practice, insertedAt:-1};
   if(!session.practice){
     const p = pack();
@@ -2233,6 +2355,7 @@ function grade(g){
   session.pos += 1;
   renderCard();
   renderHeader();
+  if(ghost) playCardOut(ghost, ghostRect);
 }
 
 /* ============================== HEADER ============================== */
