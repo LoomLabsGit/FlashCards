@@ -279,6 +279,11 @@
     width:100%; max-width:560px; margin:16px auto;
   }
   body.focus-mode .grade-row{flex:none; width:100%; max-width:560px; margin:0 auto;}
+  /* The rating buttons only appear once a card is flipped. In focus mode the
+     card stage fills whatever space is left, so if the row were removed while
+     hidden the card would shrink the moment it's revealed. Keep its space
+     reserved (invisible) so the card is always the same size. */
+  body.focus-mode #view-study:not(.no-card) #gradeRow[hidden]{display:grid !important; visibility:hidden;}
   body.focus-mode .session-complete{margin:auto;}
 
   /* ---------- flashcard ---------- */
@@ -2054,6 +2059,7 @@ function renderCard(){
   // changes it (grading, filtering, undo, editing) calls renderCard()
   // afterward, so this is the one place that needs to remember it.
   if(currentPackId) saveLastOpen(currentPackId, card ? session.queue[session.pos] : null);
+  document.getElementById("view-study").classList.toggle("no-card", !card);
   if(!card){
     stage.style.display = "none";
     gradeRow.hidden = true;
