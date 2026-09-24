@@ -296,7 +296,11 @@
      stage to fit it — pushing the grade buttons far down the page. Long
      content scrolls inside .card-back-content instead. */
   .card-stage{position:relative; perspective:1000px; transform-style:preserve-3d; max-width:560px; margin:0 auto 22px; height:min(430px, 58vh);}
-  #view-study{overflow-x:clip;}
+  /* The answer/undo animation lets cards swing past the page margins. Nothing
+     else overflows sideways, so only the screen edge itself needs to clip
+     (to stop a horizontal scrollbar appearing mid-animation). */
+  html, body{overflow-x:hidden;}
+  @supports (overflow:clip){ html, body{overflow-x:clip;} }
   /* Copies of the card used only for the answer/undo animation (see playCardOut). */
   .flashcard.card-ghost{position:absolute; inset:0; height:auto; margin:0; pointer-events:none; will-change:transform, opacity;}
   .flashcard.instant .inner{transition:none;}
