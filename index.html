@@ -296,11 +296,6 @@
      stage to fit it — pushing the grade buttons far down the page. Long
      content scrolls inside .card-back-content instead. */
   .card-stage{position:relative; perspective:1000px; transform-style:preserve-3d; max-width:560px; margin:0 auto 22px; height:min(430px, 58vh);}
-  /* The answer/undo animation lets cards swing past the page margins. Nothing
-     else overflows sideways, so only the screen edge itself needs to clip
-     (to stop a horizontal scrollbar appearing mid-animation). */
-  html, body{overflow-x:hidden;}
-  @supports (overflow:clip){ html, body{overflow-x:clip;} }
   /* Copies of the card used only for the answer/undo animation (see playCardOut). */
   .flashcard.card-ghost{position:absolute; inset:0; height:auto; margin:0; pointer-events:none; will-change:transform, opacity;}
   .flashcard.instant .inner{transition:none;}
@@ -2301,8 +2296,49 @@ function stageDeckLayers(){
 }
 function playOpts(){ return {duration:CARD_ANIM_MS, easing:CARD_ANIM_EASE}; }
 
+/* While cards animate, the stage is lifted out of the page into a fixed layer
+   that covers exactly the screen (a placeholder holds its space in the page,
+   at the same spot). That layer clips at the screen edge and nowhere else, so
+   the cards can swing out past the page margins without being cut off, and
+   without ever making the page scroll or zoom sideways. When the last
+   animation ends the stage drops back into its place. Full screen mode already
+   is a fixed layer, so it needs nothing. */
+let stagePins = 0, stagePlaceholder = null, stageLayer = null;
+function pinStage(){
+  if(document.body.classList.contains("focus-mode")) return;
+  stagePins++;
+  if(stagePlaceholder) return;
+  const stage = document.getElementById("cardStage");
+  const r = stage.getBoundingClientRect();
+  const cs = getComputedStyle(stage);
+  stagePlaceholder = document.createElement("div");
+  stagePlaceholder.style.cssText = "height:"+r.height+"px;margin:"+cs.marginTop+" 0 "+cs.marginBottom+";";
+  stage.parentNode.insertBefore(stagePlaceholder, stage);
+  stageLayer = document.createElement("div");
+  stageLayer.style.cssText = "position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:900;";
+  document.body.appendChild(stageLayer);
+  stageLayer.appendChild(stage);
+  stage.style.setProperty("position", "absolute");
+  stage.style.setProperty("left", r.left+"px");
+  stage.style.setProperty("top", r.top+"px");
+  stage.style.setProperty("width", r.width+"px");
+  stage.style.setProperty("height", r.height+"px");
+  stage.style.setProperty("margin", "0");
+  stage.style.setProperty("pointer-events", "auto");
+}
+function unpinStage(){
+  if(stagePins > 0) stagePins--;
+  if(stagePins > 0 || !stagePlaceholder) return;
+  const stage = document.getElementById("cardStage");
+  ["position","left","top","width","height","margin","pointer-events"].forEach(k=>stage.style.removeProperty(k));
+  stagePlaceholder.replaceWith(stage);
+  stagePlaceholder = null;
+  stageLayer.remove();
+  stageLayer = null;
+}
+
 let liveGhosts = [];
-function runGhost(ghost, frames, onDone){
+function runGhost(ghost, frames, onDone, pinned){
   const anim = ghost.animate(frames, playOpts());
   let done = false;
   const finish = ()=>{
@@ -2310,6 +2346,7 @@ function runGhost(ghost, frames, onDone){
     done = true;
     liveGhosts = liveGhosts.filter(g=>g !== ghost);
     onDone();
+    if(pinned) unpinStage();
   };
   liveGhosts.push(ghost);
   // Rapid-fire answers: never let more than a few copies pile up. Finishing
@@ -2326,6 +2363,7 @@ function playCardOut(ghost, rect){
   const stage = document.getElementById("cardStage");
   const hasNext = cardStageVisible();
   if(hasNext){
+    pinStage();
     stage.appendChild(ghost);
     // The next card is already in place under the one leaving (like a real
     // deck). The whole pack steps left to make room, and the next card starts
@@ -2334,13 +2372,16 @@ function playCardOut(ghost, rect){
     document.getElementById("flashcard").animate(shift, playOpts());
     stageDeckLayers().forEach(l=>l.animate(shift, playOpts()));
     document.getElementById("flashcard").animate(growFrames(), playOpts());
-    runGhost(ghost, ghostFrames(false), ()=>ghost.remove());
+    runGhost(ghost, ghostFrames(false), ()=>ghost.remove(), true);
   } else {
     // Nothing follows this card and the stage is about to disappear, so the
     // copy floats at the card's old position instead.
-    ghost.style.cssText = "position:fixed;inset:auto;left:"+rect.left+"px;top:"+rect.top+"px;width:"+rect.width+"px;height:"+rect.height+"px;z-index:1500;";
-    document.body.appendChild(ghost);
-    runGhost(ghost, standaloneFadeFrames(ghostFrames(true)), ()=>ghost.remove());
+    const layer = document.createElement("div");
+    layer.style.cssText = "position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:1500;";
+    ghost.style.cssText = "position:absolute;inset:auto;left:"+rect.left+"px;top:"+rect.top+"px;width:"+rect.width+"px;height:"+rect.height+"px;";
+    layer.appendChild(ghost);
+    document.body.appendChild(layer);
+    runGhost(ghost, standaloneFadeFrames(ghostFrames(true)), ()=>layer.remove());
   }
 }
 // Undo: `under` is a copy of the card that was on top (or null); the card
@@ -2349,6 +2390,7 @@ function playCardOut(ghost, rect){
 function playCardIn(under, incoming){
   const stage = document.getElementById("cardStage");
   const real = document.getElementById("flashcard");
+  pinStage();
   real.style.visibility = "hidden";
   const shift = reversed(deckShiftFrames());
   stageDeckLayers().forEach(l=>l.animate(shift, playOpts()));
@@ -2363,7 +2405,7 @@ function playCardIn(under, incoming){
     if(under) under.remove();
     real.style.visibility = "";
     real.classList.remove("instant");
-  });
+  }, true);
 }
 
 /* ---------- undo ----------
