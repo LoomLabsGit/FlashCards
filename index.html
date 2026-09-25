@@ -212,7 +212,7 @@
   .queue-info{font-size:0.85rem; color:var(--ink-soft);}
   .queue-info b{color:var(--ink); font-family:"IBM Plex Mono", monospace;}
   .practice-tag{
-    margin-left:8px; font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
+    margin-left:0; font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
     color:var(--accent); background:var(--accent-soft); border-radius:999px; padding:2px 8px;
   }
   .sc-next{margin:6px 0 0; font-size:0.9rem; color:var(--ink-soft); line-height:1.5;}
@@ -918,15 +918,14 @@
         </div>
         <div class="ts-track"><div class="ts-fill" id="todayFill"></div></div>
         <div class="ts-meta">
-          <span><b id="todayReviewed">0</b> reviewed</span>
-          <span><b id="todayRemaining">0</b> left</span>
+          <span><b id="todayDone">0</b>/<b id="todayTotal">0</b> Cards</span>
           <span><b id="todayAccuracy">&mdash;</b> good or better</span>
         </div>
       </div>
       <div class="study-toolbar">
         <div class="toolbar-left">
           <button class="icon-btn" data-undo title="Undo last answer" aria-label="Undo last answer" disabled><svg viewBox="0 0 24 24" fill="none"><path d="M9 14L4 9L9 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9H14.5C17.5 9 20 11.5 20 14.5C20 17.5 17.5 20 14.5 20H10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          <div class="queue-info"><b id="queuePos">0</b> / <b id="queueTotal">0</b> cards in this session<span class="practice-tag" id="practiceTag" hidden>Practice</span></div>
+          <div class="queue-info"><span class="practice-tag" id="practiceTag" hidden>Practice</span></div>
         </div>
         <div class="toolbar-actions">
           <div class="study-menu-wrap">
@@ -2059,8 +2058,6 @@ function renderCard(){
   const stage = document.getElementById("cardStage");
 
   const sp = sessionProgress();
-  document.getElementById("queuePos").textContent = sp.done;
-  document.getElementById("queueTotal").textContent = sp.total;
   document.getElementById("focusQueuePos").textContent = sp.done;
   document.getElementById("focusQueueTotal").textContent = sp.total;
 
@@ -2492,8 +2489,8 @@ function renderTodayStrip(){
   const {done:reviewed, remaining, total} = dayProgress(CARDS);
   const pct = total ? Math.round((reviewed/total)*100) : 100;
   document.getElementById("todayFill").style.width = pct + "%";
-  document.getElementById("todayReviewed").textContent = reviewed;
-  document.getElementById("todayRemaining").textContent = remaining;
+  document.getElementById("todayDone").textContent = reviewed;
+  document.getElementById("todayTotal").textContent = total;
   const accEl = document.getElementById("todayAccuracy");
   if(day && day.total){
     const goodOrBetter = (day.grades.good||0) + (day.grades.easy||0);
