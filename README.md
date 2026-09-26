@@ -23,3 +23,6 @@ The sign-in screen has a **Create an account** option. Whether it works is contr
 
 `sw.js` (a service worker) saves the app and its libraries on the first online visit, so it opens with no connection; the page is always fetched fresh when online, so a new deploy appears on the next load. A pack's ⋮ menu has **Download for offline**, which saves its pictures (flags come to about 0.5 MB) into the `retainiac-assets-v1` cache. Answers are written to the device first and synced afterwards; if a sync fails the app remembers and pushes it when the connection returns (`retainiac-sync-dirty-v1`). The first sign-in on a device must be online; after that a stored login is used when the network is down. Syncing is still last-write-wins: studying the same account on two devices while one is offline can overwrite the other's progress.
 
+## Notes
+
+While studying, ⋮ → **Leave a note** saves a passing thought (usually something to look into) to the pack's **Notes** tab, a checklist with the card it was written on for context. Notes live in `state.packs[id].notes` and sync like everything else.

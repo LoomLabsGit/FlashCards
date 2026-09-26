@@ -173,6 +173,8 @@
   }
   .tab:hover{color:var(--ink);}
   .tab.active{color:var(--ink); border-bottom-color:var(--accent);}
+  .tab-badge{display:inline-block; margin-left:6px; min-width:18px; padding:1px 6px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent); font-size:0.7rem; font-weight:700; line-height:1.5; text-align:center;}
   .view{display:none;}
   .view.active{display:block; animation:fadein .25s ease;}
   @keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
@@ -763,6 +765,10 @@
   }
 
   @media (max-width:600px){
+    .tabs{gap:0; overflow-x:auto; scrollbar-width:none;}
+    .tabs::-webkit-scrollbar{display:none;}
+    .tab{padding:10px 9px 12px; font-size:0.86rem; white-space:nowrap;}
+    .tab-badge{margin-left:4px; padding:0 5px;}
     .card-question{font-size:1.25rem;}
     .grade-row{grid-template-columns:repeat(2,1fr);}
     .cal-count{display:none;}
@@ -787,6 +793,51 @@
   }
   .auth-card .btn{width:100%; margin-top:4px;}
   .auth-error{color:var(--again); font-size:0.82rem; margin:12px 0 0;}
+  /* ---------- notes ---------- */
+  .notes-header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:22px;}
+  .notes-header .section-title{margin:0;}
+  .notes-count{margin:4px 0 0; font-size:0.82rem; color:var(--ink-faint);}
+  .notes-group + .notes-group{margin-top:34px;}
+  .notes-group-title{display:flex; align-items:baseline; gap:10px; margin:0 0 14px; font-family:"Public Sans", sans-serif;
+    font-size:0.72rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint);}
+  .notes-group-title .link-btn{margin-left:auto; text-transform:none; letter-spacing:0; font-size:0.78rem; font-weight:600;}
+  .notes-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px;}
+  .note-row{display:flex; align-items:flex-start; gap:16px; padding:18px 18px 18px 20px; background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--radius-m); box-shadow:var(--shadow-soft); transition:opacity .2s ease;}
+  .note-check{flex:none; width:24px; height:24px; margin-top:1px; padding:0; border-radius:50%; border:1.6px solid var(--border-strong);
+    background:var(--surface); color:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background .15s ease, border-color .15s ease, color .15s ease;}
+  .note-check:hover{border-color:var(--good);}
+  .note-check svg{width:14px; height:14px;}
+  .note-row.is-done .note-check{background:var(--good); border-color:var(--good); color:#fff;}
+  .note-row.is-done{opacity:0.62;}
+  .note-row.is-done .note-text{text-decoration:line-through; text-decoration-color:var(--ink-faint);}
+  .note-main{flex:1; min-width:0;}
+  .note-text{margin:0; font-size:1rem; line-height:1.55; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; cursor:pointer;}
+  .note-meta{margin:8px 0 0; font-size:0.76rem; line-height:1.4; color:var(--ink-faint); overflow-wrap:anywhere;}
+  .note-del{flex:none; border:0; background:none; padding:4px 6px; margin:-2px -4px 0 0; border-radius:var(--radius-s); cursor:pointer;
+    font:inherit; font-size:0.78rem; font-weight:600; color:var(--ink-faint);}
+  .note-del:hover{color:var(--again);}
+  .note-del.armed{color:var(--again); background:var(--again-soft);}
+  .notes-empty{max-width:440px; margin:56px auto 24px; text-align:center;}
+  .notes-empty-icon{width:56px; height:56px; margin:0 auto 18px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+    display:flex; align-items:center; justify-content:center;}
+  .notes-empty-icon svg{width:26px; height:26px;}
+  .notes-empty h3{font-size:1.35rem; margin-bottom:10px;}
+  .notes-empty > p{margin:0 auto 22px; color:var(--ink-soft); font-size:0.95rem; line-height:1.55; max-width:380px;}
+  .notes-howto{list-style:none; counter-reset:step; margin:0 0 28px; padding:0; text-align:left; display:flex; flex-direction:column; gap:12px;}
+  .notes-howto li{counter-increment:step; display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--radius-m); font-size:0.9rem; color:var(--ink-soft); line-height:1.4;}
+  .notes-howto li::before{content:counter(step); flex:none; width:24px; height:24px; border-radius:50%; background:var(--surface-3);
+    color:var(--ink); font-size:0.78rem; font-weight:700; display:flex; align-items:center; justify-content:center;}
+  .notes-howto b{color:var(--ink);}
+  .note-card-ctx{margin:0 0 14px; padding:10px 12px; background:var(--surface-2); border-radius:var(--radius-s); font-size:0.82rem; color:var(--ink-soft); line-height:1.45;}
+  .note-card-ctx b{display:block; margin-bottom:2px; font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-faint);}
+  #noteText{width:100%; box-sizing:border-box; font:inherit; font-size:0.95rem; line-height:1.5; color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:var(--radius-s); padding:12px 14px; resize:vertical; min-height:110px;}
+  #noteText:focus{outline:2px solid var(--accent-soft); border-color:var(--accent);}
+  .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:22px; z-index:2500; max-width:calc(100% - 24px);
+    background:var(--ink); color:var(--bg); border-radius:999px; padding:10px 18px; font-size:0.85rem; font-weight:600; box-shadow:var(--shadow-card);}
   .offline-banner{position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:900; max-width:calc(100% - 24px);
     background:var(--surface-3); color:var(--ink); border:1px solid var(--border); border-radius:999px; padding:8px 16px;
     font-size:0.78rem; font-weight:600; text-align:center; box-shadow:var(--shadow-card);}
@@ -907,6 +958,7 @@
     <button class="tab" data-tab="calendar">Calendar</button>
     <button class="tab" data-tab="progress">Progress</button>
     <button class="tab" data-tab="cards">Cards</button>
+    <button class="tab" data-tab="notes">Notes<span class="tab-badge" id="notesBadge" hidden></span></button>
   </nav>
 
   <main>
@@ -1050,6 +1102,17 @@
       </div>
       <div id="cardsEditorList"></div>
     </section>
+
+    <section class="view" id="view-notes">
+      <div class="notes-header">
+        <div>
+          <p class="section-title">Notes</p>
+          <p class="notes-count" id="notesCount"></p>
+        </div>
+        <button class="btn ghost" id="addNoteBtn">+ Add note</button>
+      </div>
+      <div id="notesBody"></div>
+    </section>
   </main>
 </div>
 
@@ -1073,6 +1136,15 @@
     <div id="streakBody"></div>
   </div>
 </div>
+
+<div class="modal-overlay" id="noteOverlay" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="noteCloseBtn" aria-label="Close">&times;</button>
+    <div id="noteBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
 
 <div class="modal-overlay" id="offlineOverlay" hidden>
   <div class="modal-card">
@@ -1399,7 +1471,8 @@ function defaultPackState(){
     startDate: todayStr(),
     overrides:{},         // id -> {q,a,w} — user edits to card content, layered over the base deck
     newPerDay:null,       // new cards introduced per day; null = DEFAULT_NEW_PER_DAY
-    deletedCards:{}       // built-in packs only: id -> true for cards the user removed (see builtinPackMeta)
+    deletedCards:{},      // built-in packs only: id -> true for cards the user removed (see builtinPackMeta)
+    notes:[]              // "Leave a note" items: {id, text, done, createdAt, cardId}
   };
 }
 function defaultState(){
@@ -1956,12 +2029,15 @@ function preloadUpcomingImages(){
 /* ---------- study "more options" menu (toolbar and focus mode) ---------- */
 const MENU_ICON_EYE = "<svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/><circle cx=\"12\" cy=\"12\" r=\"3\" stroke=\"currentColor\" stroke-width=\"1.6\"/></svg>";
 const MENU_ICON_EYE_OFF = "<svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/><circle cx=\"12\" cy=\"12\" r=\"3\" stroke=\"currentColor\" stroke-width=\"1.6\"/><path d=\"M4 4l16 16\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"/></svg>";
+const MENU_ICON_NOTE = "<svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M5 4.5h14a1 1 0 0 1 1 1V15l-5 5H5a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/><path d=\"M15 20v-4a1 1 0 0 1 1-1h4\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/><path d=\"M8 9h8M8 12.5h5\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/></svg>";
 const MENU_ICON_SPARKLE = "<svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M12 3L14.4 8.5L20.5 9.2L16 13.2L17.3 19.2L12 16.1L6.7 19.2L8 13.2L3.5 9.2L9.6 8.5L12 3Z\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/></svg>";
 function studyMenuHTML(){
   const hidden = !!pack().hideSections;
   const hasCard = session.pos < session.queue.length;
   return "<button class=\"study-menu-item\" role=\"menuitem\" data-study-menu-action=\"sections\">"
       + (hidden ? MENU_ICON_EYE : MENU_ICON_EYE_OFF) + (hidden ? "Show section names" : "Hide section names") + "</button>"
+    + "<button class=\"study-menu-item\" role=\"menuitem\" data-study-menu-action=\"note\">"
+      + MENU_ICON_NOTE + "Leave a note</button>"
     + "<button class=\"study-menu-item\" role=\"menuitem\" data-study-menu-action=\"ai\""+(hasCard ? "" : " disabled")+">"
       + MENU_ICON_SPARKLE + "Make AI Change</button>";
 }
@@ -2473,6 +2549,7 @@ function grade(g){
 
 /* ============================== HEADER ============================== */
 function renderHeader(){
+  updateNotesBadge();
   document.getElementById("streakVal").textContent = computeCurrentStreakDisplay();
   document.getElementById("dueVal").textContent = cardsDueOrNewToday().length;
   const mastered = CARDS.filter(c=>statusOf(c.id)==="mastered").length;
@@ -2515,6 +2592,7 @@ function initTabs(){
     if(btn.dataset.tab === "calendar") renderCalendar();
     if(btn.dataset.tab === "progress") renderProgress();
     if(btn.dataset.tab === "cards") renderCardsEditor();
+    if(btn.dataset.tab === "notes") renderNotes();
   });
 }
 function switchTab(name){
@@ -2524,6 +2602,7 @@ function switchTab(name){
   if(name === "calendar") renderCalendar();
   if(name === "progress") renderProgress();
   if(name === "cards") renderCardsEditor();
+  if(name === "notes") renderNotes();
 }
 
 /* Left the panel open across midnight? The in-memory session queue would
@@ -2582,6 +2661,8 @@ function initStudyToolbar(){
         p.hideSections = !p.hideSections;
         persist();
         renderCard();
+      } else if(act === "note"){
+        openNoteModal(null);
       } else if(act === "ai"){
         openAiCardModal();
       }
@@ -2595,6 +2676,7 @@ function initStudyToolbar(){
     if(!document.getElementById("view-study").classList.contains("active")) return;
     if(!document.getElementById("editCardOverlay").hidden) return;
     if(!document.getElementById("aiCardOverlay").hidden) return;
+    if(!document.getElementById("noteOverlay").hidden) return;
     if(e.code === "Space"){ e.preventDefault(); toggleFlip(); }
     if((e.key === "z" || e.key === "Z") && !e.shiftKey && !e.altKey){ e.preventDefault(); undoLastGrade(); }
     if(session.flipped && ["1","2","3","4"].includes(e.key)){
@@ -4769,6 +4851,186 @@ function initAuthUI(){
   };
 }
 
+/* ============================== NOTES ==============================
+   "Leave a note" (study menu) jots down a passing thought — usually something
+   to look into later. Notes belong to a pack and live on its Notes tab as a
+   checklist. Each remembers the card it was written on, for context. */
+let noteEditId = null, noteCardId = null, armedNoteDelete = null, armedNoteTimer = null, toastTimer = null;
+function notesList(){
+  const p = pack();
+  if(!Array.isArray(p.notes)) p.notes = [];
+  return p.notes;
+}
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.hidden = true; }, 2200);
+}
+function updateNotesBadge(){
+  const badge = document.getElementById("notesBadge");
+  if(!badge || !currentPackId) return;
+  const open = notesList().filter(n=>!n.done).length;
+  badge.textContent = open;
+  badge.hidden = open === 0;
+}
+const NOTE_CHECK_SVG = "<svg viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M5 12.5l4.5 4.5L19 7.5\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>";
+function noteRowHTML(n){
+  const card = n.cardId != null ? CARD_BY_ID[n.cardId] : null;
+  const when = shortDay((n.createdAt || "").slice(0,10) || todayStr());
+  const q = card ? effCard(card.id).q : "";
+  const meta = escHtml(when) + (q ? " &middot; On &ldquo;" + escHtml(q.length > 70 ? q.slice(0,70).trim() + "…" : q) + "&rdquo;" : "");
+  const armed = armedNoteDelete === n.id;
+  return "<li class=\"note-row"+(n.done ? " is-done" : "")+"\" data-note-id=\""+n.id+"\">"
+    + "<button class=\"note-check\" role=\"checkbox\" aria-checked=\""+(n.done ? "true" : "false")+"\" aria-label=\""+(n.done ? "Mark as not done" : "Mark as done")+"\" data-note-action=\"toggle\">"+NOTE_CHECK_SVG+"</button>"
+    + "<div class=\"note-main\"><p class=\"note-text\" data-note-action=\"edit\" title=\"Tap to edit\">"+escHtml(n.text)+"</p><p class=\"note-meta\">"+meta+"</p></div>"
+    + "<button class=\"note-del"+(armed ? " armed" : "")+"\" data-note-action=\"delete\" aria-label=\"Delete note\">"+(armed ? "Delete?" : "Delete")+"</button>"
+    + "</li>";
+}
+function renderNotes(){
+  if(!currentPackId) return;
+  const list = notesList();
+  updateNotesBadge();
+  const body = document.getElementById("notesBody");
+  const countEl = document.getElementById("notesCount");
+  document.getElementById("addNoteBtn").hidden = list.length === 0;
+  if(!list.length){
+    countEl.textContent = "";
+    body.innerHTML = "<div class=\"notes-empty\">"
+      + "<div class=\"notes-empty-icon\">"+MENU_ICON_NOTE+"</div>"
+      + "<h3>Nothing to look into yet</h3>"
+      + "<p>Got a stray thought while studying &mdash; something to research, a question you want answered? Capture it without losing your place, and tick it off here once you&rsquo;ve looked into it.</p>"
+      + "<ol class=\"notes-howto\">"
+        + "<li><span>While studying a card, tap <b>&#8942;</b> at the top right</span></li>"
+        + "<li><span>Choose <b>Leave a note</b> and type your thought</span></li>"
+        + "<li><span>Come back to this tab and check it off when you&rsquo;re done</span></li>"
+      + "</ol>"
+      + "<button class=\"btn\" data-note-action=\"add\">Write your first note</button>"
+      + "</div>";
+    return;
+  }
+  const open = list.filter(n=>!n.done).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+  const done = list.filter(n=>n.done).sort((a,b)=>(b.doneAt||b.createdAt||"").localeCompare(a.doneAt||a.createdAt||""));
+  countEl.textContent = open.length + " to look into" + (done.length ? " · " + done.length + " done" : "");
+  let html = "";
+  if(open.length){
+    html += "<section class=\"notes-group\"><h4 class=\"notes-group-title\">To look into <span>"+open.length+"</span></h4>"
+      + "<ul class=\"notes-list\">"+open.map(noteRowHTML).join("")+"</ul></section>";
+  } else {
+    html += "<div class=\"notes-empty\" style=\"margin-top:28px;\"><div class=\"notes-empty-icon\" style=\"color:var(--good);background:var(--good-soft);\">"+NOTE_CHECK_SVG+"</div>"
+      + "<h3>All checked off</h3><p>Nothing left to look into. New notes you leave while studying will show up here.</p></div>";
+  }
+  if(done.length){
+    html += "<section class=\"notes-group\"><h4 class=\"notes-group-title\">Done <span>"+done.length+"</span>"
+      + "<button class=\"link-btn"+(armedNoteDelete === "__done" ? " armed" : "")+"\" data-note-action=\"clear-done\">"+(armedNoteDelete === "__done" ? "Tap again to clear" : "Clear done")+"</button></h4>"
+      + "<ul class=\"notes-list\">"+done.map(noteRowHTML).join("")+"</ul></section>";
+  }
+  body.innerHTML = html;
+}
+function openNoteModal(editId){
+  noteEditId = editId || null;
+  const existing = noteEditId ? notesList().find(n=>n.id === noteEditId) : null;
+  // A new note remembers the card on screen (if any); an edit keeps its original card.
+  noteCardId = existing ? existing.cardId : (document.getElementById("view-study").classList.contains("active") && session.pos < session.queue.length ? session.queue[session.pos] : null);
+  const card = noteCardId != null && CARD_BY_ID[noteCardId] ? effCard(noteCardId) : null;
+  document.getElementById("noteBody").innerHTML =
+    "<h2>"+(existing ? "Edit note" : "Leave a note")+"</h2>"
+    + "<p class=\"modal-sub\">"+(existing ? "Update your note." : "Jot it down now, look into it later.")+"</p>"
+    + (card ? "<div class=\"note-card-ctx\"><b>On this card</b>"+escHtml(card.q.length > 120 ? card.q.slice(0,120).trim() + "…" : card.q)+"</div>" : "")
+    + "<textarea id=\"noteText\" rows=\"4\" maxlength=\"1000\" placeholder=\"e.g. Look into how an MVP differs from a prototype\">"+escHtml(existing ? existing.text : "")+"</textarea>"
+    + "<div id=\"noteError\"></div>"
+    + "<div class=\"wizard-actions\"><button class=\"btn\" data-note-modal=\"save\">"+(existing ? "Save" : "Save note")+"</button><button class=\"btn ghost\" data-note-modal=\"cancel\">Cancel</button></div>";
+  document.getElementById("noteOverlay").hidden = false;
+  setTimeout(()=>{ const t = document.getElementById("noteText"); if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 30);
+}
+function closeNoteModal(){
+  document.getElementById("noteOverlay").hidden = true;
+}
+function saveNoteFromModal(){
+  const text = document.getElementById("noteText").value.trim();
+  if(!text){
+    document.getElementById("noteError").innerHTML = "<p class=\"wizard-error\">Write something first.</p>";
+    return;
+  }
+  const list = notesList();
+  const existing = noteEditId ? list.find(n=>n.id === noteEditId) : null;
+  if(existing){
+    existing.text = text;
+  } else {
+    list.push({id:"n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), text, done:false, createdAt:new Date().toISOString(), cardId:noteCardId});
+  }
+  persist();
+  closeNoteModal();
+  updateNotesBadge();
+  if(document.getElementById("view-notes").classList.contains("active")) renderNotes();
+  showToast(existing ? "Note updated" : "Note saved");
+}
+function initNotesUI(){
+  document.getElementById("noteCloseBtn").addEventListener("click", closeNoteModal);
+  document.getElementById("noteOverlay").addEventListener("click",(e)=>{
+    if(e.target.id === "noteOverlay") closeNoteModal();
+  });
+  document.addEventListener("keydown",(e)=>{
+    if(e.key === "Escape" && !document.getElementById("noteOverlay").hidden) closeNoteModal();
+  });
+  document.getElementById("noteBody").addEventListener("click",(e)=>{
+    const b = e.target.closest("[data-note-modal]");
+    if(!b) return;
+    if(b.dataset.noteModal === "save") saveNoteFromModal(); else closeNoteModal();
+  });
+  document.getElementById("noteBody").addEventListener("keydown",(e)=>{
+    if(e.key === "Enter" && (e.metaKey || e.ctrlKey)){ e.preventDefault(); saveNoteFromModal(); }
+  });
+  document.getElementById("addNoteBtn").addEventListener("click", ()=>openNoteModal(null));
+  document.getElementById("notesBody").addEventListener("click",(e)=>{
+    const el = e.target.closest("[data-note-action]");
+    if(!el) return;
+    const act = el.dataset.noteAction;
+    if(act === "add"){ openNoteModal(null); return; }
+    if(act === "clear-done"){
+      if(armedNoteDelete !== "__done"){
+        armedNoteDelete = "__done";
+        clearTimeout(armedNoteTimer);
+        armedNoteTimer = setTimeout(()=>{ armedNoteDelete = null; renderNotes(); }, 3000);
+        renderNotes();
+        return;
+      }
+      pack().notes = notesList().filter(n=>!n.done);
+      armedNoteDelete = null;
+      persist();
+      renderNotes();
+      return;
+    }
+    const row = el.closest("[data-note-id]");
+    if(!row) return;
+    const id = row.dataset.noteId;
+    const list = notesList();
+    const note = list.find(n=>n.id === id);
+    if(!note) return;
+    if(act === "toggle"){
+      note.done = !note.done;
+      if(note.done) note.doneAt = new Date().toISOString(); else delete note.doneAt;
+      persist();
+      renderNotes();
+    } else if(act === "edit"){
+      openNoteModal(id);
+    } else if(act === "delete"){
+      if(armedNoteDelete !== id){
+        armedNoteDelete = id;
+        clearTimeout(armedNoteTimer);
+        armedNoteTimer = setTimeout(()=>{ armedNoteDelete = null; renderNotes(); }, 3000);
+        renderNotes();
+        return;
+      }
+      pack().notes = list.filter(n=>n.id !== id);
+      armedNoteDelete = null;
+      persist();
+      renderNotes();
+    }
+  });
+}
+
 /* ============================== OFFLINE ==============================
    sw.js keeps the app itself available with no connection. This section is
    the "Download for offline" side: it saves a pack's pictures into the same
@@ -4961,6 +5223,7 @@ function boot(){
   initStreakUI();
   initAiCardUI();
   initOfflineUI();
+  initNotesUI();
   calState.selected = todayStr();
 
   document.addEventListener("visibilitychange", ()=>{
