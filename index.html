@@ -2742,6 +2742,13 @@ function renderCalLegend(){
 
 const CALENDAR_HORIZON_DAYS = 100; // just over 3 months, so month-view edges never fall short
 
+// Today counts as complete the moment every card that's due today has been
+// reviewed, rather than only once the day has passed.
+function todayComplete(){
+  const dp = dayProgress(CARDS);
+  const h = pack().history[todayStr()];
+  return dp.total > 0 && dp.remaining === 0 && !!h && h.total > 0;
+}
 function renderCalendar(){
   renderCalLegend();
   const scheduleMap = buildScheduleMap(CALENDAR_HORIZON_DAYS);
@@ -2761,6 +2768,7 @@ function renderCalendar(){
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
   const today = todayStr();
+  const todayCompleteNow = todayComplete();
 
   const cells = [];
   for(let i=startWeekday-1;i>=0;i--){
@@ -2780,8 +2788,9 @@ function renderCalendar(){
     const dateStr = cellYear+"-"+pad(cellMonth+1)+"-"+pad(cell.day);
 
     const isPastCell = dateStr < today;
-    const hist = isPastCell ? pack().history[dateStr] : null;
-    const isCompleted = isPastCell && hist && hist.total > 0;
+    const finishedToday = dateStr === today && todayCompleteNow;
+    const hist = (isPastCell || finishedToday) ? pack().history[dateStr] : null;
+    const isCompleted = (isPastCell || finishedToday) && hist && hist.total > 0;
 
     const btn = document.createElement("button");
     btn.className = "cal-cell" + (cell.outside?" outside":"") + (dateStr===today?" today":"") + (dateStr===calState.selected?" selected":"") + (isCompleted?" completed":"");
@@ -2792,9 +2801,10 @@ function renderCalendar(){
     dateEl.textContent = cell.day;
     btn.appendChild(dateEl);
 
-    if(isPastCell){
-      // A day that's already happened: show it as done, not as if it's
-      // still owed. Only actually-reviewed days get the checkmark.
+    if(isPastCell || isCompleted){
+      // A day that's already happened (or today, once everything due is
+      // reviewed): show it as done, not as if it's still owed. Only
+      // actually-reviewed days get the checkmark.
       if(isCompleted){
         const check = document.createElement("div");
         check.className = "cal-check";
@@ -2852,7 +2862,8 @@ function showCalDetail(dateStr, today, scheduleMap){
   const label = DOW[d.getDay()] + ", " + MONTH_NAMES[d.getMonth()] + " " + d.getDate() + (dateStr===today?" (today)":"");
 
   const isPast = dateStr < today;
-  const data = isPast ? (pack().history[dateStr] || {total:0, byTheme:{}}) : (scheduleMap[dateStr] || {total:0, byTheme:{}});
+  const finished = isPast || (dateStr === today && todayComplete());
+  const data = finished ? (pack().history[dateStr] || {total:0, byTheme:{}}) : (scheduleMap[dateStr] || {total:0, byTheme:{}});
 
   let rows = "";
   THEMES.forEach(t=>{
@@ -2868,15 +2879,15 @@ function showCalDetail(dateStr, today, scheduleMap){
   }
 
   let accuracyLine = "";
-  if(isPast && data.grades){
+  if(finished && data.grades){
     const goodOrBetter = (data.grades.good||0) + (data.grades.easy||0);
     accuracyLine = " &middot; " + Math.round((goodOrBetter/data.total)*100) + "% good or better";
   }
 
-  panel.innerHTML = "<h3>"+label+(isPast?" &#10003; Completed":"")+"</h3><p class=\"cal-empty\" style=\"margin-bottom:12px;\">"+data.total+" card"+(data.total===1?"":"s")+(isPast?" reviewed":" planned")+accuracyLine+"</p><div class=\"cd-rows\">"+rows+"</div>"
-    + (!isPast ? "<button class=\"btn\" id=\"calStudyBtn\">Study this set</button>" : "");
+  panel.innerHTML = "<h3>"+label+(finished?" &#10003; Completed":"")+"</h3><p class=\"cal-empty\" style=\"margin-bottom:12px;\">"+data.total+" card"+(data.total===1?"":"s")+(finished?" reviewed":" planned")+accuracyLine+"</p><div class=\"cd-rows\">"+rows+"</div>"
+    + (!finished ? "<button class=\"btn\" id=\"calStudyBtn\">Study this set</button>" : "");
 
-  if(!isPast){
+  if(!finished){
     document.getElementById("calStudyBtn").addEventListener("click", ()=>{
       overrideQueue = cardsScheduledOn(dateStr, CALENDAR_HORIZON_DAYS);
       buildQueue();
