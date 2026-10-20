@@ -26,3 +26,10 @@ The sign-in screen has a **Create an account** option. Whether it works is contr
 ## Notes
 
 While studying, ⋮ → **Leave a note** saves a passing thought (usually something to look into) to the pack's **Notes** tab, a checklist with the card it was written on for context. Notes live in `state.packs[id].notes` and sync like everything else.
+
+## Catching up after a break
+
+Nothing piles up while a pack sits unopened. New (unseen) cards are released per day you actually study: the daily limit minus those already introduced today (`first` on a card's record). Reviews due on their scheduled day and "Again" retests are never held back; only reviews that are already overdue come back at a steady pace, oldest first, at max(20, half your biggest recent day) a day (`bk` marks those answered today). `studyPlan()` / `plannedDayFor()` are the single source for the queue, counts, calendar and streak.
+
+A pack's ⋮ menu has **Catch up…** (also in Edit): **Reschedule from today** sets the new-card pace and spreads overdue reviews over the coming days, keeping every card's history and your streak, and can be undone for 14 days. **Reset this pack's progress** wipes schedule, history and streak but keeps card edits, notes and settings.
+

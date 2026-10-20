@@ -1440,6 +1440,7 @@ function rebuildEngineGlobals(meta){
   THEME_BY_ID = Object.fromEntries(THEMES.map(t=>[t.id,t]));
   INTRO_ORDER = buildIntroOrder();
   INTRO_INDEX = Object.fromEntries(INTRO_ORDER.map((id,i)=>[id,i]));
+  planCache = null;
 }
 // A theme's id is its unique join key to cards (never reused within a pack),
 // but there are only 5 theme-tN CSS color slots. themeColorVar() picks a
@@ -1451,9 +1452,75 @@ function themeColorVar(themeId){
   const idx = THEMES.findIndex(t=>t.id===themeId);
   return "t"+(((idx<0?0:idx)%5)+1);
 }
+/* ---------- the day's study plan ----------
+   Two things used to pile up when a pack went unopened: not-yet-seen cards were
+   released on a calendar schedule (so skipped days stacked up), and overdue
+   reviews all landed on today. Now:
+   - New cards are released per day you actually study: up to the daily limit
+     minus the ones already introduced today. A day off releases nothing extra.
+   - Overdue reviews (due on an earlier day) are brought back at a steady
+     pace, oldest first, after today's reviews that are due on schedule and
+     any "Again" retests, which are never held back.
+   studyPlan() works out the day each such card is next worked on; everything
+   (study queue, counts, calendar, streak) reads it via plannedDayFor(). */
+const BACKLOG_MIN_PER_DAY = 20;
+let planCache = null;
+function invalidatePlan(){ planCache = null; }
+// Biggest day you actually did in the last two weeks (before today).
+function typicalDailyLoad(p, today){
+  let best = 0;
+  for(let i = 1; i <= 14; i++){
+    const h = p.history[addDays(today, -i)];
+    if(h && h.total > best) best = h.total;
+  }
+  return best;
+}
+function backlogPerDay(p, today){
+  return Math.max(BACKLOG_MIN_PER_DAY, Math.round(typicalDailyLoad(p, today) * 0.5));
+}
+function studyPlan(){
+  const today = todayStr();
+  const p = pack();
+  const N = newPerDayFor(p);
+  if(planCache && planCache.pack === currentPackId && planCache.day === today && planCache.cards === p.cards
+     && planCache.n === N && planCache.size === CARDS.length) return planCache;
+  const unseen = [], overdue = [];
+  let introducedToday = 0, backlogDoneToday = 0;
+  CARDS.forEach(c=>{
+    const r = p.cards[c.id];
+    if(!r){ unseen.push(c.id); return; }
+    if(r.first === today) introducedToday++;
+    if(r.bk === today) backlogDoneToday++;
+    if(r.due < today && !isPendingRetest(r, today)) overdue.push(c.id);
+  });
+  unseen.sort((a,b)=>INTRO_INDEX[a] - INTRO_INDEX[b]);
+  const quota = Math.max(0, N - introducedToday);
+  const newDay = {};
+  unseen.forEach((id,i)=>{
+    newDay[id] = i < quota ? today : addDays(today, 1 + Math.floor((i - quota) / N));
+  });
+  overdue.sort((a,b)=> p.cards[a].due.localeCompare(p.cards[b].due) || (a < b ? -1 : a > b ? 1 : 0));
+  const A = backlogPerDay(p, today);
+  const slots = Math.max(0, A - backlogDoneToday);
+  const backDay = {};
+  overdue.forEach((id,i)=>{
+    backDay[id] = i < slots ? today : addDays(today, 1 + Math.floor((i - slots) / A));
+  });
+  planCache = {pack:currentPackId, day:today, cards:p.cards, n:N, size:CARDS.length, newDay, backDay, overdueCount:overdue.length, unseenCount:unseen.length, perDay:A};
+  return planCache;
+}
+// The day a card is next worked on, given the rules above.
+function plannedDayFor(id){
+  const today = todayStr();
+  const r = getRecord(id);
+  const plan = studyPlan();
+  if(!r) return plan.newDay[id] || today;
+  if(isPendingRetest(r, today)) return today;
+  if(r.due >= today) return r.due;
+  return plan.backDay[id] || today;
+}
 function introDayFor(cardId){
-  const idx = INTRO_INDEX[cardId];
-  return addDays(pack().startDate, Math.floor(idx / newPerDayFor(pack())));
+  return studyPlan().newDay[cardId] || todayStr();
 }
 
 /* ============================== STATE ==============================
@@ -1684,9 +1751,7 @@ function isPendingRetest(r, today){
 }
 function isReadyToday(id){
   const today = todayStr();
-  const r = getRecord(id);
-  if(r) return r.due <= today || isPendingRetest(r, today);
-  return introDayFor(id) <= today;
+  return plannedDayFor(id) <= today;
 }
 // Today's numbers, counted in distinct cards rather than grades: a card is
 // "done" once it's been passed today, "remaining" until then. Grading Again
@@ -1732,7 +1797,7 @@ function scheduledLoadByDay(excludeId){
   CARDS.forEach(c=>{
     if(c.id === excludeId) return;
     const r = getRecord(c.id);
-    const d = r ? r.due : introDayFor(c.id);
+    const d = plannedDayFor(c.id);
     load[d] = (load[d] || 0) + 1;
   });
   return load;
@@ -1758,7 +1823,11 @@ function fuzzedDue(today, interval, cardId){
 function applyGrade(id, grade){
   const today = todayStr();
   const p = pack();
-  let r = getRecord(id) || {ef:2.5, reps:0, interval:0, due:today, last:null, lapses:0};
+  const existing = getRecord(id);
+  let r = existing || {ef:2.5, reps:0, interval:0, due:today, last:null, lapses:0, first:today};
+  // Remember what kind of card this was, so today's new-card and overdue
+  // allowances shrink as they're used (see studyPlan).
+  if(existing && existing.due < today && !isPendingRetest(existing, today)) r.bk = today;
   const q = gradeQuality(grade);
   if(q < 3){
     r.reps = 0;
@@ -1776,6 +1845,7 @@ function applyGrade(id, grade){
   r.last = today;
   r.due = fuzzedDue(today, r.interval, id);
   p.cards[id] = r;
+  invalidatePlan();
 
   const card = CARD_BY_ID[id];
   const day = p.history[today] || {total:0, byTheme:{}, grades:{again:0,hard:0,good:0,easy:0}};
@@ -1803,7 +1873,7 @@ function nextWorkDate(){
   let next = null;
   CARDS.forEach(c=>{
     const r = getRecord(c.id);
-    let d = r ? (isPendingRetest(r, today) ? today : r.due) : introDayFor(c.id);
+    let d = plannedDayFor(c.id);
     if(d < today) d = today;
     if(next === null || d < next) next = d;
   });
@@ -1869,8 +1939,8 @@ function projectedOccurrences(cardId, horizonDays){
   const horizon = addDays(today, horizonDays);
   const real = getRecord(cardId);
   let ef, reps, interval, due;
-  if(real && real.reps > 0){
-    ef = real.ef; reps = real.reps; interval = real.interval; due = real.due;
+  if(real){
+    ef = real.ef; reps = real.reps; interval = real.interval; due = plannedDayFor(cardId);
   } else {
     ef = 2.5; reps = 0; interval = 0; due = introDayFor(cardId);
   }
@@ -1956,11 +2026,11 @@ function buildQueue(){
   }
   const today = todayStr();
   const pool = cardsMatchingFilters();
-  const due = pool.filter(c=>{ const r = getRecord(c.id); return r && r.due <= today; });
+  const due = pool.filter(c=>{ const r = getRecord(c.id); return r && !isPendingRetest(r, today) && plannedDayFor(c.id) <= today; });
   // "Again" cards awaiting their retest today (see isPendingRetest) survive a
   // rebuild too, so a reload can't silently drop a retest.
   const pending = pool.filter(c=>isPendingRetest(getRecord(c.id), today));
-  const fresh = pool.filter(c=>!getRecord(c.id) && introDayFor(c.id) <= today);
+  const fresh = pool.filter(c=>!getRecord(c.id) && plannedDayFor(c.id) <= today);
   due.sort((a,b)=> (getRecord(a.id).due).localeCompare(getRecord(b.id).due));
   // More-overdue cards still come first, but a stable sort otherwise leaves
   // same-due-date cards in id order every time (they usually share a due
@@ -2078,7 +2148,7 @@ function nextReviewInfo(){
   let next = null, count = 0;
   CARDS.forEach(c=>{
     const r = getRecord(c.id);
-    const d = r ? r.due : introDayFor(c.id);
+    const d = plannedDayFor(c.id);
     if(d <= today) return;
     if(next === null || d < next){ next = d; count = 1; }
     else if(d === next) count++;
@@ -2505,6 +2575,7 @@ function undoLastGrade(){
   if(!e.practice){
     const p = pack();
     if(e.prevRecord) p.cards[e.cardId] = e.prevRecord; else delete p.cards[e.cardId];
+    invalidatePlan();
     if(e.prevDay) p.history[e.day] = e.prevDay; else delete p.history[e.day];
     p.streak = e.prevStreak;
     persist();
@@ -3762,6 +3833,7 @@ function renderHome(){
         + (openPackMenuId === meta.id ?
             "<div class=\"pack-tile-menu\">"
               + "<span class=\"pack-tile-menu-item\" data-menu-action=\"edit\" data-pack-id=\""+meta.id+"\">Edit</span>"
+              + "<span class=\"pack-tile-menu-item\" data-menu-action=\"catchup\" data-pack-id=\""+meta.id+"\">Catch up&hellip;</span>"
               + (meta.custom ? "<span class=\"pack-tile-menu-item\" data-menu-action=\"add-cards\" data-pack-id=\""+meta.id+"\">Add cards</span>" : "")
               + "<span class=\"pack-tile-menu-item\" data-menu-action=\"offline\" data-pack-id=\""+meta.id+"\">Download for offline</span>"
               + (meta.custom ? "<span class=\"pack-tile-menu-item danger\" data-menu-action=\"delete\" data-pack-id=\""+meta.id+"\">Delete</span>" : "")
@@ -3842,6 +3914,109 @@ function closeEditPackModal(){
   document.getElementById("editPackOverlay").hidden = true;
   editPackDraft = null;
 }
+/* ---------- catch up: reschedule / reset ---------- */
+function packCatchUpStats(id, N, R){
+  return withPackContext(id, ()=>{
+    const p = pack(), today = todayStr();
+    let unseen = 0, overdue = 0;
+    CARDS.forEach(c=>{
+      const r = p.cards[c.id];
+      if(!r) unseen++;
+      else if(r.due < today && !isPendingRetest(r, today)) overdue++;
+    });
+    return {unseen, overdue, newDays:Math.ceil(unseen / N), backDays:Math.ceil(overdue / R), defaultR:backlogPerDay(p, today)};
+  });
+}
+function rescheduleUndoFor(id){
+  const ps = state.packs[id];
+  const u = ps && ps.rescheduleUndo;
+  if(!u) return null;
+  if(Date.now() - Date.parse(u.at) > 14*86400000){ delete ps.rescheduleUndo; return null; }
+  return u;
+}
+function catchUpSectionHTML(){
+  const u = rescheduleUndoFor(editPackDraft.id);
+  return "<div class=\"form-field\"><label>Catch up</label>"
+    + "<p class=\"form-hint\" style=\"margin-top:0;\">Been away? Restart this pack gently from today without losing what you&rsquo;ve learned.</p>"
+    + "<div class=\"wizard-actions\" style=\"margin-top:8px;\"><button class=\"btn ghost\" data-action=\"reschedule-open\">Reschedule from today&hellip;</button>"
+    + (u ? "<button class=\"btn ghost\" data-action=\"reschedule-undo\">Undo last reschedule</button>" : "")
+    + "</div>"
+    + "<p style=\"margin:14px 0 0;\"><button class=\"link-btn\" data-action=\"reset-pack\" id=\"resetPackBtn\">Reset this pack&rsquo;s progress&hellip;</button></p>"
+    + "</div>";
+}
+function rescheduleDefaults(id){
+  const ps = state.packs[id];
+  const N = Math.min(newPerDayFor(ps), 10);
+  return {N, R: packCatchUpStats(id, N, 1).defaultR};
+}
+function renderReschedulePanel(){
+  const d = editPackDraft;
+  const st = packCatchUpStats(d.id, d.reN, d.reR);
+  const meta = findPackMeta(d.id);
+  document.getElementById("editPackBody").innerHTML =
+    "<h2>Reschedule &ldquo;"+escHtml(meta.name)+"&rdquo;</h2>"
+    + "<p class=\"modal-sub\">Keeps every card&rsquo;s learning history, your answer history and your streak. It restarts the pace from today and spreads overdue reviews over the coming days instead of all at once.</p>"
+    + "<div class=\"form-field\"><label>New cards per day</label><input type=\"number\" id=\"reNewPerDay\" min=\"1\" max=\"200\" value=\""+d.reN+"\"></div>"
+    + "<div class=\"form-field\"><label>Overdue reviews per day</label><input type=\"number\" id=\"reBackPerDay\" min=\"1\" max=\"500\" value=\""+d.reR+"\"></div>"
+    + "<div class=\"note-card-ctx\" id=\"reSummary\"></div>"
+    + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"reschedule-confirm\">Reschedule</button><button class=\"btn ghost\" data-action=\"reschedule-back\">Back</button></div>";
+  updateRescheduleSummary();
+}
+function updateRescheduleSummary(){
+  const d = editPackDraft;
+  const st = packCatchUpStats(d.id, d.reN, d.reR);
+  const pl = (n, w)=> n + " " + w + (n === 1 ? "" : "s");
+  document.getElementById("reSummary").innerHTML =
+    "<b>What will happen</b>"
+    + (st.unseen ? pl(st.unseen, "unseen card") + " introduced "+d.reN+" a day (about "+pl(st.newDays, "day")+").<br>" : "No unseen cards left to introduce.<br>")
+    + (st.overdue ? pl(st.overdue, "overdue review") + " spread at up to "+d.reR+" a day (about "+pl(st.backDays, "day")+")." : "No overdue reviews to spread.");
+}
+function applyReschedule(id, N, R){
+  withPackContext(id, ()=>{
+    const p = pack(), today = todayStr();
+    const overdue = CARDS.filter(c=>{ const r = p.cards[c.id]; return r && r.due < today && !isPendingRetest(r, today); })
+      .map(c=>c.id).sort((a,b)=> p.cards[a].due.localeCompare(p.cards[b].due) || (a < b ? -1 : a > b ? 1 : 0));
+    const changes = [];
+    overdue.forEach((cid,i)=>{
+      const r = p.cards[cid];
+      const nd = addDays(today, Math.floor(i / R));
+      if(nd !== r.due){ changes.push([cid, r.due, nd]); r.due = nd; }
+    });
+    p.rescheduleUndo = {at:new Date().toISOString(), newPerDay:p.newPerDay == null ? null : p.newPerDay, startDate:p.startDate, changes};
+    p.newPerDay = N;
+    p.startDate = today;
+    invalidatePlan();
+    persist();
+  });
+}
+function undoReschedule(id){
+  withPackContext(id, ()=>{
+    const p = pack(), u = p.rescheduleUndo;
+    if(!u) return;
+    u.changes.forEach(([cid, oldDue, newDue])=>{
+      const r = p.cards[cid];
+      if(r && r.due === newDue) r.due = oldDue; // skip cards reviewed since
+    });
+    p.newPerDay = u.newPerDay;
+    if(u.startDate) p.startDate = u.startDate;
+    delete p.rescheduleUndo;
+    invalidatePlan();
+    persist();
+  });
+}
+function resetPackProgress(id){
+  const old = state.packs[id] || {};
+  const fresh = defaultPackState();
+  fresh.overrides = old.overrides || {};
+  fresh.deletedCards = old.deletedCards || {};
+  fresh.notes = old.notes || [];
+  if(old.hideSections) fresh.hideSections = old.hideSections;
+  if(old.newPerDay != null) fresh.newPerDay = old.newPerDay;
+  state.packs[id] = fresh;
+  invalidatePlan();
+  persist();
+}
+let resetPackArmTimer = null;
 function renderEditPackModal(){
   document.getElementById("editPackBody").innerHTML =
     "<h2>Edit pack</h2>"
@@ -3855,6 +4030,7 @@ function renderEditPackModal(){
       + "<p class=\"form-hint\">How many cards you haven&rsquo;t seen yet are introduced each day (default "+DEFAULT_NEW_PER_DAY+"). Lower spreads your reviews out more evenly, at the cost of taking longer to get through the deck.</p></div>"
     + "<div class=\"form-field\"><label>Day streak</label><input type=\"number\" id=\"editPackStreak\" min=\"0\" max=\"9999\" value=\""+editPackDraft.streak+"\">"
       + "<p class=\"form-hint\">Your current streak for this pack. Change it to correct one that was reset by mistake.</p></div>"
+    + catchUpSectionHTML()
     + "<div id=\"editPackError\"></div>"
     + "<div class=\"wizard-actions\"><button class=\"btn\" data-action=\"edit-pack-save\">Save</button><button class=\"btn ghost\" data-action=\"edit-pack-cancel\">Cancel</button></div>";
 }
@@ -3866,11 +4042,48 @@ function initEditPackUI(){
   document.addEventListener("keydown",(e)=>{
     if(e.key === "Escape" && !document.getElementById("editPackOverlay").hidden) closeEditPackModal();
   });
+  document.getElementById("editPackBody").addEventListener("input",(e)=>{
+    if(!editPackDraft || (e.target.id !== "reNewPerDay" && e.target.id !== "reBackPerDay")) return;
+    const n = parseInt(document.getElementById("reNewPerDay").value, 10);
+    const r = parseInt(document.getElementById("reBackPerDay").value, 10);
+    if(n >= 1) editPackDraft.reN = Math.min(n, 200);
+    if(r >= 1) editPackDraft.reR = Math.min(r, 500);
+    updateRescheduleSummary();
+  });
   document.getElementById("editPackBody").addEventListener("click",(e)=>{
     const action = e.target.closest("[data-action]");
     if(!action) return;
     if(action.dataset.action === "edit-pack-cancel"){
       closeEditPackModal();
+    } else if(action.dataset.action === "reschedule-open"){
+      const dflt = rescheduleDefaults(editPackDraft.id);
+      editPackDraft.reN = dflt.N; editPackDraft.reR = dflt.R;
+      renderReschedulePanel();
+    } else if(action.dataset.action === "reschedule-back"){
+      renderEditPackModal();
+    } else if(action.dataset.action === "reschedule-confirm"){
+      applyReschedule(editPackDraft.id, editPackDraft.reN, editPackDraft.reR);
+      closeEditPackModal();
+      renderHome();
+      showToast("Pack rescheduled");
+    } else if(action.dataset.action === "reschedule-undo"){
+      undoReschedule(editPackDraft.id);
+      closeEditPackModal();
+      renderHome();
+      showToast("Reschedule undone");
+    } else if(action.dataset.action === "reset-pack"){
+      if(!action.classList.contains("armed")){
+        action.classList.add("armed");
+        action.textContent = "Tap again to erase this pack\u2019s progress";
+        clearTimeout(resetPackArmTimer);
+        resetPackArmTimer = setTimeout(()=>{ action.classList.remove("armed"); action.innerHTML = "Reset this pack&rsquo;s progress&hellip;"; }, 5000);
+        return;
+      }
+      clearTimeout(resetPackArmTimer);
+      resetPackProgress(editPackDraft.id);
+      closeEditPackModal();
+      renderHome();
+      showToast("Pack progress reset");
     } else if(action.dataset.action === "edit-pack-regen"){
       const packId = editPackDraft.id;
       const meta = findPackMeta(packId);
@@ -3913,6 +4126,7 @@ function initEditPackUI(){
       if(newPerDay !== editPackDraft.newPerDay){
         const ps = state.packs[editPackDraft.id] || (state.packs[editPackDraft.id] = defaultPackState());
         ps.newPerDay = newPerDay;
+        invalidatePlan();
       }
       persist();
       closeEditPackModal();
@@ -3988,6 +4202,12 @@ function initHomeUI(){
       openPackMenuId = null;
       renderHome();
       if(menuAction === "edit") openEditPackModal(id);
+      else if(menuAction === "catchup"){
+        openEditPackModal(id);
+        const dflt = rescheduleDefaults(id);
+        editPackDraft.reN = dflt.N; editPackDraft.reR = dflt.R;
+        renderReschedulePanel();
+      }
       else if(menuAction === "add-cards"){ enterPack(id); switchTab("cards"); }
       else if(menuAction === "delete") openDeletePackModal(id);
       else if(menuAction === "offline") openOfflineModal(id);
